@@ -1,10 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
+import { toast } from "sonner";
+import EmojiPicker from "@/components/EmojiPicker";
+import { uploadImages, MAX_FILES } from "@/lib/storage";
 import { useData } from "@/lib/store";
-import type { Post } from "@/lib/store";
+import type { Post, Comment } from "@/lib/store";
 
 function timeAgo(s: string) {
   const d = Math.floor((Date.now() - new Date(s).getTime()) / 1000);
@@ -124,20 +127,18 @@ function ImageGallery({ images }: { images: string[] }) {
 function InteractionBar({ post }: { post: Post }) {
   const { user, requireLogin } = useAuth();
   const { likedPosts, savedPosts, toggleLike, toggleSave } = useData();
-
-  function handleLike(e: React.MouseEvent) {
-    e.preventDefault();
-    if (!user) { requireLogin(); return; }
-    toggleLike(post.id);
-  }
-  function handleSave(e: React.MouseEvent) {
-    e.preventDefault();
-    if (!user) { requireLogin(); return; }
-    toggleSave(post.id);
-  }
-
   const liked = likedPosts.has(post.id);
   const saved = savedPosts.has(post.id);
+
+  function handleLike() {
+    if (!user) { requireLogin(); toast("请先登录", { style: { background: "rgba(28,28,31,0.9)", border: "1px solid #333336", color: "#e8e8ea" } }); return; }
+    toggleLike(post.id);
+  }
+
+  function handleSave() {
+    if (!user) { requireLogin(); toast("请先登录", { style: { background: "rgba(28,28,31,0.9)", border: "1px solid #333336", color: "#e8e8ea" } }); return; }
+    toggleSave(post.id);
+  }
 
   return (
     <div className="flex items-center gap-5 py-3 border-y border-[var(--color-border-subtle)]">
@@ -177,6 +178,12 @@ export default function PostDetailPage() {
   const { user, requireLogin } = useAuth();
   const { getPostById, getCommentsByPostId, addComment, loading } = useData();
   const [commentText, setCommentText] = useState("");
+  const [replyTo, setReplyTo] = useState<Comment | null>(null);
+  const [showEmoji, setShowEmoji] = useState(false);
+  const [commentImage, setCommentImage] = useState<File | null>(null);
+  const [commentImagePreview, setCommentImagePreview] = useState("");
+  const [uploadingComment, setUploadingComment] = useState(false);
+  const commentFileRef = useRef<HTMLInputElement>(null);
 
   if (loading) return <DetailSkeleton />;
 
@@ -200,11 +207,33 @@ export default function PostDetailPage() {
 
   const comments = getCommentsByPostId(id);
 
-  function handleComment(e: React.FormEvent) {
+  // Organize comments: top-level and replies
+  const { topLevel, replies } = useMemo(() => {
+    const top: Comment[] = [];
+    const rep: Record<string, Comment[]> = {};
+    for (const c of comments) {
+      if (!c.parentId) {
+        top.push(c);
+      } else {
+        if (!rep[c.parentId]) rep[c.parentId] = [];
+        rep[c.parentId].push(c);
+      }
+    }
+    return { topLevel: top, replies: rep };
+  }, [comments]);
+
+  function handleComment(e: React.FormEvent, parentId: string | null = null) {
     e.preventDefault();
-    if (!user) { requireLogin(); return; }
+    if (!user) { requireLogin(); toast("请先登录", { style: { background: "rgba(28,28,31,0.9)", border: "1px solid #333336", color: "#e8e8ea" } }); return; }
     if (!commentText.trim()) return;
-    addComment(id, commentText.trim());
+    addComment(id, commentText.trim(), parentId); toast.success(parentId ? "回复已发送" : "评论已发布");
+    setCommentText("");
+    setReplyTo(null);
+  }
+
+  function handleReply(comment: Comment) {
+    if (!user) { requireLogin(); toast("请先登录", { style: { background: "rgba(28,28,31,0.9)", border: "1px solid #333336", color: "#e8e8ea" } }); return; }
+    setReplyTo(comment);
     setCommentText("");
   }
 
@@ -242,8 +271,12 @@ export default function PostDetailPage() {
 
         {/* Author */}
         <div className="flex items-center gap-3 mb-5">
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[var(--color-accent)] to-[#6b8cff] flex items-center justify-center text-white text-sm font-bold shrink-0">
-            {post.author.charAt(0)}
+          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[var(--color-accent)] to-[#6b8cff] flex items-center justify-center text-white text-sm font-bold shrink-0 overflow-hidden">
+            {post.authorAvatar ? (
+              <img src={post.authorAvatar} alt="" className="w-full h-full object-cover" />
+            ) : (
+              post.author.charAt(0)
+            )}
           </div>
           <div>
             <p className="text-sm font-medium text-[var(--color-text-primary)]">{post.author}</p>
@@ -270,28 +303,77 @@ export default function PostDetailPage() {
           </div>
         )}
 
-        {/* Comments */}
+        {/* Comments Section */}
         <section className="mt-10 pt-8 border-t border-[var(--color-border-subtle)]">
           <h2 className="text-base font-semibold text-[var(--color-text-primary)] mb-5">
             评论 <span className="text-[var(--color-text-tertiary)] font-normal">({comments.length})</span>
           </h2>
 
+          {/* Comment input */}
           {user ? (
-            <form onSubmit={handleComment} className="flex gap-2 mb-6">
-              <input
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                placeholder="写下你的看法..."
-                maxLength={500}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] focus:border-[var(--color-accent)] outline-none transition-all duration-300"
-              />
-              <button
-                type="submit"
-                disabled={!commentText.trim()}
-                className="btn-primary px-5 py-2.5 rounded-xl text-sm disabled:opacity-40 transition-all duration-300"
-              >
-                发送
-              </button>
+            <form onSubmit={(e) => handleComment(e, replyTo?.id || null)} className="mb-6 space-y-2">
+              {replyTo && (
+                <div className="flex items-center justify-between px-1">
+                  <span className="text-[11px] text-[var(--color-accent)]">回复 @{replyTo.author}</span>
+                  <button type="button" onClick={() => { setReplyTo(null); setCommentText(""); }}
+                    className="text-[10px] text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] transition-colors">取消</button>
+                </div>
+              )}
+              <div className="flex gap-2">
+                <div className="flex-1 relative">
+                  <textarea
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                    placeholder={replyTo ? `回复 @${replyTo.author}...` : "写下你的看法..."}
+                    maxLength={500}
+                    rows={2}
+                    className={`w-full px-3 py-2 rounded-xl bg-[var(--color-bg-card)] border text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] outline-none transition-all duration-300 resize-none ${
+                      replyTo ? "border-[var(--color-accent)]/50 focus:border-[var(--color-accent)]" : "border-[var(--color-border-subtle)] focus:border-[var(--color-accent)]"
+                    }`}
+                  />
+                  {/* Image preview */}
+                  {commentImagePreview && (
+                    <div className="mt-2 relative inline-block">
+                      <img src={commentImagePreview} alt="" className="h-16 rounded-lg object-cover" />
+                      <button type="button" onClick={() => { setCommentImage(null); setCommentImagePreview(""); }}
+                        className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center text-[10px]">
+                        ✕
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <div className="flex flex-col gap-1">
+                  <button type="submit" disabled={(!commentText.trim() && !commentImage) || uploadingComment}
+                    className="btn-primary px-3 py-2 rounded-xl text-xs disabled:opacity-40 transition-all duration-300">
+                    {uploadingComment ? "..." : "发送"}
+                  </button>
+                </div>
+              </div>
+              {/* Toolbar */}
+              <div className="flex items-center gap-1 px-1">
+                <div className="relative">
+                  <button type="button" onClick={() => setShowEmoji(!showEmoji)}
+                    className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[var(--color-bg-hover)] text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] transition-all duration-200 text-sm">
+                    😊
+                  </button>
+                  {showEmoji && (
+                    <EmojiPicker onSelect={(e) => { setCommentText(prev => prev + e); }} onClose={() => setShowEmoji(false)} />
+                  )}
+                </div>
+                <button type="button" onClick={() => commentFileRef.current?.click()}
+                  className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[var(--color-bg-hover)] text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] transition-all duration-200">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                </button>
+                <input ref={commentFileRef} type="file" accept="image/*" className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (!f) return;
+                    if (f.size > 10 * 1024 * 1024) { toast.error("图片不能超过10MB"); return; }
+                    setCommentImage(f);
+                    setCommentImagePreview(URL.createObjectURL(f));
+                  }} />
+                <span className="text-[10px] text-[var(--color-text-tertiary)] ml-auto">{commentText.length}/500</span>
+              </div>
             </form>
           ) : (
             <button
@@ -309,20 +391,26 @@ export default function PostDetailPage() {
             </div>
           ) : (
             <div className="space-y-5">
-              {comments.map((c) => (
-                <div key={c.id} className="flex gap-3 animate-fade-up">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-gray-500 to-gray-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
-                    {c.author.charAt(0)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-[13px] font-medium text-[var(--color-text-primary)]">{c.author}</span>
-                      <span className="text-[10px] text-[var(--color-text-tertiary)]">
-                        {new Date(c.createdAt).toLocaleDateString("zh-CN")}
-                      </span>
+              {topLevel.map((c) => (
+                <div key={c.id} className="animate-fade-up">
+                  <CommentItem
+                    comment={c}
+                    onReply={handleReply}
+                  />
+                  {/* Nested replies */}
+                  {replies[c.id] && replies[c.id].length > 0 && (
+                    <div className="ml-10 mt-2 space-y-3 pl-4 border-l-2 border-[var(--color-border-subtle)]">
+                      {replies[c.id].map((reply) => (
+                        <div key={reply.id} className="animate-fade-up">
+                          <CommentItem
+                            comment={reply}
+                            onReply={handleReply}
+                            isReply
+                          />
+                        </div>
+                      ))}
                     </div>
-                    <p className="text-sm text-[var(--color-text-secondary)] mt-1 leading-relaxed">{c.content}</p>
-                  </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -330,5 +418,51 @@ export default function PostDetailPage() {
         </section>
       </div>
     </main>
+  );
+}
+
+function CommentItem({
+  comment,
+  onReply,
+  isReply = false,
+}: {
+  comment: Comment;
+  onReply: (c: Comment) => void;
+  isReply?: boolean;
+}) {
+  return (
+    <div className="flex gap-3 group">
+      <div className={`${isReply ? "w-7 h-7" : "w-8 h-8"} rounded-full bg-gradient-to-br from-gray-500 to-gray-600 flex items-center justify-center text-white text-xs font-bold shrink-0 overflow-hidden`}>
+        {comment.authorAvatar ? (
+          <img src={comment.authorAvatar} alt="" className="w-full h-full object-cover" />
+        ) : (
+          comment.author.charAt(0)
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-baseline gap-2">
+          <span className={`${isReply ? "text-[12px]" : "text-[13px]"} font-medium text-[var(--color-text-primary)]`}>
+            {comment.author}
+          </span>
+          <span className="text-[10px] text-[var(--color-text-tertiary)]">
+            {timeAgo(comment.createdAt)}
+          </span>
+        </div>
+        <p className={`${isReply ? "text-[13px]" : "text-sm"} text-[var(--color-text-secondary)] mt-1 leading-relaxed`}>
+          {comment.content}
+        </p>
+        {comment.image && (
+          <div className="mt-2">
+            <img src={comment.image} alt="" className="max-h-40 rounded-lg object-cover" loading="lazy" />
+          </div>
+        )}
+        <button
+          onClick={() => onReply(comment)}
+          className="text-[10px] text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] mt-1 transition-colors duration-200"
+        >
+          回复
+        </button>
+      </div>
+    </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import { supabase, hasSupabase } from "./supabase";
 
-// ===== Category Mapping (Chinese ↔ English DB values) =====
+// ===== Category Mapping =====
 const CN_TO_EN_CATEGORY: Record<string, string> = {
   "数码": "digital", "科技": "tech", "汽车": "car", "运动": "sport",
   "游戏": "game", "健身": "fitness", "户外": "outdoor", "财经": "finance",
@@ -13,6 +13,15 @@ const EN_TO_CN_CATEGORY: Record<string, string> = {
 };
 
 // ===== Types =====
+export interface Profile {
+  id: string;
+  nickname: string;
+  avatar_url: string;
+  bio: string;
+  is_admin: boolean;
+  banned_until: string | null;
+}
+
 export interface Post {
   id: string;
   title: string;
@@ -22,363 +31,508 @@ export interface Post {
   tags: string[];
   author: string;
   authorId: string;
+  authorAvatar: string;
   createdAt: string;
   likes: number;
   comments: number;
+  isAnnouncement: boolean;
 }
 
 export interface Comment {
   id: string;
   postId: string;
+  parentId: string | null;
   author: string;
   authorId: string;
+  authorAvatar: string;
   content: string;
+  image: string;
   createdAt: string;
+  replies?: Comment[];
 }
 
 function gid(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
 
-// ===== Seed Data (localStorage fallback only) =====
+// ===== localStorage helpers =====
+function lsGet<T>(k: string, fallback: T): T {
+  if (typeof window === "undefined") return fallback;
+  try { const v = localStorage.getItem("dalanying_" + k); return v ? JSON.parse(v) : fallback; }
+  catch { return fallback; }
+}
+function lsSet(k: string, v: unknown): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem("dalanying_" + k, JSON.stringify(v));
+}
+
+// ===== Seed Data =====
 const SEED_POSTS: Post[] = [
   {
-    id: "1", title: "2025 旗舰游戏本横评：ROG 枪神 vs 拯救者 Y9000P 谁更值得买",
-    content: "每年这个时候都是游戏本换代的高峰期。今年 Intel 和 AMD 都拿出了看家本领，RTX 50 系列也全面铺开。\n\n我把市面上一线品牌的旗舰机型都摸了一遍，从做工、散热、性能释放、屏幕素质四个维度做了详细对比。\n\nROG 枪神 8 Plus 超竞版的模具确实顶级，星云屏的观感无敌，但价格也来到了 2W+。拯救者 Y9000P 虽然性价比更高，但在散热模组上明显做了妥协。\n\n简单来说，预算充足闭眼入 ROG，追求性价比选联想。",
+    id: "1", title: "2025 旗舰游戏本横评：ROG vs 拯救者",
+    content: "每年这个时候都是游戏本换代的高峰期。我从做工、散热、性能释放、屏幕素质四个维度做了详细对比。ROG 枪神 8 Plus 超竞版的模具确实顶级，星云屏的观感无敌。拯救者 Y9000P 性价比更高。",
     images: ["https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600&q=80"],
-    category: "数码", tags: ["游戏本", "横评", "ROG"], author: "Tech 老张", authorId: "seed",
-    createdAt: new Date(Date.now() - 86400000).toISOString(), likes: 342, comments: 0,
+    category: "数码", tags: ["游戏本", "横评", "ROG"], author: "Tech老张", authorId: "seed", authorAvatar: "",
+    createdAt: new Date(Date.now() - 86400000).toISOString(), likes: 342, comments: 0, isAnnouncement: false,
   },
   {
-    id: "2", title: "A 股下半年策略：三个确定性的方向",
-    content: "上半年行情走得比较纠结，但进入下半年，有几个逻辑是比较清晰的。\n\n第一是半导体国产替代，大基金三期的落地会带来实质性催化。\n\n第二是新能源出海，光伏和储能虽然在去库存，但海外需求回暖。\n\n第三是消费电子复苏，AI PC 和 AI 手机换机周期已开始。",
-    images: [], category: "财经", tags: ["A股", "投资", "策略"], author: "资本论", authorId: "seed",
-    createdAt: new Date(Date.now() - 129600000).toISOString(), likes: 215, comments: 0,
+    id: "2", title: "A股下半年策略：三个确定性的方向",
+    content: "第一是半导体国产替代，大基金三期的落地会带来实质性催化。第二是新能源出海，光伏和储能海外需求回暖。第三是消费电子复苏，AI PC和AI手机换机周期已开始。",
+    images: [], category: "财经", tags: ["A股", "投资"], author: "资本论", authorId: "seed", authorAvatar: "",
+    createdAt: new Date(Date.now() - 129600000).toISOString(), likes: 215, comments: 0, isAnnouncement: false,
   },
   {
     id: "3", title: "户外徒步入门指南：从装备到路线一次说清",
-    content: "新手徒步最容易犯的错误就是装备 oversize。一天短途徒步，不需要买太多东西。\n\n一双靠谱的徒步鞋（推荐 Salomon 或 Hoka），一个 20L 背包（Osprey Daylite），加上速干衣和冲锋衣即可。",
+    content: "新手徒步最容易犯的错误就是装备oversize。一双靠谱的徒步鞋，一个20L背包，加上速干衣和冲锋衣即可。",
     images: ["https://images.unsplash.com/photo-1551632811-561732d1e306?w=600&q=80"],
-    category: "户外", tags: ["徒步", "装备", "入门"], author: "山系青年", authorId: "seed",
-    createdAt: new Date(Date.now() - 172800000).toISOString(), likes: 189, comments: 0,
+    category: "户外", tags: ["徒步", "装备"], author: "山系青年", authorId: "seed", authorAvatar: "",
+    createdAt: new Date(Date.now() - 172800000).toISOString(), likes: 189, comments: 0, isAnnouncement: false,
   },
   {
-    id: "4", title: "关于 2026 年家用车选购的一些真心话",
-    content: "开了十几年车，换过五六辆。有家充条件就上纯电；没有就插混。纯油车不建议了。\n\n20 万以内：比亚迪宋系列、吉利银河 L7\n30 万左右：理想 L6、Model Y",
+    id: "4", title: "2026年家用车选购真心话",
+    content: "有家充条件就上纯电；没有就插混。纯油车不建议了。",
     images: ["https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=600&q=80"],
-    category: "汽车", tags: ["电车", "SUV", "选车"], author: "老司机阿强", authorId: "seed",
-    createdAt: new Date(Date.now() - 259200000).toISOString(), likes: 523, comments: 0,
+    category: "汽车", tags: ["电车", "选车"], author: "老司机阿强", authorId: "seed", authorAvatar: "",
+    createdAt: new Date(Date.now() - 259200000).toISOString(), likes: 523, comments: 0, isAnnouncement: false,
   },
   {
-    id: "5", title: "居家增肌最全攻略：没有健身房一样练出好身材",
-    content: "很多人觉得增肌必须去健身房，其实未必。关键是要保证渐进超负荷。\n\n核心动作：俯卧撑（胸）、引体向上（背）、深蹲（腿）。\n\n买一对可调节哑铃（20kg+）和引体向上杆，投资不到 1000 元。",
+    id: "5", title: "居家增肌最全攻略：没健身房一样好身材",
+    content: "关键是要保证渐进超负荷。核心动作：俯卧撑、引体向上、深蹲。买一对可调节哑铃和引体向上杆，投资不到1000元。",
     images: ["https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=600&q=80"],
-    category: "健身", tags: ["健身", "增肌", "居家"], author: "铁馆不在家", authorId: "seed",
-    createdAt: new Date(Date.now() - 345600000).toISOString(), likes: 431, comments: 0,
-  },
-  {
-    id: "6", title: "30 岁转行程序员，一年从零到年薪 50W+ 的真实经历",
-    content: "去年这个时候，我还在银行做柜员。我用了一年时间自学，从 HTML/CSS 一路学到 React 和 Node.js。\n\n每天早上 5 点起床学 2 小时，晚上 8 点学到 12 点。现在拿到字节跳动的 offer。转行不分年龄，关键看你有多大的决心。",
-    images: [], category: "科技", tags: ["转行", "程序员", "经验"], author: "逆袭的咸鱼", authorId: "seed",
-    createdAt: new Date(Date.now() - 86400000 * 3).toISOString(), likes: 1240, comments: 0,
+    category: "健身", tags: ["健身", "增肌"], author: "铁馆不在家", authorId: "seed", authorAvatar: "",
+    createdAt: new Date(Date.now() - 345600000).toISOString(), likes: 431, comments: 0, isAnnouncement: false,
   },
 ];
 
-const SEED_COMMENTS: Comment[] = [
-  { id: "c1", postId: "1", author: "数码控阿杰", authorId: "seed", content: "ROG 屏幕确实无敌，用了一个月非常满意", createdAt: new Date().toISOString() },
-  { id: "c2", postId: "1", author: "路人甲", authorId: "seed", content: "拯救者散热没那么差吧，我用的挺好啊", createdAt: new Date().toISOString() },
-  { id: "c3", postId: "6", author: "自学党", authorId: "seed", content: "太励志了，我现在也在自学前端，一起加油", createdAt: new Date().toISOString() },
-];
+const SEED_COMMENTS: Comment[] = [];
 
-// ===== LocalStorage helpers =====
-function lsGet<T>(key: string, fallback: T): T {
-  if (typeof window === "undefined") return fallback;
-  try {
-    const raw = localStorage.getItem("dalanying_" + key);
-    return raw ? (JSON.parse(raw) as T) : fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function lsSet<T>(key: string, value: T) {
-  if (typeof window === "undefined") return;
-  try {
-    localStorage.setItem("dalanying_" + key, JSON.stringify(value));
-  } catch {
-    // quota exceeded, ignore
-  }
-}
-
-// ===== Supabase Operations =====
-
-async function supabaseInsertPost(post: Post, userId: string): Promise<Post | null> {
-  if (!hasSupabase || !supabase) return null;
-  const dbCategory = CN_TO_EN_CATEGORY[post.category] || post.category;
-  const tags = Array.isArray(post.tags) ? post.tags : [];
-  const images = Array.isArray(post.images) ? post.images : [];
-  const { data, error } = await supabase
-    .from("posts")
-    .insert({
-      user_id: userId,
-      title: post.title,
-      content: post.content,
-      image_urls: images,
-      category: dbCategory,
-      tags,
-    })
-    .select("*, profiles:user_id(username, full_name)")
-    .single();
-  if (error) {
-    console.error("Supabase post insert error:", error);
-    return null;
-  }
-  return rowToPost(data);
-}
-
-async function supabaseFetchPosts(): Promise<Post[]> {
-  if (!hasSupabase || !supabase) return [];
-  const { data, error } = await supabase
-    .from("posts")
-    .select("*, profiles:user_id(username, full_name)")
-    .order("created_at", { ascending: false });
-  if (error) {
-    console.error("Supabase posts error:", error);
-    return [];
-  }
-  if (!data || data.length === 0) return [];
-
-  // Fetch likes and comments counts
-  const postIds = data.map((r: Record<string, unknown>) => String(r.id));
-  const [likesRes, commentsRes] = await Promise.all([
-    supabase.from("likes").select("post_id").in("post_id", postIds),
-    supabase.from("comments").select("post_id").in("post_id", postIds),
-  ]);
-
-  const likeCounts = new Map<string, number>();
-  (likesRes.data || []).forEach((r: Record<string, unknown>) => {
-    const pid = String(r.post_id);
-    likeCounts.set(pid, (likeCounts.get(pid) || 0) + 1);
-  });
-  const commentCounts = new Map<string, number>();
-  (commentsRes.data || []).forEach((r: Record<string, unknown>) => {
-    const pid = String(r.post_id);
-    commentCounts.set(pid, (commentCounts.get(pid) || 0) + 1);
-  });
-
-  return data.map((row: Record<string, unknown>) => {
-    const pid = String(row.id);
-    const post = rowToPost(row);
-    post.likes = likeCounts.get(pid) || 0;
-    post.comments = commentCounts.get(pid) || 0;
-    return post;
-  });
-}
-
-function rowToPost(row: Record<string, unknown>): Post {
-  const profiles = row.profiles as Record<string, unknown> | null;
-  const authorName = profiles
-    ? String(profiles.full_name || profiles.username || "匿名用户")
-    : "匿名用户";
+// ===== Supabase row mapper =====
+function mapPost(row: Record<string, unknown>): Post {
+  const profile = row.profiles as { nickname?: string; avatar_url?: string } | null;
   const cat = String(row.category || "");
   return {
     id: String(row.id),
     title: String(row.title || ""),
     content: String(row.content || ""),
-    images: Array.isArray(row.image_urls) ? row.image_urls : [],
+    images: Array.isArray(row.image_urls) ? row.image_urls as string[] : [],
     category: EN_TO_CN_CATEGORY[cat] || cat,
-    tags: Array.isArray(row.tags) ? row.tags : [],
-    author: authorName,
+    tags: Array.isArray(row.tags) ? row.tags as string[] : [],
+    author: profile?.nickname || "用户",
     authorId: String(row.user_id || ""),
-    createdAt: String(row.created_at || ""),
+    authorAvatar: profile?.avatar_url || "",
+    createdAt: String(row.created_at || new Date().toISOString()),
     likes: 0,
     comments: 0,
+    isAnnouncement: Boolean((row as Record<string, unknown>).is_announcement),
   };
 }
 
-async function supabaseInsertComment(comment: Comment): Promise<Comment | null> {
-  if (!hasSupabase || !supabase) return null;
-  const { data, error } = await supabase
-    .from("comments")
-    .insert({
-      post_id: comment.postId,
-      user_id: comment.authorId,
-      content: comment.content,
-    })
-    .select("*, profiles:user_id(username, full_name)")
-    .single();
-  if (error) {
-    console.error("Supabase comment insert error:", error);
-    return null;
+// ===== Fetch posts paginated =====
+async function supabaseFetchPostsPaginated(
+  from: number, to: number,
+  category?: string,
+  search?: string
+): Promise<{ posts: Post[]; total: number }> {
+  if (!hasSupabase || !supabase) return { posts: [], total: 0 };
+
+  let query = supabase.from("posts").select("*, profiles!posts_user_id_fkey(nickname, avatar_url)", { count: "exact" });
+
+  if (category) {
+    const dbCat = CN_TO_EN_CATEGORY[category] || category;
+    query = query.eq("category", dbCat);
   }
-  const profiles = data.profiles as Record<string, unknown> | null;
-  return {
-    id: String(data.id),
-    postId: String(data.post_id || ""),
-    author: profiles ? String(profiles.full_name || profiles.username || "匿名用户") : comment.author,
-    authorId: String(data.user_id || ""),
-    content: String(data.content || ""),
-    createdAt: String(data.created_at || new Date().toISOString()),
-  };
+
+  if (search && search.trim()) {
+    query = query.or(`title.ilike.%${search.trim()}%,content.ilike.%${search.trim()}%`);
+  }
+
+  const { data, error, count } = await query
+    .order("created_at", { ascending: false })
+    .range(from, to);
+
+  if (error || !data) return { posts: [], total: 0 };
+
+  const posts = (data as Record<string, unknown>[]).map(mapPost);
+
+  // Get likes count
+  if (posts.length > 0) {
+    const postIds = posts.map(p => p.id);
+    const { data: likeData } = await supabase.from("likes").select("post_id").in("post_id", postIds);
+    if (likeData) {
+      const likeCounts = new Map<string, number>();
+      for (const r of likeData) {
+        const pid = String(r.post_id);
+        likeCounts.set(pid, (likeCounts.get(pid) || 0) + 1);
+      }
+      for (const p of posts) p.likes = likeCounts.get(p.id) || 0;
+    }
+
+    // Get comments count
+    const { data: commentData } = await supabase.from("comments").select("post_id").in("post_id", postIds);
+    if (commentData) {
+      const commentCounts = new Map<string, number>();
+      for (const r of commentData) {
+        const pid = String(r.post_id);
+        commentCounts.set(pid, (commentCounts.get(pid) || 0) + 1);
+      }
+      for (const p of posts) p.comments = commentCounts.get(p.id) || 0;
+    }
+  }
+
+  return { posts, total: count || 0 };
 }
 
+// ===== Fetch user posts =====
+async function supabaseFetchUserPosts(userId: string): Promise<Post[]> {
+  if (!hasSupabase || !supabase) return [];
+  const { data } = await supabase
+    .from("posts")
+    .select("*, profiles!posts_user_id_fkey(nickname, avatar_url)")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+  if (!data) return [];
+  return (data as Record<string, unknown>[]).map(mapPost);
+}
+
+// ===== Fetch user liked posts =====
+async function supabaseFetchUserLikedPosts(userId: string): Promise<Post[]> {
+  if (!hasSupabase || !supabase) return [];
+  const { data: likesData } = await supabase.from("likes").select("post_id").eq("user_id", userId);
+  if (!likesData || likesData.length === 0) return [];
+  const postIds = likesData.map(r => String(r.post_id));
+  const { data } = await supabase
+    .from("posts")
+    .select("*, profiles!posts_user_id_fkey(nickname, avatar_url)")
+    .in("id", postIds)
+    .order("created_at", { ascending: false });
+  if (!data) return [];
+  return (data as Record<string, unknown>[]).map(mapPost);
+}
+
+// ===== Fetch likes =====
+async function supabaseFetchLikes(postIds: string[]): Promise<{ likes: Map<string, number>; userLikes: Set<string> }> {
+  const likesMap = new Map<string, number>();
+  const userLikes = new Set<string>();
+  if (!hasSupabase || !supabase || postIds.length === 0) return { likes: likesMap, userLikes };
+  const { data } = await supabase.from("likes").select("post_id, user_id").in("post_id", postIds);
+  if (!data) return { likes: likesMap, userLikes };
+  for (const row of data) {
+    const pid = String(row.post_id);
+    likesMap.set(pid, (likesMap.get(pid) || 0) + 1);
+  }
+  const { data: session } = await supabase.auth.getSession();
+  if (session?.session?.user) {
+    const uid = session.session.user.id;
+    for (const row of data) {
+      if (String(row.user_id) === uid) userLikes.add(String(row.post_id));
+    }
+  }
+  return { likes: likesMap, userLikes };
+}
+
+// ===== Fetch comments =====
 async function supabaseFetchComments(): Promise<Comment[]> {
   if (!hasSupabase || !supabase) return [];
-  const { data, error } = await supabase
-    .from("comments")
-    .select("*, profiles:user_id(username, full_name)")
-    .order("created_at", { ascending: true });
-  if (error) {
-    console.error("Supabase comments error:", error);
-    return [];
-  }
-  return (data || []).map((row: Record<string, unknown>) => {
-    const profiles = row.profiles as Record<string, unknown> | null;
-    return {
-      id: String(row.id),
-      postId: String(row.post_id || ""),
-      author: profiles ? String(profiles.full_name || profiles.username || "匿名用户") : "匿名用户",
-      authorId: String(row.user_id || ""),
-      content: String(row.content || ""),
-      createdAt: String(row.created_at || new Date().toISOString()),
-    };
-  });
+  const { data } = await supabase.from("comments").select("*").order("created_at", { ascending: true });
+  if (!data) return [];
+  return (data as Record<string, unknown>[]).map(r => ({
+    id: String(r.id),
+    postId: String(r.post_id),
+    parentId: r.parent_id ? String(r.parent_id) : null,
+    author: String(r.author_name || ""),
+    authorId: String(r.user_id || ""),
+    authorAvatar: String(r.author_avatar || ""),
+    content: String(r.content || ""),
+    image: String(r.image_url || ""),
+    createdAt: String(r.created_at || new Date().toISOString()),
+  }));
 }
 
-async function supabaseLikePost(postId: string, userId: string, liked: boolean): Promise<boolean> {
+// ===== Insert / Delete / Update =====
+async function supabaseInsertPost(post: Post, userId: string): Promise<Post | null> {
+  if (!hasSupabase || !supabase) return null;
+  const dbCategory = CN_TO_EN_CATEGORY[post.category] || post.category;
+  const { data, error } = await supabase.from("posts").insert({
+    user_id: userId, title: post.title, content: post.content,
+    image_urls: post.images, category: dbCategory, tags: post.tags,
+    created_at: new Date().toISOString(),
+  }).select("*, profiles!posts_user_id_fkey(nickname, avatar_url)").single();
+  if (error || !data) return null;
+  return mapPost(data as Record<string, unknown>);
+}
+
+async function supabaseDeletePost(postId: string): Promise<boolean> {
   if (!hasSupabase || !supabase) return false;
-  if (liked) {
+  // Get image URLs to delete from storage
+  const { data: post } = await supabase.from("posts").select("image_urls").eq("id", postId).single();
+  if (post) {
+    const urls = (post as Record<string, unknown>).image_urls as string[] | null;
+    if (urls && urls.length > 0) {
+      const paths = urls.map(u => u.split("/").pop()).filter(Boolean) as string[];
+      if (paths.length > 0) await supabase.storage.from("post-images").remove(paths);
+    }
+  }
+  // Delete likes and comments
+  await supabase.from("likes").delete().eq("post_id", postId);
+  await supabase.from("comments").delete().eq("post_id", postId);
+  // Delete post
+  const { error } = await supabase.from("posts").delete().eq("id", postId);
+  return !error;
+}
+
+async function supabaseUpdatePost(postId: string, updates: { title?: string; content?: string; category?: string; tags?: string[] }): Promise<boolean> {
+  if (!hasSupabase || !supabase) return false;
+  const patch: Record<string, unknown> = {};
+  if (updates.title !== undefined) patch.title = updates.title;
+  if (updates.content !== undefined) patch.content = updates.content;
+  if (updates.category !== undefined) patch.category = CN_TO_EN_CATEGORY[updates.category] || updates.category;
+  if (updates.tags !== undefined) patch.tags = updates.tags;
+  const { error } = await supabase.from("posts").update(patch).eq("id", postId);
+  return !error;
+}
+
+async function supabaseInsertComment(c: Comment): Promise<Comment | null> {
+  if (!hasSupabase || !supabase) return null;
+  const { data, error } = await supabase.from("comments").insert({
+    post_id: c.postId, parent_id: c.parentId, user_id: c.authorId,
+    author_name: c.author, author_avatar: c.authorAvatar,
+    content: c.content, image_url: c.image || "",
+    created_at: new Date().toISOString(),
+  }).select("*").single();
+  if (error || !data) return null;
+  const r = data as Record<string, unknown>;
+  return {
+    id: String(r.id), postId: String(r.post_id), parentId: r.parent_id ? String(r.parent_id) : null,
+    author: String(r.author_name || ""), authorId: String(r.user_id || ""),
+    authorAvatar: String(r.author_avatar || ""), content: String(r.content || ""),
+    image: String(r.image_url || ""),
+    createdAt: String(r.created_at || new Date().toISOString()),
+  };
+}
+
+async function supabaseToggleLike(postId: string, userId: string, currentlyLiked: boolean) {
+  if (!hasSupabase || !supabase) return;
+  if (currentlyLiked) {
     await supabase.from("likes").delete().eq("post_id", postId).eq("user_id", userId);
   } else {
     await supabase.from("likes").insert({ post_id: postId, user_id: userId });
   }
-  return true;
 }
 
-// ===== Sync seed data to Supabase on first login =====
+// ===== Profile =====
+export async function fetchProfile(userId: string): Promise<Profile | null> {
+  if (!hasSupabase || !supabase) return null;
+  const { data } = await supabase.from("profiles").select("*").eq("id", userId).single();
+  if (!data) return null;
+  const d = data as Record<string, unknown>;
+  return {
+    id: String(d.id), nickname: String(d.nickname || ""),
+    avatar_url: String(d.avatar_url || ""), bio: String(d.bio || ""),
+    is_admin: Boolean(d.is_admin),
+    banned_until: d.banned_until ? String(d.banned_until) : null,
+  };
+}
+
+export async function updateProfile(userId: string, updates: { nickname?: string; avatar_url?: string; bio?: string }): Promise<boolean> {
+  if (!hasSupabase || !supabase) return false;
+  const { error } = await supabase.from("profiles").update(updates).eq("id", userId);
+  return !error;
+}
+
+export async function uploadAvatar(file: File, userId: string): Promise<string> {
+  if (!hasSupabase || !supabase) return "";
+  const ext = file.name.split(".").pop() || "jpg";
+  const path = `avatars/${userId}.${ext}`;
+  const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true, cacheControl: "3600" });
+  if (error) throw new Error("头像上传失败");
+  const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+  return data.publicUrl;
+}
+
+// ===== Seed sync =====
 let seedSynced = false;
 export async function syncSeedToSupabase(userId: string): Promise<boolean> {
   if (!hasSupabase || !supabase || seedSynced) return false;
-  const existing = await supabaseFetchPosts();
-  if (existing.length > 0) { seedSynced = true; return false; }
-
+  const { posts } = await supabaseFetchPostsPaginated(0, 0);
+  if (posts.length > 0) { seedSynced = true; return false; }
   let count = 0;
   for (const seed of SEED_POSTS) {
     const dbCategory = CN_TO_EN_CATEGORY[seed.category] || seed.category;
-    const { error } = await supabase
-      .from("posts")
-      .insert({
-        user_id: userId,
-        title: seed.title,
-        content: seed.content,
-        image_urls: seed.images,
-        category: dbCategory,
-        tags: seed.tags,
-        created_at: seed.createdAt,
-      });
+    const { error } = await supabase.from("posts").insert({
+      user_id: userId, title: seed.title, content: seed.content,
+      image_urls: seed.images, category: dbCategory, tags: seed.tags,
+      created_at: seed.createdAt,
+    });
     if (!error) count++;
   }
   seedSynced = true;
-  console.log(`Synced ${count} seed posts to Supabase`);
   return count > 0;
+}
+
+
+// ===== Admin Functions =====
+export async function banUser(userId: string, until: string): Promise<boolean> {
+  if (!hasSupabase || !supabase) return false;
+  const { error } = await supabase.from("profiles").update({ banned_until: until }).eq("id", userId);
+  return !error;
+}
+
+export async function unbanUser(userId: string): Promise<boolean> {
+  if (!hasSupabase || !supabase) return false;
+  const { error } = await supabase.from("profiles").update({ banned_until: null }).eq("id", userId);
+  return !error;
+}
+
+export async function setAdminStatus(userId: string, isAdmin: boolean): Promise<boolean> {
+  if (!hasSupabase || !supabase) return false;
+  const { error } = await supabase.from("profiles").update({ is_admin: isAdmin }).eq("id", userId);
+  return !error;
+}
+
+export async function fetchAllProfiles(): Promise<Profile[]> {
+  if (!hasSupabase || !supabase) return [];
+  const { data } = await supabase.from("profiles").select("*").order("nickname", { ascending: true });
+  if (!data) return [];
+  return (data as Record<string, unknown>[]).map(d => ({
+    id: String(d.id), nickname: String(d.nickname || ""),
+    avatar_url: String(d.avatar_url || ""), bio: String(d.bio || ""),
+    is_admin: Boolean(d.is_admin),
+    banned_until: d.banned_until ? String(d.banned_until) : null,
+  }));
+}
+
+export async function createAnnouncement(post: Omit<Post, "id" | "createdAt" | "likes" | "comments" | "isAnnouncement">): Promise<Post | null> {
+  if (!hasSupabase || !supabase) return null;
+  const dbCategory = CN_TO_EN_CATEGORY[post.category] || post.category;
+  const { data, error } = await supabase.from("posts").insert({
+    user_id: post.authorId, title: post.title, content: post.content,
+    image_urls: post.images, category: dbCategory, tags: post.tags,
+    is_announcement: true, created_at: new Date().toISOString(),
+  }).select("*, profiles!posts_user_id_fkey(nickname, avatar_url)").single();
+  if (error || !data) return null;
+  return mapPost(data as Record<string, unknown>);
 }
 
 // ===== Public API =====
 export const dataService = {
-  async loadPosts(): Promise<Post[]> {
+  PAGE_SIZE: 10,
+
+  async loadPostsPaginated(from: number, category?: string, search?: string): Promise<{ posts: Post[]; total: number }> {
     if (hasSupabase) {
-      const posts = await supabaseFetchPosts();
-      if (posts.length > 0) return posts;
+      return supabaseFetchPostsPaginated(from, from + this.PAGE_SIZE - 1, category, search);
     }
-    return lsGet<Post[]>("posts", SEED_POSTS);
+    // Local fallback: filter and paginate
+    let all = lsGet<Post[]>("posts", SEED_POSTS);
+    if (category) all = all.filter(p => p.category === category);
+    if (search && search.trim()) {
+      const q = search.trim().toLowerCase();
+      all = all.filter(p => p.title.toLowerCase().includes(q) || p.content.toLowerCase().includes(q));
+    }
+    all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return { posts: all.slice(from, from + this.PAGE_SIZE), total: all.length };
+  },
+
+  async loadUserPosts(userId: string): Promise<Post[]> {
+    if (hasSupabase) return supabaseFetchUserPosts(userId);
+    return lsGet<Post[]>("posts", SEED_POSTS).filter(p => p.authorId === userId);
+  },
+
+  async loadUserLikedPosts(userId: string): Promise<Post[]> {
+    if (hasSupabase) return supabaseFetchUserLikedPosts(userId);
+    const likedKeys = lsGet<string[]>("likedPosts", []);
+    const likedPostIds = likedKeys.filter(k => k.endsWith("_" + userId)).map(k => k.replace("_" + userId, ""));
+    return lsGet<Post[]>("posts", SEED_POSTS).filter(p => likedPostIds.includes(p.id));
   },
 
   async loadComments(): Promise<Comment[]> {
     if (hasSupabase) {
-      const comments = await supabaseFetchComments();
-      if (comments.length > 0) return comments;
+      const c = await supabaseFetchComments();
+      if (c.length > 0) return c;
     }
     return lsGet<Comment[]>("comments", SEED_COMMENTS);
   },
 
-  async createPost(post: Omit<Post, "id" | "createdAt" | "likes" | "comments">): Promise<Post> {
+  async loadLikes(userId: string): Promise<{ likedPosts: Set<string>; likesMap: Map<string, number> }> {
+    if (hasSupabase) {
+      const { data } = await supabase!.from("likes").select("post_id");
+      if (data && data.length > 0) {
+        const allIds = [...new Set(data.map(r => String(r.post_id)))];
+        const result = await supabaseFetchLikes(allIds);
+        return { likedPosts: result.userLikes, likesMap: result.likes };
+      }
+    }
+    const keys = lsGet<string[]>("likedPosts", []);
+    return {
+      likedPosts: new Set(keys.filter(k => k.endsWith("_" + userId)).map(k => k.replace("_" + userId, ""))),
+      likesMap: new Map(),
+    };
+  },
+
+  async createPost(post: Omit<Post, "id" | "createdAt" | "likes" | "comments" | "isAnnouncement">): Promise<Post> {
     if (hasSupabase) {
       const result = await supabaseInsertPost(post as Post, post.authorId);
       if (result) return result;
     }
-
-    // Local fallback
-    const newPost: Post = {
-      ...post as Post,
-      id: gid(),
-      likes: 0,
-      comments: 0,
-      createdAt: new Date().toISOString(),
-    };
+    const newPost: Post = { ...post as Post, id: gid(), likes: 0, comments: 0, isAnnouncement: false, createdAt: new Date().toISOString() };
     const posts = lsGet<Post[]>("posts", SEED_POSTS);
     posts.unshift(newPost);
     lsSet("posts", posts);
     return newPost;
   },
 
-  async createComment(postId: string, author: string, authorId: string, content: string): Promise<Comment> {
-    const comment: Comment = {
-      id: gid(),
-      postId,
-      author,
-      authorId,
-      content,
-      createdAt: new Date().toISOString(),
-    };
+  async deletePost(postId: string): Promise<boolean> {
+    if (hasSupabase) return supabaseDeletePost(postId);
+    const posts = lsGet<Post[]>("posts", SEED_POSTS);
+    lsSet("posts", posts.filter(p => p.id !== postId));
+    const comments = lsGet<Comment[]>("comments", SEED_COMMENTS);
+    lsSet("comments", comments.filter(c => c.postId !== postId));
+    return true;
+  },
 
+  async updatePost(postId: string, updates: { title?: string; content?: string; category?: string; tags?: string[] }): Promise<boolean> {
+    if (hasSupabase) return supabaseUpdatePost(postId, updates);
+    const posts = lsGet<Post[]>("posts", SEED_POSTS);
+    const idx = posts.findIndex(p => p.id === postId);
+    if (idx >= 0) {
+      if (updates.title !== undefined) posts[idx].title = updates.title;
+      if (updates.content !== undefined) posts[idx].content = updates.content;
+      if (updates.category !== undefined) posts[idx].category = updates.category;
+      if (updates.tags !== undefined) posts[idx].tags = updates.tags;
+      lsSet("posts", posts);
+    }
+    return true;
+  },
+
+  async createComment(c: { postId: string; parentId: string | null; author: string; authorId: string; authorAvatar: string; content: string; image?: string }): Promise<Comment> {
+    const comment: Comment = { ...c, image: c.image || "", id: gid(), createdAt: new Date().toISOString() };
     if (hasSupabase) {
       const result = await supabaseInsertComment(comment);
       if (result) return result;
     }
-
     const comments = lsGet<Comment[]>("comments", SEED_COMMENTS);
     comments.push(comment);
     lsSet("comments", comments);
     return comment;
   },
 
-  async toggleLike(postId: string, userId: string, currentlyLiked: boolean): Promise<{ liked: boolean; likes: number }> {
-    if (hasSupabase) {
-      await supabaseLikePost(postId, userId, currentlyLiked);
-    }
-
+  async toggleLike(postId: string, userId: string, currentlyLiked: boolean): Promise<{ liked: boolean; likesDelta: number }> {
+    if (hasSupabase) await supabaseToggleLike(postId, userId, currentlyLiked);
     const likedKeys = lsGet<string[]>("likedPosts", []);
-    const posts = lsGet<Post[]>("posts", SEED_POSTS);
-    const idx = posts.findIndex((p) => p.id === postId);
-    let newLiked: boolean;
-    let newLikes: number;
-
     if (currentlyLiked) {
-      const keyIdx = likedKeys.indexOf(postId + "_" + userId);
-      if (keyIdx >= 0) likedKeys.splice(keyIdx, 1);
-      newLiked = false;
-      newLikes = idx >= 0 ? Math.max(0, posts[idx].likes - 1) : 0;
+      const idx = likedKeys.indexOf(postId + "_" + userId);
+      if (idx >= 0) likedKeys.splice(idx, 1);
+      lsSet("likedPosts", likedKeys);
+      return { liked: false, likesDelta: -1 };
     } else {
       likedKeys.push(postId + "_" + userId);
-      newLiked = true;
-      newLikes = idx >= 0 ? posts[idx].likes + 1 : 1;
+      lsSet("likedPosts", likedKeys);
+      return { liked: true, likesDelta: 1 };
     }
-
-    if (idx >= 0) posts[idx].likes = newLikes;
-    lsSet("likedPosts", likedKeys);
-    lsSet("posts", posts);
-
-    return { liked: newLiked, likes: newLikes };
-  },
-
-  loadLikedPosts(userId: string): Set<string> {
-    const keys = lsGet<string[]>("likedPosts", []);
-    return new Set(keys.filter((k) => k.endsWith("_" + userId)).map((k) => k.replace("_" + userId, "")));
   },
 
   loadSavedPosts(userId: string): Set<string> {
     const keys = lsGet<string[]>("savedPosts", []);
-    return new Set(keys.filter((k) => k.endsWith("_" + userId)).map((k) => k.replace("_" + userId, "")));
+    return new Set(keys.filter(k => k.endsWith("_" + userId)).map(k => k.replace("_" + userId, "")));
   },
 
   toggleSave(postId: string, userId: string, currentlySaved: boolean): boolean {

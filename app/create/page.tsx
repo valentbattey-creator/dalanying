@@ -3,9 +3,11 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
+import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 import { useData } from "@/lib/store";
 import { uploadImages, validateImageFile, MAX_FILES } from "@/lib/storage";
+import EmojiPicker from "@/components/EmojiPicker";
 
 const CATEGORIES = ["数码", "科技", "汽车", "运动", "游戏", "健身", "户外", "财经"];
 
@@ -18,17 +20,19 @@ export default function CreatePage() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [category, setCategory] = useState("数码");
-  const [tags, setTags] = useState("");
+  const [tags, setTags] = useState<string[]>([])
+  const [tagInput, setTagInput] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState("");
   const [uploadProgress, setUploadProgress] = useState("");
+  const [showContentEmoji, setShowContentEmoji] = useState(false);
 
   // Redirect unauthenticated users
   useEffect(() => {
     if (!user && !authLoading) {
-      router.replace("/");
+      toast.success("发布成功！"); setTimeout(() => router.replace("/"), 500);
     }
   }, [user, authLoading, router]);
 
@@ -102,11 +106,11 @@ export default function CreatePage() {
         content: content.trim(),
         images: imageUrls,
         category,
-        tags: tags.split(/[,，\s]+/).filter(Boolean),
+        tags,
         author: user!.name,
       });
 
-      router.replace("/");
+      toast.success("发布成功！"); setTimeout(() => router.replace("/"), 500);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "发布失败，请重试";
       setError(msg);
@@ -118,7 +122,7 @@ export default function CreatePage() {
   return (
     <>
       <Navbar />
-      <main className="min-h-screen pt-14 bg-[var(--color-bg-primary)]">
+      <main className="min-h-screen pt-14 pb-20 bg-[var(--color-bg-primary)]">
         <div className="max-w-2xl mx-auto px-5 py-6">
           <h1 className="text-xl font-bold text-[var(--color-text-primary)] mb-1">发布新内容</h1>
           <p className="text-xs text-[var(--color-text-tertiary)] mb-6">分享你的经验、见解或故事</p>
@@ -172,6 +176,18 @@ export default function CreatePage() {
                 rows={8}
                 className="w-full px-4 py-3 rounded-xl bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] focus:border-[var(--color-accent)] outline-none resize-y min-h-[160px] transition-all duration-300"
               />
+              <div className="flex items-center justify-between mt-1.5 px-1">
+                <div className="relative">
+                  <button type="button" onClick={() => setShowContentEmoji(!showContentEmoji)}
+                    className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[var(--color-bg-hover)] text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] transition-all duration-200 text-sm">
+                    😊
+                  </button>
+                  {showContentEmoji && (
+                    <EmojiPicker onSelect={(e) => { setContent(prev => prev + e); }} onClose={() => setShowContentEmoji(false)} />
+                  )}
+                </div>
+                <span className="text-[10px] text-[var(--color-text-tertiary)]">{content.length}/2000</span>
+              </div>
             </div>
 
             {/* Images */}
@@ -230,13 +246,33 @@ export default function CreatePage() {
 
             {/* Tags */}
             <div>
-              <p className="text-sm font-medium text-[var(--color-text-secondary)] mb-1">标签（逗号分隔）</p>
-              <input
-                value={tags}
-                onChange={(e) => setTags(e.target.value)}
-                placeholder="例如：AI, 效率工具, 推荐"
-                className="w-full px-4 py-3 rounded-xl bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] focus:border-[var(--color-accent)] outline-none transition-all duration-300"
-              />
+              <p className="text-sm font-medium text-[var(--color-text-secondary)] mb-1">标签（最多3个，回车添加）</p>
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {tags.map((t, i) => (
+                  <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[var(--color-accent)]/15 text-[var(--color-accent)] text-xs font-medium border-[0.5px] border-[var(--color-accent)]/30">
+                    {t}
+                    <button type="button" onClick={() => setTags(tags.filter((_, j) => j !== i))} className="hover:text-white transition-colors">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                  </span>
+                ))}
+              </div>
+              {tags.length < 3 && (
+                <input
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && tagInput.trim()) {
+                      e.preventDefault();
+                      const newTag = tagInput.trim();
+                      if (!tags.includes(newTag)) setTags([...tags, newTag]);
+                      setTagInput("");
+                    }
+                  }}
+                  placeholder={tags.length === 0 ? "输入标签后按回车..." : `还可添加 ${3 - tags.length} 个`}
+                  className="w-full px-4 py-3 rounded-xl bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] focus:border-[var(--color-accent)] outline-none transition-all duration-300"
+                />
+              )}
             </div>
 
             {/* Upload Progress */}

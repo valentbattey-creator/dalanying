@@ -2,6 +2,9 @@
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { supabase, hasSupabase } from "./supabase";
+import { fetchProfile, updateProfile } from "./data";
+
+export { fetchProfile, updateProfile };
 
 // ===== Types =====
 export interface AppUser {
@@ -9,6 +12,8 @@ export interface AppUser {
   name: string;
   email: string;
   avatar: string;
+  isAdmin: boolean;
+  bannedUntil: string | null;
 }
 
 interface AuthState {
@@ -17,256 +22,100 @@ interface AuthState {
   requireLogin: () => void;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string; code?: string }>;
   register: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string; code?: string }>;
+  quickLogin: (name: string) => Promise<{ success: boolean; error?: string }>;
+  checkNameAvailable: (name: string) => Promise<boolean>;
   logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
+  updateUserProfile: (updates: { name?: string; avatar?: string }) => void;
   setShowLoginModal: (show: boolean) => void;
   showLoginModal: boolean;
+  showProfileSetup: boolean;
+  setShowProfileSetup: (show: boolean) => void;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
 
 // ===== Email Validation =====
-// Step 1: Basic format check (must have @ and dot in the right places)
 const BASIC_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-// Step 2: Disposable email domains (blocklist)
 const DISPOSABLE_DOMAINS = new Set([
   "mailinator.com", "guerrillamail.com", "tempmail.com", "10minutemail.com",
-  "yopmail.com", "throwaway.email", "sharklasers.com", "trashmail.com",
+  "yopmail.com", "throwaway.email", "sharklashers.com", "trashmail.com",
   "temp-mail.org", "fakeinbox.com", "emailondeck.com", "spam4.me",
-  "dispostable.com", "maildrop.cc", "getnada.com", "inboxkitten.com",
-  "mailsac.com", "tempinbox.com", "moakt.com", "emailfake.com",
-  "tempmail.net", "tmpmail.org", "disposablemail.com", "0wnd.net",
-  "0wnd.org", "10minut.com.pl", "1blackmoon.com", "1ce.us",
-  "33mail.com", "3d-painting.com", "4warding.com", "4warding.net",
-  "4warding.org", "60minutemail.com", "6url.com", "75hosting.com",
-  "7days-printing.com", "7tags.com", "9ox.net", "a-bc.net",
-  "anonmails.de", "antichef.com", "antichef.net", "baxomale.ht.cx",
-  "beefmilk.com", "binkmail.com", "bio-muesli.net", "bobmail.info",
-  "bodhi.lawlita.com", "bofthew.com", "brefmail.com", "broadbandninja.com",
-  "bsnow.net", "bugmenot.com", "bumpymail.com", "casualdx.com",
-  "centermail.com", "centermail.net", "chammy.info", "cheatmail.de",
-  "cool.fr.nf", "correo.blogos.net", "cosmorph.com", "courriel.fr.nf",
-  "cubiclink.com", "curryworld.de", "cust.in", "dacoolest.com",
-  "dandikmail.com", "dayrep.com", "deadaddress.com", "deadspam.com",
-  "despam.it", "devnullmail.com", "dfgh.net", "digitalsanctuary.com",
-  "discard.email", "discardmail.com", "discardmail.de", "dispomail.eu",
-  "dodsi.com", "dontsendmespam.de", "dump-email.info", "e4ward.com",
-  "easytrashmail.com", "einrot.com", "einrot.de", "email60.com",
-  "emailgo.de", "emailias.com", "emaillime.com", "emailsensei.com",
-  "emailtemporanea.com", "emailtemporanea.net", "emailtemporar.ro",
-  "emailthe.net", "emailtmp.com", "ephemail.net", "etranquil.com",
-  "etranquil.net", "etranquil.org", "fakeinbox.info", "fastacura.com",
-  "fastchevy.com", "fastchrysler.com", "fastkawasaki.com", "fastmazda.com",
-  "fastmitsubishi.com", "fastnissan.com", "fastsubaru.com", "fastsuzuki.com",
-  "fasttoyota.com", "fastyamaha.com", "filzmail.com", "fivemail.de",
-  "fleckens.hu", "flemail.ru", "flyspam.com", "footard.com",
-  "forgetmail.com", "fr33mail.info", "frapmail.com", "friendlymail.co.uk",
-  "front14.org", "fuckingduh.com", "fudgerub.com", "garliclife.com",
-  "gehensiemirnichtaufdensack.de", "get2mail.fr", "getairmail.com",
-  "getmails.eu", "getonemail.com", "ghosttexter.de", "giantmail.de",
-  "girlsundertheinfluence.com", "gishpuppy.com", "gmial.com",
-  "goemailgo.com", "gorillaswithdirtyarmpits.com", "gotmail.com",
-  "gotmail.org", "gotti.otherinbox.com", "great-host.in",
-  "grr.la", "gsrv.co.uk", "guerrillamail.biz", "guerrillamail.com",
-  "guerrillamail.de", "guerrillamail.info", "guerrillamail.net",
-  "guerrillamail.org", "guerrillamailblock.com", "gustr.com",
-  "h.mintemail.com", "h8s.org", "hacccc.com", "haltospam.com",
-  "harakirimail.com", "hartbot.de", "hat-geld.de", "hatespam.org",
-  "hellodreamworld.com", "herp.in", "hidemail.de", "hmail.us",
-  "hochsitze.com", "hopemail.biz", "hotpop.com", "hulapla.de",
-  "ieatspam.eu", "ieatspam.info", "ihateyoualot.info", "imails.info",
-  "inbax.tk", "inbox.si", "inboxalias.com", "inboxclean.com",
-  "inboxclean.org", "infocom.zp.ua", "instant-mail.de", "ip6.li",
-  "irish2me.com", "iwi.net", "jil.kiev.ua", "junk1e.com",
-  "kasmail.com", "kaspop.com", "keepmymail.com", "klassmaster.com",
-  "klassmaster.net", "klzlk.com", "kulturbetrieb.info", "kurzepost.de",
-  "l33r.com", "labetteraverouge.at", "lackmail.net", "landmail.co",
-  "lawlita.com", "lazyinbox.com", "letthemeatspam.com", "lhsdv.com",
-  "lifebyfood.com", "link2mail.net", "litedrop.com", "loadby.us",
-  "login-email.ml", "lol.ovh", "lookugly.com", "lopl.co.cc",
-  "lovebitco.in", "lr78.com", "lroid.com", "lukop.dk",
-  "m21.cc", "m4ilweb.info", "mail-temporaire.fr", "mail.by",
-  "mail.mezimages.net", "mail.zp.ua", "mail114.net", "mail1a.de",
-  "mail21.cc", "mail2rss.org", "mail333.com", "mail4trash.com",
-  "mailbidon.com", "mailbiz.biz", "mailblocks.com", "mailbucket.org",
-  "mailcat.biz", "mailcatch.com", "mailde.de", "mailde.info",
-  "maildrop.cc", "maildu.de", "maildx.com", "maileater.com",
-  "mailexpire.com", "mailfa.tk", "mailforspam.com", "mailfree.ga",
-  "mailfree.gq", "mailfree.ml", "mailfs.com", "mailguard.me",
-  "mailhazard.com", "mailhazard.us", "mailhz.me", "mailimate.com",
-  "mailin8r.com", "mailinater.com", "mailinator.com", "mailinator.net",
-  "mailinator.org", "mailinator.us", "mailinator2.com", "mailincubator.com",
-  "mailismagic.com", "mailjunk.gq", "mailmate.com", "mailme.ir",
-  "mailme.lv", "mailmetrash.com", "mailmoat.com", "mailms.com",
-  "mailnator.com", "mailnesia.com", "mailnull.com", "mailonaut.com",
-  "mailorc.com", "mailorg.org", "mailpick.biz", "mailproxsy.com",
-  "mailquack.com", "mailrock.biz", "mailscrap.com", "mailseal.de",
-  "mailshell.com", "mailsiphon.com", "mailslapping.com", "mailslite.com",
-  "mailtemp.info", "mailtome.de", "mailtothis.com", "mailtrash.net",
-  "mailtv.net", "mailtv.tv", "mailzilla.com", "mailzilla.org",
-  "makemetheking.com", "manifestgenerator.com", "manybrain.com",
-  "materiali.ml", "mciek.com", "mega.zik.dj", "meinspamschutz.de",
-  "meltmail.com", "messagebeamer.de", "mezimages.net", "mintemail.com",
-  "misterpinball.de", "moncourrier.fr.nf", "monemail.fr.nf",
-  "monmail.fr.nf", "monumentmail.com", "msa.minsmail.com", "mt2009.com",
-  "mx0.wwwnew.eu", "my10minutemail.com", "mycard.net.ua", "mycleaninbox.net",
-  "myemailboxy.com", "mymail-in.net", "mymailoasis.com", "mynetstore.de",
-  "mypacks.net", "mypartyclip.de", "myphantomemail.com", "mysamp.de",
-  "myspaceinc.com", "myspaceinc.net", "myspaceinc.org", "myspamless.com",
-  "mytemp.email", "mytempemail.com", "n4p.eu", "nervmich.net",
-  "nervtmich.net", "netmails.com", "netmails.net", "neverbox.com",
-  "nice-4u.com", "nincsmail.com", "nincsmail.hu", "noblepioneer.com",
-  "nobuma.com", "noclickemail.com", "nogmailspam.info", "nomail.pw",
-  "nomail2me.com", "nomorespamemails.com", "nonspam.eu", "nospamfor.us",
-  "nospamthanks.info", "notmailinator.com", "nowmymail.com", "nurfuerspam.de",
-  "nus.edu.au", "nwldx.com", "objectmail.com", "obobbo.com",
-  "odaymail.com", "oneoffemail.com", "oneoffmail.com", "onewaymail.com",
-  "online.ms", "oopi.org", "opayq.com", "ordinaryamerican.net",
-  "otherinbox.com", "ourklips.com", "outlawspam.com", "ovpn.to",
-  "owlpic.com", "pancakemail.com", "paplease.com", "pepbot.com",
-  "pfui.ru", "pimpedupveggie.com", "pjjkp.com", "plexolan.de",
-  "poczta.onet.pl", "politikerclub.de", "poofy.org", "pookmail.com",
-  "privacy.net", "proxymail.eu", "prtnx.com", "punkass.com",
-  "rcpt.at", "re-gister.com", "reallymymail.com", "realtyalerts.ca",
-  "recursor.net", "reliable-mail.com", "rhyta.com", "rmqkr.net",
-  "royal.net", "rppkn.com", "rtrtr.com", "s0ny.net",
-  "safe-mail.net", "safersignup.de", "safetymail.info", "sandelf.de",
-  "saynotospams.com", "schafmail.de", "selfdestructingmail.com",
-  "sendspamhere.com", "sharklasers.com", "shiftmail.com", "shitmail.org",
-  "shortmail.net", "sibmail.com", "skeefmail.com", "slapsfromlastnight.com",
-  "slaskpost.se", "slipry.net", "smellfear.com", "snakemail.com",
-  "sneakemail.com", "sofimail.com", "sofort-mail.de", "sogetthis.com",
-  "soodonims.com", "spam.la", "spam.su", "spam4.me",
-  "spamavert.com", "spambob.com", "spambob.net", "spambob.org",
-  "spambog.com", "spambog.de", "spambog.net", "spambog.ru",
-  "spamcero.com", "spamcon.org", "spamcorptastic.com", "spamcowboy.com",
-  "spamcowboy.net", "spamcowboy.org", "spamday.com", "spamex.com",
-  "spamfighter.cf", "spamfighter.ga", "spamfighter.gq", "spamfighter.ml",
-  "spamfighter.tk", "spamfree.eu", "spamfree24.com", "spamfree24.de",
-  "spamfree24.eu", "spamfree24.info", "spamfree24.net", "spamfree24.org",
-  "spamgoes.in", "spamgourmet.com", "spamgourmet.net", "spamgourmet.org",
-  "spamherelots.com", "spamhereplease.com", "spamhole.com", "spamify.com",
-  "spaminator.de", "spamkill.info", "spaml.com", "spaml.de",
-  "spammotel.com", "spamobox.com", "spamoff.de", "spamsalad.in",
-  "spamslicer.com", "spamspot.com", "spamstack.net", "spamthis.co.uk",
-  "spamthisplease.com", "spamtrail.com", "spamtrap.ro", "spamtroll.net",
-  "speed.1s.fr", "spikio.com", "supergreatmail.com", "supermailer.jp",
-  "superrito.com", "superstachel.de", "suremail.info", "sute.jp",
-  "tagyourself.com", "talkinator.com", "teewars.org", "teleworm.com",
-  "teleworm.us", "temp-mail.org", "temp-mail.ru", "temp.emeraldwebmail.com",
-  "temp.headstrong.de", "tempail.com", "tempalias.com", "tempe-mail.com",
-  "tempemail.biz", "tempemail.co.za", "tempemail.com", "tempemail.net",
-  "tempinbox.co.uk", "tempinbox.com", "tempmail.demo", "tempmail.eu",
-  "tempmail.it", "tempmail.us", "tempmail2.com", "tempmailer.com",
-  "tempmailer.de", "tempomail.fr", "temporarily.de", "temporarioemail.com.br",
-  "temporaryemail.us", "temporaryforwarding.com", "temporaryinbox.com",
-  "temporarymailaddress.com", "tempthe.net", "thanksnospam.info",
-  "thankyou2010.com", "thisisnotmyrealemail.com", "thismail.net",
-  "throwawayemailaddress.com", "tilien.com", "tittbit.in",
-  "tizi.com", "tmailinator.com", "toiea.com", "toomail.biz",
-  "topranklist.de", "tradermail.info", "trash-amil.com", "trash-mail.at",
-  "trash-mail.com", "trash-mail.de", "trash2009.com", "trashemail.de",
-  "trashmail.at", "trashmail.com", "trashmail.me", "trashmail.net",
-  "trashmail.org", "trashmail.ws", "trashmailer.com", "trashymail.com",
-  "trashymail.net", "trbvm.com", "trialmail.de", "tryalert.com",
-  "turual.com", "twinmail.de", "tyldd.com", "uggsrock.com",
-  "umail.net", "upliftnow.com", "uplipht.com", "uroid.com",
-  "venompen.com", "veryrealemail.com", "viditag.com", "viewcastmedia.com",
-  "viewcastmedia.net", "viewcastmedia.org", "viralplays.com",
-  "vkcode.ru", "vomoto.com", "vpn.st", "vsimcard.com",
-  "vubby.com", "walala.org", "walkmail.net", "webm4il.info",
-  "wegwerf-email-addressen.de", "wegwerf-emails.de", "wegwerfadresse.de",
-  "wegwerfemail.com", "wegwerfemail.de", "wegwerfmail.de", "wegwerfmail.info",
-  "wegwerfmail.net", "wegwerfmail.org", "wetrainbayarea.com",
-  "wetrainbayarea.org", "wh4f.org", "whatiaas.com", "whatpaas.com",
-  "whatsaas.com", "whiffles.org", "whopy.com", "whtjddn.33mail.com",
-  "whyspam.me", "wilemail.com", "willhackforfood.biz", "willselfdestruct.com",
-  "winemaven.info", "wronghead.com", "wuzup.net", "wuzupmail.net",
-  "www.e4ward.com", "wwwnew.eu", "xagloo.com", "xemaps.com",
-  "xents.com", "xmaily.com", "xoxy.net", "yapped.net",
-  "yopmail.fr", "yopmail.net", "yopmail.org", "ypmail.webarnak.fr.eu.org",
-  "yuurok.com", "zehnminuten.de", "zehnminutenmail.de", "zippymail.info",
-  "zoaxe.com", "zoemail.com", "zoemail.net", "zoemail.org",
+  "maildrop.cc", "getnada.com", "inboxkitten.com",
 ]);
 
-// Step 3: Suspicious patterns (test@test, a@a, user@user, etc.)
-function isSuspiciousPattern(email: string): boolean {
-  const [local, domain] = email.split("@");
-  if (!local || !domain) return true;
-  // Local part same as domain name = suspicious
-  const domainName = domain.split(".")[0].toLowerCase();
-  if (local.toLowerCase() === domainName) return true;
-  // Very short local part (< 3 chars) = suspicious
-  if (local.length < 3) return true;
-  // Numbers-only local part = suspicious
-  if (/^\d+$/.test(local)) return true;
-  // "test" or "fake" in local part
-  if (/^(test|spam|temp|tmp)/i.test(local)) return true;
-  return false;
-}
-
 export function isValidEmail(email: string): { valid: boolean; reason?: string } {
-  if (!email || !email.includes("@")) {
-    return { valid: false, reason: "邮箱必须包含 @" };
+  if (!email || !email.includes("@") || !BASIC_EMAIL.test(email)) {
+    return { valid: false, reason: "请输入正确的邮箱格式" };
   }
-  if (!BASIC_EMAIL.test(email)) {
-    return { valid: false, reason: "邮箱格式不正确" };
-  }
-  const domain = email.split("@")[1]?.toLowerCase() || "";
+  const domain = email.split("@")[1]?.toLowerCase();
+  if (!domain) return { valid: false, reason: "邮箱格式不正确" };
   if (DISPOSABLE_DOMAINS.has(domain)) {
-    return { valid: false, reason: "不支持临时邮箱，请使用真实邮箱" };
-  }
-  if (isSuspiciousPattern(email)) {
-    return { valid: false, reason: "这看起来不像真实邮箱，请输入有效地址" };
-  }
-  // TLD must be at least 2 chars
-  const tld = domain.split(".").pop() || "";
-  if (tld.length < 2) {
-    return { valid: false, reason: "邮箱域名不完整" };
+    return { valid: false, reason: "不支持临时邮箱注册" };
   }
   return { valid: true };
 }
 
-function encodePassword(pwd: string): string {
-  let hash = 0;
-  const salt = "dalanying_salt_2026";
-  const input = pwd + salt;
-  for (let i = 0; i < input.length; i++) {
-    hash = ((hash << 5) - hash) + input.charCodeAt(i);
-    hash |= 0;
-  }
-  return "h_" + Math.abs(hash).toString(36);
+function anonymousId(): string {
+  return "anon_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 8);
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showProfileSetup, setShowProfileSetup] = useState(false);
   const [hydrated, setHydrated] = useState(false);
 
-  // Hydrate from localStorage
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem("dalanying_user");
-      if (saved) setUser(JSON.parse(saved));
-    } catch {}
-    const t = setTimeout(() => { setHydrated(true); setLoading(false); }, 100);
-    return () => clearTimeout(t);
+  const refreshUser = useCallback(async () => {
+    if (!hasSupabase) return;
+    const { data: session } = await supabase!.auth.getSession();
+    if (session?.session?.user) {
+      const profile = await fetchProfile(session.session.user.id);
+      setUser({
+        id: session.session.user.id,
+        name: profile?.nickname || session.session.user.user_metadata?.full_name || session.session.user.email!.split("@")[0],
+        email: session.session.user.email!,
+        avatar: profile?.avatar_url || "",
+        isAdmin: profile?.is_admin || false,
+        bannedUntil: profile?.banned_until || null,
+      });
+    }
   }, []);
 
-  // Supabase auth listener
+  // Hydrate from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("dalanying_user");
+      if (stored) {
+        try { setUser(JSON.parse(stored)); } catch {}
+      }
+      if (hasSupabase) refreshUser();
+      setHydrated(true);
+      setLoading(false);
+    }
+  }, [refreshUser]);
+
+  // Listen to Supabase auth changes
   useEffect(() => {
     if (!hasSupabase) return;
     const { data } = supabase!.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
-        const u: AppUser = {
-          id: session.user.id,
-          name: session.user.user_metadata?.full_name || session.user.email!.split("@")[0],
-          email: session.user.email!,
-          avatar: "",
-        };
-        setUser(u);
-        localStorage.setItem("dalanying_user", JSON.stringify(u));
+        fetchProfile(session.user.id).then(profile => {
+          const u: AppUser = {
+            id: session.user.id,
+            name: profile?.nickname || session.user.user_metadata?.full_name || session.user.email!.split("@")[0],
+            email: session.user.email!,
+            avatar: profile?.avatar_url || "",
+            isAdmin: profile?.is_admin || false,
+            bannedUntil: profile?.banned_until || null,
+          };
+          setUser(u);
+          localStorage.setItem("dalanying_user", JSON.stringify(u));
+          if (!profile?.nickname || profile.nickname === session.user.email?.split("@")[0]) {
+            setShowProfileSetup(true);
+          }
+        });
       }
     });
     return () => data.subscription.unsubscribe();
@@ -276,17 +125,77 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!user) setShowLoginModal(true);
   }, [user]);
 
+  const updateUserProfile = useCallback((updates: { name?: string; avatar?: string }) => {
+    setUser(prev => {
+      if (!prev) return prev;
+      const next = { ...prev, ...(updates.name ? { name: updates.name } : {}), ...(updates.avatar ? { avatar: updates.avatar } : {}) };
+      localStorage.setItem("dalanying_user", JSON.stringify(next));
+      return next;
+    });
+  }, []);
+
+  // ===== Check nickname availability =====
+  const checkNameAvailable = useCallback(async (name: string): Promise<boolean> => {
+    if (!name.trim() || name.trim().length < 2) return false;
+    const trimmed = name.trim();
+    // Check Supabase profiles
+    if (hasSupabase) {
+      const { data, error } = await supabase!.from("profiles").select("id").eq("nickname", trimmed).limit(1);
+      if (!error && data && data.length > 0) return false;
+      return true;
+    }
+    // Check localStorage
+    const users = JSON.parse(localStorage.getItem("dalanying_users") || "[]") as AppUser[];
+    const anonUsers = JSON.parse(localStorage.getItem("dalanying_anon_users") || "[]") as string[];
+    return !users.some((u: AppUser) => u.name === trimmed) && !anonUsers.includes(trimmed);
+  }, []);
+
+  // ===== Quick login (name only) =====
+  const quickLogin = useCallback(async (name: string) => {
+    const trimmed = name.trim();
+    if (trimmed.length < 2) return { success: false, error: "名字至少需要 2 个字" };
+    if (trimmed.length > 12) return { success: false, error: "名字最多 12 个字" };
+
+    // Check uniqueness
+    const available = await checkNameAvailable(trimmed);
+    if (!available) return { success: false, error: "这个名字已经被占用了，换一个吧" };
+
+    // Create anonymous user
+    const anonId = anonymousId();
+    const newUser: AppUser = {
+      id: anonId,
+      name: trimmed,
+      email: "",
+      avatar: "",
+      isAdmin: false,
+      bannedUntil: null,
+    };
+
+    // Store in profiles (Supabase)
+    if (hasSupabase) {
+      await supabase!.from("profiles").upsert({
+        id: anonId,
+        nickname: trimmed,
+        avatar_url: "",
+        bio: "",
+      }, { onConflict: "id" });
+    }
+
+    // Store in localStorage
+    const anonUsers = JSON.parse(localStorage.getItem("dalanying_anon_users") || "[]") as string[];
+    anonUsers.push(trimmed);
+    localStorage.setItem("dalanying_anon_users", JSON.stringify(anonUsers));
+
+    setUser(newUser);
+    localStorage.setItem("dalanying_user", JSON.stringify(newUser));
+    return { success: true };
+  }, [checkNameAvailable]);
+
   const login = useCallback(async (email: string, password: string) => {
-    if (!email.trim() || !password.trim()) {
-      return { success: false, error: "请输入邮箱和密码", code: "empty" };
-    }
+    if (!email.trim() || !password.trim()) return { success: false, error: "请输入邮箱和密码", code: "empty" };
     const check = isValidEmail(email);
-    if (!check.valid) {
-      return { success: false, error: check.reason || "邮箱格式不正确", code: "invalid_email" };
-    }
-    if (password.length < 6) {
-      return { success: false, error: "密码至少 6 位", code: "short_password" };
-    }
+    if (!check.valid) return { success: false, error: check.reason || "邮箱格式不正确", code: "invalid_email" };
+    if (password.length < 6) return { success: false, error: "密码至少6位", code: "short_password" };
 
     if (hasSupabase) {
       const { data, error } = await supabase!.auth.signInWithPassword({ email, password });
@@ -295,59 +204,56 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (error.message.includes("Email not confirmed")) return { success: false, error: "账号未激活，请先前往邮箱点击验证链接", code: "not_confirmed" };
         return { success: false, error: error.message, code: "unknown" };
       }
-      const u: AppUser = { id: data.user.id, name: data.user.user_metadata?.full_name || email.split("@")[0], email, avatar: "" };
+      const profile = await fetchProfile(data.user.id);
+      const u: AppUser = {
+        id: data.user.id,
+        name: profile?.nickname || data.user.user_metadata?.full_name || email.split("@")[0],
+        email,
+        avatar: profile?.avatar_url || "",
+        isAdmin: profile?.is_admin || false,
+        bannedUntil: profile?.banned_until || null,
+      };
       setUser(u);
       localStorage.setItem("dalanying_user", JSON.stringify(u));
+      if (!profile?.nickname || profile.nickname === email.split("@")[0]) setShowProfileSetup(true);
       return { success: true };
     }
 
     const users = JSON.parse(localStorage.getItem("dalanying_users") || "[]") as AppUser[];
     const existing = users.find((u: AppUser) => u.email === email);
-    if (!existing) return { success: false, error: "该邮箱未注册，请先注册", code: "not_found" };
-    if (existing.id !== encodePassword(password)) return { success: false, error: "密码错误", code: "wrong_password" };
+    if (!existing) return { success: false, error: "该邮箱未注册", code: "not_found" };
+    // Simple password check for localStorage users
+    if (existing.id.split("_")[0] !== "anon" && existing.id !== password.split("").reduce((a, c) => a + c.charCodeAt(0), 0).toString()) {
+      return { success: false, error: "密码错误", code: "wrong_password" };
+    }
     setUser(existing);
     localStorage.setItem("dalanying_user", JSON.stringify(existing));
     return { success: true };
   }, []);
 
   const register = useCallback(async (name: string, email: string, password: string) => {
-    if (!name.trim() || !email.trim() || !password.trim()) {
-      return { success: false, error: "请填写所有字段", code: "empty" };
-    }
-    if (name.trim().length < 2) {
-      return { success: false, error: "昵称至少 2 个字符", code: "short_name" };
-    }
+    if (!name.trim() || !email.trim() || !password.trim()) return { success: false, error: "请填写所有字段", code: "empty" };
+    if (name.trim().length < 2) return { success: false, error: "昵称至少2个字符", code: "short_name" };
     const check = isValidEmail(email);
-    if (!check.valid) {
-      return { success: false, error: check.reason || "邮箱格式不正确", code: "invalid_email" };
-    }
-    if (password.length < 6) {
-      return { success: false, error: "密码至少 6 位", code: "short_password" };
-    }
+    if (!check.valid) return { success: false, error: check.reason || "邮箱格式不正确", code: "invalid_email" };
+    if (password.length < 6) return { success: false, error: "密码至少6位", code: "short_password" };
 
     if (hasSupabase) {
-      const { data, error } = await supabase!.auth.signUp({
-        email, password,
-        options: { data: { full_name: name } },
-      });
+      const { data, error } = await supabase!.auth.signUp({ email, password, options: { data: { full_name: name } } });
       if (error) {
         if (error.message.includes("already registered")) return { success: false, error: "该邮箱已注册", code: "exists" };
         return { success: false, error: error.message, code: "unknown" };
       }
       if (data.user) {
-        if (data.user.identities && data.user.identities.length === 0) {
-          return { success: false, error: "该邮箱已注册", code: "exists" };
-        }
+        if (data.user.identities && data.user.identities.length === 0) return { success: false, error: "该邮箱已注册", code: "exists" };
         return { success: true, code: "check_email" };
       }
       return { success: true, code: "check_email" };
     }
 
     const users = JSON.parse(localStorage.getItem("dalanying_users") || "[]") as AppUser[];
-    if (users.some((u: AppUser) => u.email === email)) {
-      return { success: false, error: "该邮箱已注册", code: "exists" };
-    }
-    const newUser: AppUser = { id: encodePassword(password), name, email, avatar: "" };
+    if (users.some((u: AppUser) => u.email === email)) return { success: false, error: "该邮箱已注册", code: "exists" };
+    const newUser: AppUser = { id: "email_" + password.split("").reduce((a, c) => a + c.charCodeAt(0), 0), name, email, avatar: "", isAdmin: false, bannedUntil: null };
     users.push(newUser);
     localStorage.setItem("dalanying_users", JSON.stringify(users));
     setUser(newUser);
@@ -356,17 +262,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
-    if (hasSupabase) await supabase!.auth.signOut();
+    if (hasSupabase) {
+      const { data: session } = await supabase!.auth.getSession();
+      if (session?.session) await supabase!.auth.signOut();
+    }
     setUser(null);
     localStorage.removeItem("dalanying_user");
   }, []);
 
-  if (!hydrated) {
-    return <div style={{ minHeight: "100vh", background: "#0c0c0e" }} />;
-  }
+  if (!hydrated) return <div style={{ minHeight: "100vh", background: "#0c0c0e" }} />;
 
   return (
-    <AuthContext.Provider value={{ user, loading, requireLogin, login, register, logout, showLoginModal, setShowLoginModal }}>
+    <AuthContext.Provider value={{
+      user, loading, requireLogin, login, register, logout,
+      quickLogin, checkNameAvailable,
+      refreshUser, updateUserProfile,
+      showLoginModal, setShowLoginModal,
+      showProfileSetup, setShowProfileSetup,
+    }}>
       {children}
     </AuthContext.Provider>
   );
