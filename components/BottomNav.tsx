@@ -22,7 +22,7 @@ export default function BottomNav() {
         {/* 首页 */}
         <button
           onClick={() => router.push("/")}
-          className={`flex flex-col items-center gap-0.5 transition-all duration-200 ${
+          className={`flex flex-col items-center gap-0.5 transition-all duration-200 active:scale-90 ${
             isHome ? "text-[var(--color-text-primary)]" : "text-[var(--color-text-tertiary)]"
           }`}
         >
@@ -33,17 +33,13 @@ export default function BottomNav() {
           <span className="text-[10px] font-medium">首页</span>
         </button>
 
-        {/* 发布 (突出) */}
+        {/* 发布 (突出显示，像抖音的+) */}
         <button
           onClick={handleCreate}
-          className={`relative -mt-5 flex flex-col items-center transition-all duration-200 active:scale-95`}
+          className="relative -mt-5 flex flex-col items-center transition-all duration-200 active:scale-90"
         >
-          <div className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 ${
-            isCreate
-              ? "bg-[var(--color-accent)] text-white shadow-[var(--color-accent-glow)]"
-              : "bg-[var(--color-accent)] text-white"
-          }`}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[var(--color-accent)] to-[#ff6b81] flex items-center justify-center shadow-lg shadow-[var(--color-accent)]/25 transition-all duration-200 hover:shadow-[var(--color-accent)]/40 hover:scale-105">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
               <line x1="12" y1="5" x2="12" y2="19"/>
               <line x1="5" y1="12" x2="19" y2="12"/>
             </svg>
@@ -57,7 +53,7 @@ export default function BottomNav() {
             if (!user) { requireLogin(); return; }
             router.push(`/user/${user.id}`);
           }}
-          className={`flex flex-col items-center gap-0.5 transition-all duration-200 ${
+          className={`flex flex-col items-center gap-0.5 transition-all duration-200 active:scale-90 ${
             pathname.startsWith("/user")
               ? "text-[var(--color-text-primary)]"
               : "text-[var(--color-text-tertiary)]"
