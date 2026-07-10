@@ -197,7 +197,7 @@ export default function PostDetailPage() {
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-[var(--color-text-tertiary)]"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           </div>
           <p className="text-sm text-[var(--color-text-tertiary)]">内容不存在或已被删除</p>
-          <button onClick={() => router.push("/")}
+          <button onClick={() => window.location.href = "/" }
             className="text-sm text-[var(--color-accent)] mt-3 inline-block hover:underline transition-all duration-300"
           >返回首页</button>
         </div>
@@ -243,7 +243,7 @@ export default function PostDetailPage() {
       <div className="glass sticky top-0 z-50">
         <div className="max-w-3xl mx-auto px-5 h-14 flex items-center">
           <button
-            onClick={() => router.back()}
+            onClick={() => window.location.href = "/" }
             className="inline-flex items-center gap-1.5 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] transition-all duration-300 px-2 py-1.5 -ml-2 rounded-lg hover:bg-[var(--color-bg-hover)]"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
