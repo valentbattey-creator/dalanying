@@ -323,16 +323,55 @@ async function supabaseToggleLike(postId: string, userId: string, currentlyLiked
 
 // ===== Profile =====
 export async function fetchProfile(userId: string): Promise<Profile | null> {
-  if (!hasSupabase || !supabase) return null;
-  const { data } = await supabase.from("profiles").select("*").eq("id", userId).single();
-  if (!data) return null;
-  const d = data as Record<string, unknown>;
-  return {
-    id: String(d.id), nickname: String(d.nickname || ""),
-    avatar_url: String(d.avatar_url || ""), bio: String(d.bio || ""),
-    is_admin: Boolean(d.is_admin),
-    banned_until: d.banned_until ? String(d.banned_until) : null,
-  };
+  // Try Supabase first
+  if (hasSupabase && supabase) {
+    const { data } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
+    if (data) {
+      const d = data as Record<string, unknown>;
+      return {
+        id: String(d.id), nickname: String(d.nickname || ""),
+        avatar_url: String(d.avatar_url || ""), bio: String(d.bio || ""),
+        is_admin: Boolean(d.is_admin),
+        banned_until: d.banned_until ? String(d.banned_until) : null,
+      };
+    }
+  }
+  // localStorage fallback for anonymous users
+  if (typeof window !== "undefined") {
+    const key = `dalanying_profile_${userId}`;
+    const local = localStorage.getItem(key);
+    if (local) {
+      try {
+        const p = JSON.parse(local);
+        return {
+          id: userId,
+          nickname: p.nickname || "",
+          avatar_url: p.avatar_url || "",
+          bio: p.bio || "",
+          is_admin: p.is_admin || false,
+          banned_until: p.banned_until || null,
+        };
+      } catch {}
+    }
+    // Also check the user data in localStorage
+    const userData = localStorage.getItem("dalanying_user");
+    if (userData) {
+      try {
+        const u = JSON.parse(userData);
+        if (u.id === userId) {
+          return {
+            id: userId,
+            nickname: u.name || "",
+            avatar_url: u.avatar || "",
+            bio: "",
+            is_admin: u.isAdmin || false,
+            banned_until: u.bannedUntil || null,
+          };
+        }
+      } catch {}
+    }
+  }
+  return null;
 }
 
 export async function updateProfile(userId: string, updates: { nickname?: string; avatar_url?: string; bio?: string }): Promise<boolean> {

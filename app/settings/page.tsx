@@ -262,6 +262,14 @@ export default function SettingsPage() {
           </div>
         )}
 
+        {/* Feedback */}
+        <button
+          onClick={() => window.location.href = "/feedback" }
+          className="w-full py-3 rounded-xl bg-[var(--color-bg-card)] border-[0.5px] border-[var(--color-border-subtle)] text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] hover:border-[var(--color-accent)]/30 transition-all duration-200"
+        >
+          💬 意见反馈
+        </button>
+
         {/* Logout */}
         <button
           onClick={async () => { await logout(); toast.success("已退出"); window.location.href = "/"; }}
