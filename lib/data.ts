@@ -538,10 +538,26 @@ export const dataService = {
   },
 
   async createPost(post: Omit<Post, "id" | "createdAt" | "likes" | "comments">): Promise<Post> {
+    // Try API route first (bypasses RLS for anonymous users)
+    try {
+      const res = await fetch("/api/posts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(post),
+      });
+      const result = await res.json();
+      if (result.stored === "supabase" && result.post) {
+        return result.post;
+      }
+    } catch {}
+    
+    // Fallback: Supabase client (works for authenticated users)
     if (hasSupabase) {
       const result = await supabaseInsertPost(post as Post, post.authorId);
       if (result) return result;
     }
+    
+    // Last resort: localStorage
     const newPost: Post = { ...post as Post, id: gid(), likes: 0, comments: 0, createdAt: new Date().toISOString() };
     const posts = lsGet<Post[]>("posts", SEED_POSTS);
     posts.unshift(newPost);
@@ -578,6 +594,7 @@ export const dataService = {
       const result = await supabaseInsertComment(comment);
       if (result) return result;
     }
+    // localStorage fallback
     const comments = lsGet<Comment[]>("comments", SEED_COMMENTS);
     comments.push(comment);
     lsSet("comments", comments);
