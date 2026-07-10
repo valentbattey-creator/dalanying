@@ -150,6 +150,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return !users.some((u: AppUser) => u.name === trimmed) && !anonUsers.includes(trimmed);
   }, []);
 
+  // ===== Helper: check if this is the first user (becomes admin) =====
+  const checkIsFirstUser = useCallback(async (): Promise<boolean> => {
+    try {
+      if (hasSupabase) {
+        const { count, error } = await supabase!.from("profiles").select("*", { count: "exact", head: true });
+        if (!error && count !== null && count === 0) return true;
+        return false;
+      }
+    } catch {}
+    const users = JSON.parse(localStorage.getItem("dalanying_users") || "[]") as AppUser[];
+    const anonUsers = JSON.parse(localStorage.getItem("dalanying_anon_users") || "[]") as string[];
+    return users.length === 0 && anonUsers.length === 0;
+  }, []);
+
   // ===== Quick login (name only) =====
   const quickLogin = useCallback(async (name: string) => {
     const trimmed = name.trim();
@@ -160,6 +174,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const available = await checkNameAvailable(trimmed);
     if (!available) return { success: false, error: "这个名字已经被占用了，换一个吧" };
 
+    // Check if first user → auto admin
+    const isFirst = await checkIsFirstUser();
+
     // Create anonymous user
     const anonId = anonymousId();
     const newUser: AppUser = {
@@ -167,7 +184,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       name: trimmed,
       email: "",
       avatar: "",
-      isAdmin: false,
+      isAdmin: isFirst,
       bannedUntil: null,
     };
 
@@ -178,6 +195,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         nickname: trimmed,
         avatar_url: "",
         bio: "",
+        is_admin: isFirst,
       }, { onConflict: "id" });
     }
 
@@ -253,7 +271,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const users = JSON.parse(localStorage.getItem("dalanying_users") || "[]") as AppUser[];
     if (users.some((u: AppUser) => u.email === email)) return { success: false, error: "该邮箱已注册", code: "exists" };
-    const newUser: AppUser = { id: "email_" + password.split("").reduce((a, c) => a + c.charCodeAt(0), 0), name, email, avatar: "", isAdmin: false, bannedUntil: null };
+    const anonUsers = JSON.parse(localStorage.getItem("dalanying_anon_users") || "[]") as string[];
+    const isFirst = users.length === 0 && anonUsers.length === 0;
+    const newUser: AppUser = { id: "email_" + password.split("").reduce((a, c) => a + c.charCodeAt(0), 0), name, email, avatar: "", isAdmin: isFirst, bannedUntil: null };
     users.push(newUser);
     localStorage.setItem("dalanying_users", JSON.stringify(users));
     setUser(newUser);
