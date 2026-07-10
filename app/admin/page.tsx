@@ -50,7 +50,7 @@ export default function AdminPage() {
       title: announceTitle.trim(),
       content: announceContent.trim(),
       images: [], category: "数码", tags: ["公告"],
-      author: user.name, authorId: user.id, authorAvatar: user.avatar,
+      author: user.name, authorId: user.id, authorAvatar: user.avatar, isPinned: true, isAnnouncement: true,
     });
     if (post) {
       toast.success("公告已发布！");

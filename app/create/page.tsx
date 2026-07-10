@@ -27,12 +27,14 @@ export default function CreatePage() {
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState("");
   const [uploadProgress, setUploadProgress] = useState("");
-  const [showContentEmoji, setShowContentEmoji] = useState(false);
 
-  // Redirect unauthenticated users
+  // Admin options
+  const [isPinned, setIsPinned] = useState(false);
+  const [isAnnouncement, setIsAnnouncement] = useState(false);
+
   useEffect(() => {
     if (!user && !authLoading) {
-      toast.success("发布成功！"); setTimeout(() => router.replace("/"), 500);
+      router.replace("/");
     }
   }, [user, authLoading, router]);
 
@@ -40,33 +42,27 @@ export default function CreatePage() {
     return <div className="min-h-screen bg-[var(--color-bg-primary)]" />;
   }
 
+  const isAdmin = user.isAdmin;
+
   function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files || []);
     setError("");
-
     if (selectedFiles.length + files.length > MAX_FILES) {
       setError(`最多只能选择 ${MAX_FILES} 张图片`);
       return;
     }
-
     const validFiles: File[] = [];
     const newPreviews: string[] = [];
-
     for (const file of files) {
       const validationError = validateImageFile(file);
-      if (validationError) {
-        setError(validationError);
-        continue;
-      }
+      if (validationError) { setError(validationError); continue; }
       validFiles.push(file);
       newPreviews.push(URL.createObjectURL(file));
     }
-
     if (validFiles.length > 0) {
       setSelectedFiles((prev) => [...prev, ...validFiles]);
       setPreviews((prev) => [...prev, ...newPreviews]);
     }
-
     if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
@@ -80,26 +76,15 @@ export default function CreatePage() {
     e.preventDefault();
     setError("");
     setUploadProgress("");
-
-    if (!title.trim()) {
-      setError("请输入标题");
-      return;
-    }
-    if (!content.trim()) {
-      setError("请输入正文内容");
-      return;
-    }
-
+    if (!title.trim()) { setError("请输入标题"); return; }
+    if (!content.trim()) { setError("请输入正文内容"); return; }
     setPosting(true);
-
     try {
       let imageUrls: string[] = [];
-
       if (selectedFiles.length > 0) {
         setUploadProgress(`正在上传 ${selectedFiles.length} 张图片...`);
         imageUrls = await uploadImages(selectedFiles);
       }
-
       setUploadProgress("正在发布...");
       await addPost({
         title: title.trim(),
@@ -108,9 +93,11 @@ export default function CreatePage() {
         category,
         tags,
         author: user!.name,
-      });
-
-      toast.success("发布成功！"); setTimeout(() => router.replace("/"), 500);
+        isPinned: isAdmin ? isPinned : false,
+        isAnnouncement: isAdmin ? isAnnouncement : false,
+      } as Parameters<typeof addPost>[0]);
+      toast.success("发布成功！");
+      setTimeout(() => router.replace("/"), 500);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "发布失败，请重试";
       setError(msg);
@@ -124,10 +111,71 @@ export default function CreatePage() {
       <Navbar />
       <main className="min-h-screen pt-14 pb-20 bg-[var(--color-bg-primary)]">
         <div className="max-w-2xl mx-auto px-5 py-6">
-          <h1 className="text-xl font-bold text-[var(--color-text-primary)] mb-1">发布新内容</h1>
+          {/* Admin badge */}
+          {isAdmin && (
+            <div className="flex items-center gap-2 mb-4 px-3 py-2 rounded-xl bg-amber-500/10 border border-amber-500/20">
+              <span className="text-lg">🛡️</span>
+              <span className="text-xs font-medium text-amber-400">管理员发布模式</span>
+            </div>
+          )}
+
+          <h1 className="text-xl font-bold text-[var(--color-text-primary)] mb-1">
+            {isAdmin ? "发布内容（管理员）" : "发布新内容"}
+          </h1>
           <p className="text-xs text-[var(--color-text-tertiary)] mb-6">分享你的经验、见解或故事</p>
 
           <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Admin special options */}
+            {isAdmin && (
+              <div className="bg-[var(--color-bg-card)] border-[0.5px] border-[var(--color-border-subtle)] rounded-xl p-4 space-y-3">
+                <p className="text-xs font-medium text-[var(--color-text-tertiary)] uppercase tracking-wider">管理员选项</p>
+                
+                {/* Pin toggle */}
+                <label className="flex items-center justify-between cursor-pointer">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">📌</span>
+                    <div>
+                      <p className="text-sm font-medium text-[var(--color-text-primary)]">置顶帖子</p>
+                      <p className="text-[10px] text-[var(--color-text-tertiary)]">在首页顶部始终显示</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsPinned(!isPinned)}
+                    className={`relative w-11 h-6 rounded-full transition-all duration-300 ${
+                      isPinned ? "bg-[var(--color-accent)]" : "bg-[var(--color-bg-hover)]"
+                    }`}
+                  >
+                    <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-all duration-300 shadow ${
+                      isPinned ? "translate-x-5" : "translate-x-0"
+                    }`} />
+                  </button>
+                </label>
+
+                {/* Announcement toggle */}
+                <label className="flex items-center justify-between cursor-pointer">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">📢</span>
+                    <div>
+                      <p className="text-sm font-medium text-[var(--color-text-primary)]">全站公告</p>
+                      <p className="text-[10px] text-[var(--color-text-tertiary)]">以横幅样式展示在首页最顶部</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsAnnouncement(!isAnnouncement)}
+                    className={`relative w-11 h-6 rounded-full transition-all duration-300 ${
+                      isAnnouncement ? "bg-amber-500" : "bg-[var(--color-bg-hover)]"
+                    }`}
+                  >
+                    <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-all duration-300 shadow ${
+                      isAnnouncement ? "translate-x-5" : "translate-x-0"
+                    }`} />
+                  </button>
+                </label>
+              </div>
+            )}
+
             {/* Category */}
             <div>
               <p className="text-sm font-medium text-[var(--color-text-secondary)] mb-2">选择分类</p>
@@ -151,80 +199,54 @@ export default function CreatePage() {
 
             {/* Title */}
             <div>
-              <p className="text-sm font-medium text-[var(--color-text-secondary)] mb-1">
-                标题 <span className="text-red-400">*</span>
-              </p>
               <input
+                type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="输入一个吸引人的标题..."
+                placeholder="输入标题..."
                 maxLength={100}
                 className="w-full px-4 py-3 rounded-xl bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] focus:border-[var(--color-accent)] outline-none transition-all duration-300"
               />
-              <p className="text-[10px] text-[var(--color-text-tertiary)] mt-1 ml-1">{title.length}/100</p>
             </div>
 
             {/* Content */}
-            <div>
-              <p className="text-sm font-medium text-[var(--color-text-secondary)] mb-1">
-                正文 <span className="text-red-400">*</span>
-              </p>
+            <div className="relative">
               <textarea
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 placeholder="写下你想分享的内容..."
                 rows={8}
-                className="w-full px-4 py-3 rounded-xl bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] focus:border-[var(--color-accent)] outline-none resize-y min-h-[160px] transition-all duration-300"
+                maxLength={5000}
+                className="w-full px-4 py-3 rounded-xl bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] focus:border-[var(--color-accent)] outline-none transition-all duration-300 resize-none"
               />
-              <div className="flex items-center justify-between mt-1.5 px-1">
-                <div className="relative">
-                  <button type="button" onClick={() => setShowContentEmoji(!showContentEmoji)}
-                    className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[var(--color-bg-hover)] text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] transition-all duration-200 text-sm">
-                    😊
-                  </button>
-                  {showContentEmoji && (
-                    <EmojiPicker onSelect={(e) => { setContent(prev => prev + e); }} onClose={() => setShowContentEmoji(false)} />
-                  )}
-                </div>
-                <span className="text-[10px] text-[var(--color-text-tertiary)]">{content.length}/2000</span>
-              </div>
             </div>
 
-            {/* Images */}
+            {/* Image Upload */}
             <div>
               <p className="text-sm font-medium text-[var(--color-text-secondary)] mb-2">
-                图片 <span className="text-[var(--color-text-tertiary)] font-normal">（选填，最多 {MAX_FILES} 张）</span>
+                图片（最多 {MAX_FILES} 张）
               </p>
-
               {previews.length > 0 && (
                 <div className="grid grid-cols-3 gap-2 mb-3">
                   {previews.map((url, i) => (
-                    <div key={i} className="relative aspect-square rounded-lg overflow-hidden bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] group">
-                      <img src={url} alt={`预览 ${i + 1}`} className="w-full h-full object-cover" />
+                    <div key={i} className="relative aspect-square rounded-xl overflow-hidden bg-[var(--color-bg-hover)] group">
+                      <img src={url} alt="" className="w-full h-full object-cover" />
                       <button
                         type="button"
                         onClick={() => removeImage(i)}
-                        className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-black/60 flex items-center justify-center text-white/80 hover:text-white hover:bg-black/80 transition-all duration-300 opacity-0 group-hover:opacity-100"
+                        className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-black/60 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all duration-200"
                       >
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                        </svg>
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                       </button>
-                      {i === 0 && (
-                        <span className="absolute bottom-1.5 left-1.5 px-2 py-0.5 rounded-md bg-[var(--color-accent)] text-white text-[10px] font-medium">
-                          封面
-                        </span>
-                      )}
                     </div>
                   ))}
                 </div>
               )}
-
               {selectedFiles.length < MAX_FILES && (
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full py-5 rounded-xl border-2 border-dashed border-[var(--color-border-default)] bg-[var(--color-bg-card)] text-[var(--color-text-tertiary)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] transition-all duration-300 flex flex-col items-center gap-1.5 group"
+                  className="w-full py-8 rounded-xl border-2 border-dashed border-[var(--color-border-subtle)] bg-[var(--color-bg-card)] flex flex-col items-center justify-center gap-1.5 text-[var(--color-text-tertiary)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] transition-all duration-300 group"
                 >
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="transition-transform duration-300 group-hover:scale-110">
                     <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
@@ -233,15 +255,7 @@ export default function CreatePage() {
                   <span className="text-[10px] opacity-60">支持 JPG、PNG、WebP，单张不超过 10MB</span>
                 </button>
               )}
-
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handleFileSelect}
-                className="hidden"
-              />
+              <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleFileSelect} className="hidden" />
             </div>
 
             {/* Tags */}
@@ -305,9 +319,7 @@ export default function CreatePage() {
                   <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>
                   发布中...
                 </span>
-              ) : (
-                "发布内容"
-              )}
+              ) : isAnnouncement ? "📢 发布公告" : isPinned ? "📌 发布并置顶" : "发布内容"}
             </button>
           </form>
         </div>

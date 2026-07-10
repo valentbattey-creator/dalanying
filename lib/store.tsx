@@ -17,7 +17,7 @@ interface DataState {
   searchQuery: string;
   setSearchQuery: (q: string) => void;
   loadMore: () => Promise<void>;
-  addPost: (post: Omit<Post, "id" | "likes" | "comments" | "createdAt" | "authorId" | "authorAvatar" | "isAnnouncement">) => Promise<void>;
+  addPost: (post: Omit<Post, "id" | "likes" | "comments" | "createdAt" | "authorId" | "authorAvatar">) => Promise<void>;
   addComment: (postId: string, content: string, parentId?: string | null, image?: string) => Promise<Comment | null>;
   toggleLike: (postId: string) => void;
   toggleSave: (postId: string) => void;
@@ -34,7 +34,7 @@ interface DataState {
   banUser: (userId: string, until: string) => Promise<boolean>;
   unbanUser: (userId: string) => Promise<boolean>;
   fetchAllProfiles: () => Promise<Profile[]>;
-  createAnnouncement: (post: Omit<Post, "id" | "createdAt" | "likes" | "comments" | "isAnnouncement">) => Promise<Post | null>;
+  createAnnouncement: (post: Omit<Post, "id" | "createdAt" | "likes" | "comments">) => Promise<Post | null>;
 }
 
 const DataContext = createContext<DataState | null>(null);
@@ -119,7 +119,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   }, [searchQuery]);
 
-  const addPost = useCallback(async (p: Omit<Post, "id" | "likes" | "comments" | "createdAt" | "authorId" | "authorAvatar" | "isAnnouncement">) => {
+  const addPost = useCallback(async (p: Omit<Post, "id" | "likes" | "comments" | "createdAt" | "authorId" | "authorAvatar">) => {
     if (!user) return;
     if (isBanned(user)) return;
     const newPost = await dataService.createPost({ ...p, author: user.name, authorId: user.id, authorAvatar: user.avatar });
@@ -175,7 +175,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const handleBanUser = useCallback(async (userId: string, until: string) => banUser(userId, until), []);
   const handleUnbanUser = useCallback(async (userId: string) => unbanUser(userId), []);
   const handleFetchAllProfiles = useCallback(async () => fetchAllProfiles(), []);
-  const handleCreateAnnouncement = useCallback(async (post: Omit<Post, "id" | "createdAt" | "likes" | "comments" | "isAnnouncement">) => createAnnouncement(post), []);
+  const handleCreateAnnouncement = useCallback(async (post: Omit<Post, "id" | "createdAt" | "likes" | "comments">) => createAnnouncement(post), []);
 
   return (
     <DataContext.Provider value={{
