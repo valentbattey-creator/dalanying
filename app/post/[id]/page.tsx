@@ -214,7 +214,7 @@ export default function PostDetailPage() {
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-[var(--color-text-tertiary)]"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           </div>
           <p className="text-sm text-[var(--color-text-tertiary)]">内容不存在或已被删除</p>
-          <button onClick={() => window.location.href = "/" }
+          <button type="button" onClick={() => window.location.href = "/" }
             className="text-sm text-[var(--color-accent)] mt-3 inline-block hover:underline transition-all duration-300"
           >返回首页</button>
         </div>

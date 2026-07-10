@@ -75,7 +75,7 @@ export default function MessagesPage() {
   if (!user) {
     return (
       <main className="min-h-screen bg-[var(--color-bg-primary)] flex items-center justify-center">
-        <button onClick={() => router.push("/")} className="text-sm text-[var(--color-accent)]">请先登录</button>
+        <button type="button" onClick={() => window.location.href = "/" } className="text-sm text-[var(--color-accent)]">请先登录</button>
       </main>
     );
   }
@@ -86,7 +86,7 @@ export default function MessagesPage() {
   return (
     <main className="min-h-screen bg-[var(--color-bg-primary)]">
       <div className="glass sticky top-0 z-50 h-11 flex items-center px-4">
-        <button onClick={() => window.location.href = "/" } className="flex items-center gap-1.5 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-accent)]">
+        <button type="button" onClick={() => window.location.href = "/" } className="flex items-center gap-1.5 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-accent)]">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
         </button>
         <h1 className="flex-1 text-center text-sm font-semibold text-[var(--color-text-primary)] -ml-6">消息</h1>
