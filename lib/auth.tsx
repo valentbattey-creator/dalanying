@@ -2,6 +2,8 @@
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { supabase, hasSupabase } from "./supabase";
+import { moderateName } from "./moderation";
+import { generateAvatar } from "./avatar";
 import { fetchProfile, updateProfile } from "./data";
 
 export { fetchProfile, updateProfile };
@@ -170,6 +172,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (trimmed.length < 2) return { success: false, error: "名字至少需要 2 个字" };
     if (trimmed.length > 12) return { success: false, error: "名字最多 12 个字" };
 
+    // Content moderation
+    const modResult = moderateName(trimmed);
+    if (!modResult.allowed) return { success: false, error: modResult.reason || "名字不合适" };
+
     // Check uniqueness
     const available = await checkNameAvailable(trimmed);
     if (!available) return { success: false, error: "这个名字已经被占用了，换一个吧" };
@@ -177,13 +183,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Check if first user → auto admin
     const isFirst = await checkIsFirstUser();
 
+    // Generate avatar
+    const autoAvatar = generateAvatar(trimmed);
+
     // Create anonymous user
     const anonId = anonymousId();
     const newUser: AppUser = {
       id: anonId,
       name: trimmed,
       email: "",
-      avatar: "",
+      avatar: autoAvatar,
       isAdmin: isFirst,
       bannedUntil: null,
     };
@@ -193,7 +202,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       await supabase!.from("profiles").upsert({
         id: anonId,
         nickname: trimmed,
-        avatar_url: "",
+        avatar_url: autoAvatar,
         bio: "",
         is_admin: isFirst,
       }, { onConflict: "id" });

@@ -2,8 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import { type Post } from "@/lib/store";
+import AdminBadge from "@/components/AdminBadge";
+import { TinyAvatar } from "@/components/UserAvatar";
 
-// Time ago helper
 function timeAgo(dateStr: string): string {
   const now = Date.now();
   const date = new Date(dateStr).getTime();
@@ -24,16 +25,11 @@ export default function PostCard({ post }: { post: Post }) {
   const router = useRouter();
   const hasImage = post.images && post.images.length > 0;
 
-  const handleClick = () => {
-    router.push(`/post/${post.id}`);
-  };
-
   return (
     <article
-      onClick={handleClick}
+      onClick={() => router.push(`/post/${post.id}`)}
       className="group bg-[var(--color-bg-card)] border-[0.5px] border-[var(--color-border-subtle)] rounded-[10px] overflow-hidden cursor-pointer transition-all duration-300 hover:border-[var(--color-border-default)] hover:shadow-md hover:shadow-black/20 active:scale-[0.98]"
     >
-      {/* Cover Image */}
       {hasImage && (
         <div className="relative overflow-hidden">
           <img
@@ -50,19 +46,16 @@ export default function PostCard({ post }: { post: Post }) {
         </div>
       )}
 
-      {/* Text Content */}
       <div className={`${hasImage ? "p-2.5" : "p-3"} space-y-1.5`}>
-        {/* Title */}
         <h3 className="text-[13px] font-semibold leading-snug text-[var(--color-text-primary)] line-clamp-1 group-hover:text-[var(--color-accent)] transition-colors duration-200">
+          {post.isPinned && <span className="mr-1">📌</span>}
           {post.title}
         </h3>
 
-        {/* Body */}
         <p className="text-[11px] leading-relaxed text-[var(--color-text-tertiary)] line-clamp-2">
           {post.content}
         </p>
 
-        {/* Tags */}
         {post.tags && post.tags.length > 0 && (
           <div className="flex flex-wrap gap-1 pt-0.5">
             {post.tags.slice(0, 3).map((tag, i) => (
@@ -73,18 +66,12 @@ export default function PostCard({ post }: { post: Post }) {
           </div>
         )}
 
-        {/* Bottom bar: author + likes */}
         <div className="flex items-center justify-between pt-1">
           <div className="flex items-center gap-1.5 min-w-0">
-            <div className="w-5 h-5 rounded-full bg-gradient-to-br from-zinc-600 to-zinc-500 flex items-center justify-center text-white text-[9px] font-bold shrink-0 overflow-hidden">
-              {post.authorAvatar ? (
-                <img src={post.authorAvatar} alt="" className="w-full h-full object-cover" />
-              ) : (
-                post.author?.charAt(0) || "?"
-              )}
-            </div>
-            <span className="text-[11px] text-[var(--color-text-tertiary)] truncate max-w-[80px]">
+            <TinyAvatar name={post.author || "?"} avatarUrl={post.authorAvatar} size={20} />
+            <span className="text-[11px] text-[var(--color-text-tertiary)] truncate max-w-[80px] flex items-center gap-0.5">
               {post.author || "匿名"}
+              {post.authorId && post.authorId === "admin" && <AdminBadge size="sm" />}
             </span>
           </div>
           <div className="flex items-center gap-1 text-[var(--color-text-tertiary)]">

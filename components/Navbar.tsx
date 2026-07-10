@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { useTheme } from "@/lib/theme";
+import AdminBadge from "@/components/AdminBadge";
+import UserAvatar from "@/components/UserAvatar";
 
 export default function Navbar() {
   const router = useRouter();
@@ -50,10 +52,11 @@ export default function Navbar() {
                 </svg>
               </button>
               <div className="flex items-center gap-1.5 ml-1">
-                <span className="text-[11px] text-[var(--color-text-tertiary)] max-w-[80px] truncate">{user.name}</span>
-                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-zinc-600 to-zinc-500 flex items-center justify-center text-white text-[10px] font-bold overflow-hidden shrink-0">
-                  {user.avatar ? <img src={user.avatar} alt="" className="w-full h-full object-cover" /> : user.name.charAt(0).toUpperCase()}
-                </div>
+                <span className="text-[11px] text-[var(--color-text-tertiary)] max-w-[80px] truncate flex items-center gap-1">
+                  {user.name}
+                  {user.isAdmin && <AdminBadge size="sm" />}
+                </span>
+                <UserAvatar name={user.name} avatarUrl={user.avatar} size={24} />
               </div>
             </>
           ) : (
