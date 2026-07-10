@@ -337,7 +337,17 @@ export async function fetchProfile(userId: string): Promise<Profile | null> {
 
 export async function updateProfile(userId: string, updates: { nickname?: string; avatar_url?: string; bio?: string }): Promise<boolean> {
   if (!hasSupabase || !supabase) return false;
-  const { error } = await supabase.from("profiles").update(updates).eq("id", userId);
+  // Fetch existing row to preserve admin/banned state
+  const { data: existing } = await supabase.from("profiles").select("is_admin, banned_until").eq("id", userId).maybeSingle();
+  const merged = {
+    id: userId,
+    nickname: updates.nickname,
+    avatar_url: updates.avatar_url,
+    bio: updates.bio,
+    is_admin: existing?.is_admin ?? false,
+    banned_until: existing?.banned_until ?? null,
+  };
+  const { error } = await supabase.from("profiles").upsert(merged, { onConflict: "id" });
   return !error;
 }
 
