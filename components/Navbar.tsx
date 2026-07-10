@@ -47,14 +47,23 @@ export default function Navbar({ onSearch }: { onSearch?: (q: string) => void })
               placeholder="搜索..."
               className="w-full h-7 px-3 py-1 rounded-full bg-[var(--color-bg-card)] border-[0.5px] border-[var(--color-border-subtle)] text-[12px] text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] outline-none focus:border-[var(--color-accent)] transition-all"
             />
-            {searchInput && (
-              <button
-                onClick={handleSearch}
-                className="absolute right-1 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded-full bg-[var(--color-accent)] text-white"
-              >
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              </button>
-            )}
+            {searchInput ? (
+              <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
+                <button
+                  onClick={() => { setSearchInput(""); onSearch?.(""); }}
+                  className="w-5 h-5 flex items-center justify-center rounded-full bg-[var(--color-bg-hover)] text-[var(--color-text-tertiary)] hover:text-white transition-colors"
+                  title="清除搜索"
+                >
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+                <button
+                  onClick={handleSearch}
+                  className="w-5 h-5 flex items-center justify-center rounded-full bg-[var(--color-accent)] text-white"
+                >
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                </button>
+              </div>
+            ) : null}
           </div>
         </div>
 

@@ -152,6 +152,22 @@ export default function HomePage() {
 
         {/* Content */}
         <section className="pb-20">
+          {/* Active search indicator */}
+          {searchQuery && (
+            <div className="px-3 py-2 flex items-center justify-between bg-[var(--color-bg-card)] border-b-[0.5px] border-[var(--color-border-subtle)]">
+              <p className="text-[12px] text-[var(--color-text-secondary)]">
+                搜索：<span className="font-medium text-[var(--color-text-primary)]">"{searchQuery}"</span>
+                <span className="text-[var(--color-text-tertiary)] ml-1">— {totalContent} 条结果</span>
+              </p>
+              <button
+                onClick={() => setSearchQuery("")}
+                className="text-[11px] text-[var(--color-accent)] hover:underline px-2 py-1"
+              >
+                清除 ✕
+              </button>
+            </div>
+          )}
+
           {loading && totalContent === 0 ? (
             <div className="px-2 pt-3"><FeedSkeleton /></div>
           ) : totalContent === 0 ? (
