@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { ThemeProvider } from "@/lib/theme";
 import { AuthProvider } from "@/lib/auth";
 import { DataProvider } from "@/lib/store";
@@ -8,19 +8,51 @@ import BottomNav from "@/components/BottomNav";
 import { Toaster } from "sonner";
 import "./globals.css";
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  themeColor: [
+    { media: "(prefers-color-scheme: dark)", color: "#09090b" },
+    { media: "(prefers-color-scheme: light)", color: "#f5f5f5" },
+  ],
+};
+
 export const metadata: Metadata = {
-  title: "大岚荧",
-  description: "发现科技、汽车、运动、游戏、财经等男性兴趣领域的热门内容",
+  title: {
+    default: "大岚荧 - 发现你的兴趣世界",
+    template: "%s | 大岚荧",
+  },
+  description: "大岚荧，一个面向新一代的内容社区。发现科技、汽车、运动、游戏、财经、美食、旅游等热门领域，分享你的热爱。",
+  keywords: ["社区", "内容", "分享", "科技", "汽车", "运动", "游戏", "数码", "男性社区"],
+  authors: [{ name: "大岚荧" }],
+  openGraph: {
+    type: "website",
+    locale: "zh_CN",
+    siteName: "大岚荧",
+    title: "大岚荧 - 发现你的兴趣世界",
+    description: "一个面向新一代的内容社区",
+  },
+  robots: { index: true, follow: true },
+  icons: {
+    icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>蓝</text></svg>",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="zh-CN" data-theme="dark" suppressHydrationWarning>
       <body>
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-[var(--color-accent)] focus:text-white focus:rounded-lg focus:text-sm"
+        >
+          跳到主内容
+        </a>
         <ThemeProvider>
           <AuthProvider>
             <DataProvider>
-              {children}
+              <div id="main-content">{children}</div>
               <BottomNav />
               <LoginModal />
               <ProfileSetup />
