@@ -34,6 +34,7 @@ export interface Post {
   authorAvatar: string;
   createdAt: string;
   likes: number;
+  views: number;
   comments: number;
   isAnnouncement: boolean;
   isPinned: boolean;
@@ -74,34 +75,34 @@ const SEED_POSTS: Post[] = [
     content: "每年这个时候都是游戏本换代的高峰期。我从做工、散热、性能释放、屏幕素质四个维度做了详细对比。ROG 枪神 8 Plus 超竞版的模具确实顶级，星云屏的观感无敌。拯救者 Y9000P 性价比更高。",
     images: ["https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=600&q=80"],
     category: "数码", tags: ["游戏本", "横评", "ROG"], author: "Tech老张", authorId: "seed", authorAvatar: "",
-    createdAt: new Date(Date.now() - 86400000).toISOString(), likes: 342, comments: 0, isAnnouncement: false, isPinned: false,
+    createdAt: new Date(Date.now() - 86400000).toISOString(), likes: 342, comments: 0, isAnnouncement: false, isPinned: false, views: 0,
   },
   {
     id: "2", title: "A股下半年策略：三个确定性的方向",
     content: "第一是半导体国产替代，大基金三期的落地会带来实质性催化。第二是新能源出海，光伏和储能海外需求回暖。第三是消费电子复苏，AI PC和AI手机换机周期已开始。",
     images: [], category: "财经", tags: ["A股", "投资"], author: "资本论", authorId: "seed", authorAvatar: "",
-    createdAt: new Date(Date.now() - 129600000).toISOString(), likes: 215, comments: 0, isAnnouncement: false, isPinned: false,
+    createdAt: new Date(Date.now() - 129600000).toISOString(), likes: 215, comments: 0, isAnnouncement: false, isPinned: false, views: 0,
   },
   {
     id: "3", title: "户外徒步入门指南：从装备到路线一次说清",
     content: "新手徒步最容易犯的错误就是装备oversize。一双靠谱的徒步鞋，一个20L背包，加上速干衣和冲锋衣即可。",
     images: ["https://images.unsplash.com/photo-1551632811-561732d1e306?w=600&q=80"],
     category: "户外", tags: ["徒步", "装备"], author: "山系青年", authorId: "seed", authorAvatar: "",
-    createdAt: new Date(Date.now() - 172800000).toISOString(), likes: 189, comments: 0, isAnnouncement: false, isPinned: false,
+    createdAt: new Date(Date.now() - 172800000).toISOString(), likes: 189, comments: 0, isAnnouncement: false, isPinned: false, views: 0,
   },
   {
     id: "4", title: "2026年家用车选购真心话",
     content: "有家充条件就上纯电；没有就插混。纯油车不建议了。",
     images: ["https://images.unsplash.com/photo-1533473359331-0135ef1b58bf?w=600&q=80"],
     category: "汽车", tags: ["电车", "选车"], author: "老司机阿强", authorId: "seed", authorAvatar: "",
-    createdAt: new Date(Date.now() - 259200000).toISOString(), likes: 523, comments: 0, isAnnouncement: false, isPinned: false,
+    createdAt: new Date(Date.now() - 259200000).toISOString(), likes: 523, comments: 0, isAnnouncement: false, isPinned: false, views: 0,
   },
   {
     id: "5", title: "居家增肌最全攻略：没健身房一样好身材",
     content: "关键是要保证渐进超负荷。核心动作：俯卧撑、引体向上、深蹲。买一对可调节哑铃和引体向上杆，投资不到1000元。",
     images: ["https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=600&q=80"],
     category: "健身", tags: ["健身", "增肌"], author: "铁馆不在家", authorId: "seed", authorAvatar: "",
-    createdAt: new Date(Date.now() - 345600000).toISOString(), likes: 431, comments: 0, isAnnouncement: false, isPinned: false,
+    createdAt: new Date(Date.now() - 345600000).toISOString(), likes: 431, comments: 0, isAnnouncement: false, isPinned: false, views: 0,
   },
 ];
 
@@ -126,6 +127,7 @@ function mapPost(row: Record<string, unknown>): Post {
     comments: 0,
     isAnnouncement: Boolean((row as Record<string, unknown>).is_announcement),
     isPinned: Boolean((row as Record<string, unknown>).is_pinned),
+    views: Number((row as Record<string, unknown>).views || 0),
   };
 }
 
@@ -588,7 +590,7 @@ export const dataService = {
     }
     
     // Last resort: localStorage
-    const newPost: Post = { ...post as Post, id: gid(), likes: 0, comments: 0, createdAt: new Date().toISOString() };
+    const newPost: Post = { ...post as Post, id: gid(), likes: 0, comments: 0, views: 0, createdAt: new Date().toISOString() };
     const posts = lsGet<Post[]>("posts", SEED_POSTS);
     posts.unshift(newPost);
     lsSet("posts", posts);

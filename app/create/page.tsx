@@ -154,7 +154,7 @@ export default function CreatePage() {
         tags,
         author: user!.name,
         isPinned: isAdmin ? isPinned : false,
-        isAnnouncement: isAdmin ? isAnnouncement : false,
+        isAnnouncement: isAdmin ? isAnnouncement : false, views: 0,
       } as Parameters<typeof addPost>[0]);
       toast.success("发布成功！");
       setTimeout(() => router.replace("/"), 500);

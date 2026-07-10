@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
@@ -188,6 +188,23 @@ export default function PostDetailPage() {
   if (loading) return <DetailSkeleton />;
 
   const post = getPostById(id);
+
+  // Track view
+  useEffect(() => {
+    if (!id) return;
+    try {
+      const viewed = JSON.parse(localStorage.getItem("dalanying_viewed") || "[]");
+      if (!viewed.includes(id)) {
+        viewed.push(id);
+        localStorage.setItem("dalanying_viewed", JSON.stringify(viewed));
+        // Update local view count
+        const key = `dalanying_post_views`;
+        const views = JSON.parse(localStorage.getItem(key) || "{}");
+        views[id] = (views[id] || 0) + 1;
+        localStorage.setItem(key, JSON.stringify(views));
+      }
+    } catch {}
+  }, [id]);
 
   if (!post) {
     return (
