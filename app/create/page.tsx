@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import Navbar from "@/components/Navbar";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth";
 import { useData } from "@/lib/store";
@@ -168,8 +167,18 @@ export default function CreatePage() {
 
   return (
     <>
-      <Navbar />
-      <main className="min-h-screen pt-14 pb-20 bg-[var(--color-bg-primary)]">
+      <main className="min-h-screen pb-20 bg-[var(--color-bg-primary)]">
+        {/* Header with back button */}
+        <div className="glass sticky top-0 z-50 h-11 flex items-center px-4">
+          <button onClick={() => { if (title || content || selectedFiles.length > 0) { if (confirm("内容尚未发布，确定离开吗？")) window.location.href = "/"; } else { window.location.href = "/"; } }} className="flex items-center gap-1.5 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] transition-all duration-200">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            <span className="text-xs">取消</span>
+          </button>
+          <h1 className="flex-1 text-center text-sm font-semibold text-[var(--color-text-primary)] -ml-12">
+            {user?.isAdmin ? "管理员发布" : "发布内容"}
+          </h1>
+          <div className="w-[42px]" />
+        </div>
         <div className="max-w-2xl mx-auto px-4 py-6">
           {/* ADMIN: unmissable banner */}
           {isAdmin && (
@@ -208,7 +217,6 @@ export default function CreatePage() {
             </div>
           )}
 
-          <h1 className="text-xl font-bold text-[var(--color-text-primary)] mb-1">发布内容</h1>
           <p className="text-xs text-[var(--color-text-tertiary)] mb-6">分享你的经验、见解或故事</p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
