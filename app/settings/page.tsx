@@ -17,6 +17,12 @@ export default function SettingsPage() {
   const [bio, setBio] = useState("");
   const [avatarPreview, setAvatarPreview] = useState(user?.avatar || "");
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [bgImage, setBgImage] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("dalanying_bg_image") || "";
+    }
+    return "";
+  });
   const [saving, setSaving] = useState(false);
   const [adminKey, setAdminKey] = useState("");
   const [activating, setActivating] = useState(false);
@@ -30,6 +36,9 @@ export default function SettingsPage() {
         if (p.avatar_url) setAvatarPreview(p.avatar_url);
       }
     });
+    // Load saved background image
+    const saved = localStorage.getItem("dalanying_bg_image");
+    if (saved) setBgImage(saved);
   }, [user]);
 
   useEffect(() => {
@@ -114,6 +123,9 @@ export default function SettingsPage() {
       });
       // Always update local state
       updateUserProfile({ name: trimmed, avatar: avatarUrl });
+      // Save background image
+      localStorage.setItem("dalanying_bg_image", bgImage);
+      document.documentElement.style.setProperty("--user-bg-image", bgImage ? `url(${bgImage})` : "none");
       toast.success("设置已保存");
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "保存失败");
@@ -196,6 +208,37 @@ export default function SettingsPage() {
                 className="w-full mt-1 px-3 py-2.5 rounded-lg bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] focus:border-[var(--color-accent)] outline-none transition-all duration-200 resize-none"
               />
               <p className="text-[10px] text-[var(--color-text-tertiary)] mt-1 text-right">{bio.length}/100</p>
+            </div>
+
+            {/* Background Image */}
+            <div>
+              <label className="text-[11px] font-medium text-[var(--color-text-secondary)] ml-1">页面背景图</label>
+              <div className="flex gap-2 mt-1">
+                <input
+                  value={bgImage}
+                  onChange={(e) => {
+                    setBgImage(e.target.value);
+                    document.documentElement.style.setProperty("--user-bg-image", e.target.value ? `url(${e.target.value})` : "none");
+                  }}
+                  placeholder="粘贴图片链接（可选）"
+                  className="flex-1 px-3 py-2.5 rounded-lg bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] focus:border-[var(--color-accent)] outline-none transition-all duration-200"
+                />
+              </div>
+              {bgImage && (
+                <div className="mt-2 flex items-center gap-2">
+                  <img src={bgImage} alt="背景预览" className="w-20 h-12 rounded-lg object-cover border border-[var(--color-border-subtle)]" />
+                  <button
+                    onClick={() => {
+                      setBgImage("");
+                      document.documentElement.style.setProperty("--user-bg-image", "none");
+                    }}
+                    className="text-[10px] text-red-400 hover:text-red-300 transition-colors"
+                  >
+                    移除背景
+                  </button>
+                </div>
+              )}
+              <p className="text-[10px] text-[var(--color-text-tertiary)] mt-1">设置后所有页面将使用此背景，留空则使用默认纯色背景</p>
             </div>
 
             <button

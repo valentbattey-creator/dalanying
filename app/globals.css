@@ -55,6 +55,22 @@ body {
   -moz-osx-font-smoothing: grayscale;
   line-height: 1.5;
   transition: background-color 0.3s ease, color 0.3s ease;
+  position: relative;
+}
+
+/* User custom background image */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image: var(--user-bg-image, none);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  opacity: 0.08;
+  pointer-events: none;
 }
 
 /* Focus styles for accessibility */
@@ -70,6 +86,15 @@ body {
 ::-webkit-scrollbar-thumb:hover { background: #71717a; }
 
 ::selection { background-color: var(--color-accent); color: #fff; }
+
+/* Animate on load */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up {
+  animation: fadeUp 0.4s ease-out forwards;
+}
 
 .glass {
   background: var(--glass-bg);

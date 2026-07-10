@@ -176,7 +176,7 @@ export default function PostDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { user, requireLogin } = useAuth();
-  const { getPostById, getCommentsByPostId, addComment, loading } = useData();
+  const { getPostById, getCommentsByPostId, addComment, fetchPostById, loading } = useData();
   const [commentText, setCommentText] = useState("");
   const [replyTo, setReplyTo] = useState<Comment | null>(null);
   const [showEmoji, setShowEmoji] = useState(false);
@@ -184,10 +184,24 @@ export default function PostDetailPage() {
   const [commentImagePreview, setCommentImagePreview] = useState("");
   const [uploadingComment, setUploadingComment] = useState(false);
   const commentFileRef = useRef<HTMLInputElement>(null);
+  const [directPost, setDirectPost] = useState<Post | null>(null);
+  const [directLoading, setDirectLoading] = useState(false);
 
-  if (loading) return <DetailSkeleton />;
-
+  // Try store first, then direct fetch
   const post = getPostById(id);
+
+  useEffect(() => {
+    if (!id || post || loading || directPost) return;
+    setDirectLoading(true);
+    fetchPostById(id).then((p) => {
+      setDirectPost(p);
+      setDirectLoading(false);
+    });
+  }, [id, post, loading, directPost, fetchPostById]);
+
+  const finalPost = post || directPost;
+
+  if (loading || directLoading) return <DetailSkeleton />;
 
   // Track view
   useEffect(() => {
@@ -206,7 +220,7 @@ export default function PostDetailPage() {
     } catch {}
   }, [id]);
 
-  if (!post) {
+  if (!finalPost) {
     return (
       <main className="min-h-screen bg-[var(--color-bg-primary)] flex items-center justify-center">
         <div className="text-center">
@@ -271,48 +285,48 @@ export default function PostDetailPage() {
 
       <div className="max-w-3xl mx-auto px-5 pb-16">
         {/* Image Gallery */}
-        <ImageGallery images={post.images || []} />
+        <ImageGallery images={finalPost!.images || []} />
 
         {/* Category + Time */}
         <div className="flex items-center justify-between mt-6 mb-3">
           <span className="text-xs font-medium tracking-wider text-[var(--color-accent)]">
-            {post.category}
+            {finalPost!.category}
           </span>
-          <span className="text-xs text-[var(--color-text-tertiary)]">{timeAgo(post.createdAt)}</span>
+          <span className="text-xs text-[var(--color-text-tertiary)]">{timeAgo(finalPost!.createdAt)}</span>
         </div>
 
         {/* Title */}
         <h1 className="text-2xl font-bold leading-tight text-[var(--color-text-primary)] mb-4">
-          {post.title}
+          {finalPost!.title}
         </h1>
 
         {/* Author */}
         <div className="flex items-center gap-3 mb-5">
           <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[var(--color-accent)] to-[#6b8cff] flex items-center justify-center text-white text-sm font-bold shrink-0 overflow-hidden">
-            {post.authorAvatar ? (
-              <img src={post.authorAvatar} alt="" className="w-full h-full object-cover" />
+            {finalPost!.authorAvatar ? (
+              <img src={finalPost!.authorAvatar} alt="" className="w-full h-full object-cover" />
             ) : (
-              post.author.charAt(0)
+              finalPost!.author.charAt(0)
             )}
           </div>
           <div>
-            <p className="text-sm font-medium text-[var(--color-text-primary)]">{post.author}</p>
-            <p className="text-[11px] text-[var(--color-text-tertiary)]">{timeAgo(post.createdAt)}</p>
+            <p className="text-sm font-medium text-[var(--color-text-primary)]">{finalPost!.author}</p>
+            <p className="text-[11px] text-[var(--color-text-tertiary)]">{timeAgo(finalPost!.createdAt)}</p>
           </div>
         </div>
 
         {/* Interaction Bar */}
-        <InteractionBar post={post} />
+        <InteractionBar post={finalPost!} />
 
         {/* Content */}
         <div className="mt-6 text-[15px] leading-relaxed text-[var(--color-text-secondary)] whitespace-pre-wrap">
-          {post.content}
+          {finalPost!.content}
         </div>
 
         {/* Tags */}
-        {post.tags && post.tags.length > 0 && (
+        {finalPost!.tags && finalPost!.tags.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mt-6">
-            {post.tags.map((t) => (
+            {finalPost!.tags.map((t) => (
               <span key={t} className="text-[11px] px-2.5 py-1 rounded-full bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] text-[var(--color-text-tertiary)]">
                 #{t}
               </span>

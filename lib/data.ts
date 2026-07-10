@@ -212,6 +212,26 @@ async function supabaseFetchUserLikedPosts(userId: string): Promise<Post[]> {
   if (!data) return [];
   return (data as Record<string, unknown>[]).map(mapPost);
 }
+// ===== Fetch single post by ID =====
+async function supabaseFetchPostById(postId: string): Promise<Post | null> {
+  if (!hasSupabase || !supabase) return null;
+  const { data } = await supabase
+    .from("posts")
+    .select("*, profiles!posts_user_id_fkey(nickname, avatar_url)")
+    .eq("id", postId)
+    .maybeSingle();
+  if (!data) return null;
+  const post = mapPost(data as Record<string, unknown>);
+  try {
+    const { data: likeData } = await supabase.from("likes").select("post_id").in("post_id", [postId]);
+    if (likeData) post.likes = likeData.length;
+    const { data: commentData } = await supabase.from("comments").select("post_id").eq("post_id", postId);
+    if (commentData) post.comments = commentData.length;
+  } catch {}
+  return post;
+}
+
+
 
 // ===== Fetch likes =====
 async function supabaseFetchLikes(postIds: string[]): Promise<{ likes: Map<string, number>; userLikes: Set<string> }> {
@@ -486,6 +506,13 @@ export async function createAnnouncement(post: Omit<Post, "id" | "createdAt" | "
 
 // ===== Public API =====
 export const dataService = {
+  async fetchPostById(postId: string): Promise<Post | null> {
+    if (hasSupabase) {
+      const post = await supabaseFetchPostById(postId);
+      if (post) return post;
+    }
+    return lsGet<Post[]>("posts", SEED_POSTS).find((p: Post) => p.id === postId) || null;
+  },
   PAGE_SIZE: 10,
 
   async loadPostsPaginated(from: number, category?: string, search?: string): Promise<{ posts: Post[]; total: number }> {
@@ -493,7 +520,7 @@ export const dataService = {
     if (hasSupabase) {
       try {
         const result = await supabaseFetchPostsPaginated(from, from + this.PAGE_SIZE - 1, category, search);
-        // Also merge in any localStorage-only posts
+        // Always merge localStorage posts (source of truth for same-device data)
         try {
           const localPosts = lsGet<Post[]>("posts", []);
           if (localPosts.length > 0) {
@@ -504,6 +531,7 @@ export const dataService = {
               if (category) filtered = filtered.filter(p => p.category === category);
               if (search) { const q = search.toLowerCase(); filtered = filtered.filter(p => p.title.toLowerCase().includes(q) || p.content.toLowerCase().includes(q)); }
               result.posts = [...result.posts, ...filtered];
+              result.total += filtered.length;
             }
           }
         } catch {}
@@ -526,9 +554,17 @@ export const dataService = {
     return { posts: all.slice(from, from + this.PAGE_SIZE), total: all.length };
   },
 
+
   async loadUserPosts(userId: string): Promise<Post[]> {
-    if (hasSupabase) return supabaseFetchUserPosts(userId);
-    return lsGet<Post[]>("posts", SEED_POSTS).filter(p => p.authorId === userId);
+    if (hasSupabase) {
+      const posts = await supabaseFetchUserPosts(userId);
+      if (posts.length > 0) return posts;
+    }
+    const nameMap: Record<string, string> = {};
+    try { const m = JSON.parse(localStorage.getItem("dalanying_name_map") || "{}"); Object.assign(nameMap, m); } catch {}
+    const resolvedName = nameMap[userId] || "";
+    const allPosts = lsGet<Post[]>("posts", SEED_POSTS);
+    return allPosts.filter(p => p.authorId === userId || (resolvedName && p.author === resolvedName));
   },
 
   async loadUserLikedPosts(userId: string): Promise<Post[]> {
@@ -572,6 +608,8 @@ export const dataService = {
       });
       const result = await res.json();
       if (result.stored === "supabase" && result.post) {
+        // Backup to localStorage so other accounts on same device can see it
+        this._saveToLocalStore(result.post);
         return result.post;
       }
       console.log("API route returned:", result.stored);
@@ -583,18 +621,29 @@ export const dataService = {
     if (hasSupabase) {
       try {
         const result = await supabaseInsertPost(post as Post, post.authorId);
-        if (result) return result;
+        if (result) {
+          this._saveToLocalStore(result);
+          return result;
+        }
       } catch (e) {
         console.warn("Supabase insert failed, using localStorage:", e);
       }
     }
     
-    // Last resort: localStorage
+    // Always save to localStorage as backup (ensures data isn't lost between accounts)
     const newPost: Post = { ...post as Post, id: gid(), likes: 0, comments: 0, views: 0, createdAt: new Date().toISOString() };
     const posts = lsGet<Post[]>("posts", SEED_POSTS);
     posts.unshift(newPost);
     lsSet("posts", posts);
     return newPost;
+  },
+
+  async _saveToLocalStore(post: Post): Promise<void> {
+    const posts = lsGet<Post[]>("posts", SEED_POSTS);
+    const existing = posts.findIndex(p => p.id === post.id);
+    if (existing >= 0) posts[existing] = post;
+    else posts.unshift(post);
+    lsSet("posts", posts);
   },
 
   async deletePost(postId: string): Promise<boolean> {

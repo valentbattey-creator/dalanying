@@ -26,6 +26,7 @@ interface DataState {
   getPostsByCategory: (category: string) => Post[];
   getPostById: (id: string) => Post | undefined;
   getCommentsByPostId: (postId: string) => Comment[];
+  fetchPostById: (postId: string) => Promise<Post | null>;
   loadUserPosts: (userId: string) => Promise<Post[]>;
   loadUserLikedPosts: (userId: string) => Promise<Post[]>;
   refreshAll: () => Promise<void>;
@@ -176,6 +177,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const handleUnbanUser = useCallback(async (userId: string) => unbanUser(userId), []);
   const handleFetchAllProfiles = useCallback(async () => fetchAllProfiles(), []);
   const handleCreateAnnouncement = useCallback(async (post: Omit<Post, "id" | "createdAt" | "likes" | "comments">) => createAnnouncement(post), []);
+  const handleFetchPostById = useCallback(async (postId: string) => dataService.fetchPostById(postId), []);
 
   return (
     <DataContext.Provider value={{
@@ -186,6 +188,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       banUser: handleBanUser, unbanUser: handleUnbanUser,
       fetchAllProfiles: handleFetchAllProfiles,
       createAnnouncement: handleCreateAnnouncement,
+      fetchPostById: handleFetchPostById,
     }}>
       {children}
     </DataContext.Provider>
