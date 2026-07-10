@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth, updateProfile, fetchProfile } from "@/lib/auth";
+import type { AppUser } from "@/lib/auth";
 import { uploadAvatar } from "@/lib/data";
 import { useTheme } from "@/lib/theme";
 import { toast } from "sonner";
@@ -60,16 +61,38 @@ export default function SettingsPage() {
   async function handleActivateAdmin() {
     if (adminKey.trim() !== "dalanying2026") { toast.error("密钥错误"); return; }
     setActivating(true);
-    const ok = await updateProfile(user!.id, { nickname: user!.name, avatar_url: user!.avatar });
-    if (ok || true) {
-      // Set admin via Supabase directly
+    try {
       const { supabase, hasSupabase } = await import("@/lib/supabase");
       if (hasSupabase && supabase) {
-        const { error } = await supabase.from("profiles").upsert({ id: user!.id, is_admin: true }, { onConflict: "id" });
-        if (error) { toast.error("激活失败: " + error.message); setActivating(false); return; }
+        // First ensure profile exists
+        await supabase.from("profiles").upsert({
+          id: user!.id,
+          nickname: user!.name,
+          avatar_url: user!.avatar || "",
+          bio: "",
+          is_admin: true,
+        }, { onConflict: "id" });
+        
+        // Force refresh user state
+        const { data: profile } = await supabase.from("profiles").select("*").eq("id", user!.id).single();
+        if (profile) {
+          updateUserProfile({ name: profile.nickname || user!.name, avatar: profile.avatar_url || user!.avatar || "" });
+        }
+        toast.success("管理员已激活！请刷新页面");
+      } else {
+        // localStorage mode
+        const users = JSON.parse(localStorage.getItem("dalanying_users") || "[]");
+        const idx = users.findIndex((u: AppUser) => u.id === user!.id);
+        if (idx >= 0) {
+          users[idx].isAdmin = true;
+          localStorage.setItem("dalanying_users", JSON.stringify(users));
+        }
+        updateUserProfile({});
+        toast.success("管理员已激活！请刷新页面");
       }
-      toast.success("管理员已激活！刷新后生效");
       setAdminKey("");
+    } catch (e: unknown) {
+      toast.error("激活失败: " + (e instanceof Error ? e.message : "未知错误"));
     }
     setActivating(false);
   }
