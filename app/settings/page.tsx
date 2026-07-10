@@ -99,19 +99,22 @@ export default function SettingsPage() {
     try {
       let avatarUrl = avatarPreview;
       if (avatarFile) {
-        avatarUrl = await uploadAvatar(avatarFile, user.id);
+        try {
+          avatarUrl = await uploadAvatar(avatarFile, user.id);
+        } catch {
+          // Avatar upload failed, keep existing
+          toast.error("头像上传失败，但其他信息已保存");
+        }
       }
-      const ok = await updateProfile(user.id, {
+      // Save to Supabase (or localStorage fallback)
+      await updateProfile(user.id, {
         nickname: trimmed,
         avatar_url: avatarUrl,
         bio: bio.trim(),
       });
-      if (ok) {
-        updateUserProfile({ name: trimmed, avatar: avatarUrl });
-        toast.success("设置已保存");
-      } else {
-        toast.error("保存失败");
-      }
+      // Always update local state
+      updateUserProfile({ name: trimmed, avatar: avatarUrl });
+      toast.success("设置已保存");
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : "保存失败");
     }
