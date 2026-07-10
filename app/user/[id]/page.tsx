@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useAuth } from "@/lib/auth";
 import { useData, type Post } from "@/lib/store";
 import { fetchProfile, type Profile } from "@/lib/data";
 import PostCard from "@/components/PostCard";
@@ -11,6 +12,7 @@ type Tab = "posts" | "liked";
 export default function UserProfilePage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const { user } = useAuth();
   const { loadUserPosts, loadUserLikedPosts } = useData();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -42,22 +44,33 @@ export default function UserProfilePage() {
     setLoading(false);
   }
 
+  function sendMessage() {
+    if (!user) return;
+    const existing = JSON.parse(localStorage.getItem("dalanying_messages") || "[]");
+    existing.push({
+      id: Date.now().toString(36),
+      fromId: user.id,
+      fromName: user.name,
+      toId: id,
+      toName: profile?.nickname || "用户",
+      content: "你好！",
+      createdAt: new Date().toISOString(),
+      read: false,
+    });
+    localStorage.setItem("dalanying_messages", JSON.stringify(existing));
+    window.location.href = "/messages";
+  }
+
   return (
     <main className="min-h-screen bg-[var(--color-bg-primary)]">
-      {/* Header */}
       <div className="relative">
-        {/* Cover */}
         <div className="h-32 bg-gradient-to-br from-zinc-800 via-zinc-750 to-zinc-900" />
-
-        {/* Back button */}
         <button
           onClick={() => window.location.href = "/" }
           className="absolute top-3 left-3 w-8 h-8 flex items-center justify-center rounded-full bg-black/30 text-white hover:bg-black/50 transition-all duration-200"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
         </button>
-
-        {/* Avatar + info */}
         <div className="px-4 -mt-10 relative z-10">
           <div className="w-20 h-20 rounded-full border-2 border-[var(--color-bg-primary)] bg-gradient-to-br from-zinc-600 to-zinc-500 flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
             {profile?.avatar_url ? (
@@ -66,36 +79,42 @@ export default function UserProfilePage() {
               (profile?.nickname || "?").charAt(0).toUpperCase()
             )}
           </div>
-          <h1 className="text-lg font-bold text-[var(--color-text-primary)] mt-2">
-            {profile?.nickname || "用户"}
-          </h1>
-          <p className="text-[11px] text-[var(--color-text-tertiary)]">
-            {profile?.bio || "这个人很懒，什么都没写..."}
-          </p>
+          <div className="flex items-center gap-3">
+            <div>
+              <h1 className="text-lg font-bold text-[var(--color-text-primary)] mt-2">
+                {profile?.nickname || "用户"}
+              </h1>
+              <p className="text-[11px] text-[var(--color-text-tertiary)]">
+                {profile?.bio || "这个人很懒，什么都没写..."}
+              </p>
+            </div>
+            {user && user.id !== id && (
+              <button
+                onClick={sendMessage}
+                className="mt-2 px-4 py-1.5 rounded-full bg-[var(--color-accent)]/10 text-[var(--color-accent)] text-[11px] font-medium hover:bg-[var(--color-accent)]/20 transition-all"
+              >
+                💬 发消息
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Tabs */}
       <div className="flex border-b-[0.5px] border-[var(--color-border-subtle)] mt-5">
         {(["posts", "liked"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => switchTab(t)}
             className={`flex-1 py-3 text-[13px] font-medium transition-all duration-200 relative ${
-              tab === t
-                ? "text-[var(--color-text-primary)]"
-                : "text-[var(--color-text-tertiary)]"
+              tab === t ? "text-[var(--color-text-primary)]" : "text-[var(--color-text-tertiary)]"
             }`}
           >
             {t === "posts" ? "发布" : "赞过"}
-            {tab === t && (
-              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-[var(--color-accent)] rounded-full" />
-            )}
+            {tab === t && <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-[var(--color-accent)] rounded-full" />}
           </button>
         ))}
       </div>
 
-      {/* Posts grid */}
       <section className="px-2 pb-20 pt-3">
         {loading ? (
           <div className="grid grid-cols-2 gap-2.5 px-1">

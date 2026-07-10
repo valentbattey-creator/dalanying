@@ -148,8 +148,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     // Check localStorage
     const users = JSON.parse(localStorage.getItem("dalanying_users") || "[]") as AppUser[];
-    const anonUsers = JSON.parse(localStorage.getItem("dalanying_anon_users") || "[]") as string[];
-    return !users.some((u: AppUser) => u.name === trimmed) && !anonUsers.includes(trimmed);
+    const anonUsers = JSON.parse(localStorage.getItem("dalanying_anon_users") || "[]") as any[];
+    const nameMap = JSON.parse(localStorage.getItem("dalanying_name_map") || "{}");
+    // Allow if: not in email users AND (not in anon users OR it's the same browser's account)
+    const inAnonUsers = anonUsers.some((u: any) => u.name === trimmed || u === trimmed);
+    const isSameBrowser = !!nameMap[trimmed];
+    return !users.some((u: AppUser) => u.name === trimmed) && (!inAnonUsers || isSameBrowser);
   }, []);
 
   // ===== Helper: check if this is the first user (becomes admin) =====
@@ -162,11 +166,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch {}
     const users = JSON.parse(localStorage.getItem("dalanying_users") || "[]") as AppUser[];
-    const anonUsers = JSON.parse(localStorage.getItem("dalanying_anon_users") || "[]") as string[];
+    const anonUsers = JSON.parse(localStorage.getItem("dalanying_anon_users") || "[]") as any[];
     return users.length === 0 && anonUsers.length === 0;
   }, []);
 
-  // ===== Quick login (name only) =====
+  // ===== Quick login (name only) with persistent identity =====
   const quickLogin = useCallback(async (name: string) => {
     const trimmed = name.trim();
     if (trimmed.length < 2) return { success: false, error: "名字至少需要 2 个字" };
@@ -176,7 +180,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const modResult = moderateName(trimmed);
     if (!modResult.allowed) return { success: false, error: modResult.reason || "名字不合适" };
 
-    // Check uniqueness
+    // Check if this browser already has this user (same name → restore)
+    const nameMap = JSON.parse(localStorage.getItem("dalanying_name_map") || "{}");
+    const existingId = nameMap[trimmed];
+    
+    if (existingId) {
+      // Restore existing user from this browser
+      const anonUsers = JSON.parse(localStorage.getItem("dalanying_anon_users") || "[]");
+      const storedUser = anonUsers.find((u: { name: string; id: string }) => u.id === existingId);
+      if (storedUser) {
+        const restored: AppUser = {
+          id: existingId,
+          name: trimmed,
+          email: "",
+          avatar: storedUser.avatar || generateAvatar(trimmed),
+          isAdmin: storedUser.isAdmin || false,
+          bannedUntil: null,
+        };
+        setUser(restored);
+        localStorage.setItem("dalanying_user", JSON.stringify(restored));
+        return { success: true };
+      }
+    }
+
+    // Check global uniqueness
     const available = await checkNameAvailable(trimmed);
     if (!available) return { success: false, error: "这个名字已经被占用了，换一个吧" };
 
@@ -208,9 +235,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }, { onConflict: "id" });
     }
 
-    // Store in localStorage
-    const anonUsers = JSON.parse(localStorage.getItem("dalanying_anon_users") || "[]") as string[];
-    anonUsers.push(trimmed);
+    // Store in localStorage - save name→id mapping for persistent login
+    nameMap[trimmed] = anonId;
+    localStorage.setItem("dalanying_name_map", JSON.stringify(nameMap));
+    
+    const anonUsers = JSON.parse(localStorage.getItem("dalanying_anon_users") || "[]") as any[];
+    anonUsers.push({ name: trimmed, id: anonId, avatar: autoAvatar, isAdmin: isFirst });
     localStorage.setItem("dalanying_anon_users", JSON.stringify(anonUsers));
 
     setUser(newUser);

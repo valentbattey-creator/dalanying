@@ -3,7 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 
-const HIDE_ON = ["/settings", "/admin", "/create"];
+const HIDE_ON = ["/settings", "/admin", "/create", "/messages"];
 
 export default function BottomNav() {
   const pathname = usePathname();
@@ -49,6 +49,22 @@ export default function BottomNav() {
             </svg>
           </div>
           <span className="text-[10px] font-medium mt-0.5 text-[var(--color-text-tertiary)]">发布</span>
+        </button>
+
+        {/* 消息 */}
+        <button
+          onClick={() => {
+            if (!user) { requireLogin(); return; }
+            router.push("/messages");
+          }}
+          className={`flex flex-col items-center gap-0.5 transition-all duration-200 active:scale-90 ${
+            pathname.startsWith("/messages") ? "text-[var(--color-text-primary)]" : "text-[var(--color-text-tertiary)]"
+          }`}
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill={pathname.startsWith("/messages") ? "currentColor" : "none"} stroke="currentColor" strokeWidth={pathname.startsWith("/messages") ? 0 : 2} strokeLinecap="round" strokeLinejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+          </svg>
+          <span className="text-[10px] font-medium">消息</span>
         </button>
 
         {/* 我的 */}
