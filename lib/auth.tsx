@@ -28,7 +28,7 @@ interface AuthState {
   checkNameAvailable: (name: string) => Promise<boolean>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
-  updateUserProfile: (updates: { name?: string; avatar?: string }) => void;
+  updateUserProfile: (updates: { name?: string; avatar?: string; isAdmin?: boolean }) => void;
   setShowLoginModal: (show: boolean) => void;
   showLoginModal: boolean;
   showProfileSetup: boolean;
@@ -127,10 +127,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!user) setShowLoginModal(true);
   }, [user]);
 
-  const updateUserProfile = useCallback((updates: { name?: string; avatar?: string }) => {
+  const updateUserProfile = useCallback((updates: { name?: string; avatar?: string; isAdmin?: boolean }) => {
     setUser(prev => {
       if (!prev) return prev;
-      const next = { ...prev, ...(updates.name ? { name: updates.name } : {}), ...(updates.avatar ? { avatar: updates.avatar } : {}) };
+      const next = { ...prev, ...(updates.name ? { name: updates.name } : {}), ...(updates.avatar ? { avatar: updates.avatar } : {}), ...(updates.isAdmin !== undefined ? { isAdmin: updates.isAdmin } : {}) };
       localStorage.setItem("dalanying_user", JSON.stringify(next));
       return next;
     });

@@ -3,13 +3,17 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 
+const HIDE_ON = ["/settings", "/admin", "/create"];
+
 export default function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, requireLogin } = useAuth();
 
+  // Hide on certain pages
+  if (HIDE_ON.includes(pathname)) return null;
+
   const isHome = pathname === "/";
-  const isCreate = pathname === "/create";
 
   function handleCreate() {
     if (!user) { requireLogin(); return; }
@@ -33,7 +37,7 @@ export default function BottomNav() {
           <span className="text-[10px] font-medium">首页</span>
         </button>
 
-        {/* 发布 (突出显示，像抖音的+) */}
+        {/* 发布 */}
         <button
           onClick={handleCreate}
           className="relative -mt-5 flex flex-col items-center transition-all duration-200 active:scale-90"
@@ -54,9 +58,7 @@ export default function BottomNav() {
             router.push(`/user/${user.id}`);
           }}
           className={`flex flex-col items-center gap-0.5 transition-all duration-200 active:scale-90 ${
-            pathname.startsWith("/user")
-              ? "text-[var(--color-text-primary)]"
-              : "text-[var(--color-text-tertiary)]"
+            pathname.startsWith("/user") ? "text-[var(--color-text-primary)]" : "text-[var(--color-text-tertiary)]"
           }`}
         >
           <svg width="22" height="22" viewBox="0 0 24 24" fill={pathname.startsWith("/user") ? "currentColor" : "none"} stroke="currentColor" strokeWidth={pathname.startsWith("/user") ? 0 : 2} strokeLinecap="round" strokeLinejoin="round">
