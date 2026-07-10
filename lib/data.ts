@@ -487,46 +487,41 @@ export const dataService = {
   PAGE_SIZE: 10,
 
   async loadPostsPaginated(from: number, category?: string, search?: string): Promise<{ posts: Post[]; total: number }> {
-    let supabasePosts: Post[] = [];
-    let supabaseTotal = 0;
-    
-    // Try Supabase first
+    // Load from Supabase
     if (hasSupabase) {
       try {
         const result = await supabaseFetchPostsPaginated(from, from + this.PAGE_SIZE - 1, category, search);
-        supabasePosts = result.posts;
-        supabaseTotal = result.total;
+        // Also merge in any localStorage-only posts
+        try {
+          const localPosts = lsGet<Post[]>("posts", []);
+          if (localPosts.length > 0) {
+            const existingIds = new Set(result.posts.map(p => p.id));
+            const missing = localPosts.filter(p => !existingIds.has(p.id));
+            if (missing.length > 0) {
+              let filtered = missing;
+              if (category) filtered = filtered.filter(p => p.category === category);
+              if (search) { const q = search.toLowerCase(); filtered = filtered.filter(p => p.title.toLowerCase().includes(q) || p.content.toLowerCase().includes(q)); }
+              result.posts = [...result.posts, ...filtered];
+            }
+          }
+        } catch {}
+        result.posts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        return { posts: result.posts.slice(from, from + this.PAGE_SIZE), total: Math.max(result.total, result.posts.length) };
       } catch (e) {
-        console.warn("Supabase fetch failed, using localStorage:", e);
+        console.warn("Supabase fetch failed:", e);
       }
     }
     
-    // Always merge localStorage posts (catches posts that couldn't reach Supabase)
-    try {
-      const localPosts = lsGet<Post[]>("posts", []);
-      if (localPosts.length > 0) {
-        // Filter out posts already in Supabase results
-        const supabaseIds = new Set(supabasePosts.map(p => p.id));
-        const uniqueLocal = localPosts.filter(p => !supabaseIds.has(p.id));
-        
-        if (uniqueLocal.length > 0) {
-          // Apply filters
-          let filtered = uniqueLocal;
-          if (category) filtered = filtered.filter(p => p.category === category);
-          if (search && search.trim()) {
-            const q = search.trim().toLowerCase();
-            filtered = filtered.filter(p => p.title.toLowerCase().includes(q) || p.content.toLowerCase().includes(q));
-          }
-          supabasePosts = [...supabasePosts, ...filtered];
-        }
-      }
-    } catch {}
-    
-    // Sort all by date
-    supabasePosts.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    
-    const total = supabaseTotal + (supabasePosts.length > 0 ? 0 : 0);
-    return { posts: supabasePosts.slice(0, this.PAGE_SIZE), total: Math.max(total, supabasePosts.length) };
+    // Full localStorage fallback
+    let all = lsGet<Post[]>("posts", SEED_POSTS);
+    if (!Array.isArray(all)) all = [...SEED_POSTS];
+    if (category) all = all.filter(p => p.category === category);
+    if (search && search.trim()) {
+      const q = search.trim().toLowerCase();
+      all = all.filter(p => p.title.toLowerCase().includes(q) || p.content.toLowerCase().includes(q));
+    }
+    all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return { posts: all.slice(from, from + this.PAGE_SIZE), total: all.length };
   },
 
   async loadUserPosts(userId: string): Promise<Post[]> {
