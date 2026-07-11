@@ -170,7 +170,7 @@ export default function CreatePage() {
       <main className="min-h-screen pb-20 bg-[var(--color-bg-primary)]">
         {/* Header with back button */}
         <div className="glass sticky top-0 z-50 h-11 flex items-center px-4">
-          <button type="button" onClick={() => { if (title || content || selectedFiles.length > 0) { if (confirm("内容尚未发布，确定离开吗？")) window.location.href = "/"; } else { window.location.href = "/"; } }} className="flex items-center gap-1.5 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] transition-all duration-200">
+          <button type="button" onClick={() => router.push("/")} className="flex items-center gap-1.5 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] cursor-pointer z-20 relative transition-all duration-200">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
             <span className="text-xs">取消</span>
           </button>
@@ -393,6 +393,27 @@ export default function CreatePage() {
                 <p className="text-xs text-red-400">{error}</p>
               </div>
             )}
+
+
+            {/* Boost / 推流 */}
+            <div className="rounded-xl bg-gradient-to-r from-blue-500/5 to-cyan-400/5 border border-blue-500/15 p-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">🚀</span>
+                  <div>
+                    <p className="text-xs font-medium text-[var(--color-text-primary)]">推流推广</p>
+                    <p className="text-[10px] text-[var(--color-text-tertiary)]">付费让你的帖子排名靠前</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => router.push("/donate")}
+                  className="px-3 py-1.5 rounded-lg bg-blue-500 text-white text-[11px] font-bold hover:bg-blue-600 transition-all"
+                >
+                  去推流 →
+                </button>
+              </div>
+            </div>
 
             {/* Submit */}
             <button

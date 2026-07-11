@@ -7,13 +7,13 @@ import { useData, type Post } from "@/lib/store";
 import { fetchProfile, type Profile } from "@/lib/data";
 import PostCard from "@/components/PostCard";
 
-type Tab = "posts" | "liked";
+type Tab = "posts" | "liked" | "saved";
 
 export default function UserProfilePage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { user } = useAuth();
-  const { loadUserPosts, loadUserLikedPosts } = useData();
+  const { user, requireLogin } = useAuth();
+  const { loadUserPosts, loadUserLikedPosts, loadUserSavedPosts, likedPosts, toggleLike, savedPosts, toggleSave } = useData();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [tab, setTab] = useState<Tab>("posts");
@@ -38,27 +38,30 @@ export default function UserProfilePage() {
     setLoading(true);
     if (t === "posts") {
       setPosts(await loadUserPosts(id));
-    } else {
+    } else if (t === "liked") {
       setPosts(await loadUserLikedPosts(id));
+    } else {
+      setPosts(await loadUserSavedPosts(id));
     }
     setLoading(false);
   }
 
   function sendMessage() {
     if (!user) return;
-    const existing = JSON.parse(localStorage.getItem("dalanying_messages") || "[]");
+    const existing = JSON.parse(localStorage.getItem("dalanying_dms") || "[]");
     existing.push({
       id: Date.now().toString(36),
       fromId: user.id,
       fromName: user.name,
+      fromAvatar: user.avatar || "",
       toId: id,
       toName: profile?.nickname || "用户",
       content: "你好！",
       createdAt: new Date().toISOString(),
       read: false,
     });
-    localStorage.setItem("dalanying_messages", JSON.stringify(existing));
-    window.location.href = "/messages";
+    localStorage.setItem("dalanying_dms", JSON.stringify(existing));
+    router.push("/messages");
   }
 
   return (
@@ -66,23 +69,23 @@ export default function UserProfilePage() {
       <div className="relative">
         <div className="h-32 bg-gradient-to-br from-zinc-800 via-zinc-750 to-zinc-900" />
         <button
-          onClick={() => window.location.href = "/" }
+          onClick={() => router.push("/") }
           className="absolute top-3 left-3 w-8 h-8 flex items-center justify-center rounded-full bg-black/30 text-white hover:bg-black/50 transition-all duration-200"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
         </button>
         <div className="px-4 -mt-10 relative z-10">
           <div className="w-20 h-20 rounded-full border-2 border-[var(--color-bg-primary)] bg-gradient-to-br from-zinc-600 to-zinc-500 flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
-            {profile?.avatar_url ? (
-              <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
+            {profile?.avatar_url || user?.avatar ? (
+              <img src={profile.avatar_url || user?.avatar} alt="" className="w-full h-full object-cover" />
             ) : (
-              (profile?.nickname || "?").charAt(0).toUpperCase()
+              (profile?.nickname || user?.name || "?").charAt(0).toUpperCase()
             )}
           </div>
           <div className="flex items-center gap-3">
             <div>
               <h1 className="text-lg font-bold text-[var(--color-text-primary)] mt-2">
-                {profile?.nickname || "用户"}
+                {profile?.nickname || user?.name || "用户"}
               </h1>
               <p className="text-[11px] text-[var(--color-text-tertiary)]">
                 {profile?.bio || "这个人很懒，什么都没写..."}
@@ -101,7 +104,7 @@ export default function UserProfilePage() {
       </div>
 
       <div className="flex border-b-[0.5px] border-[var(--color-border-subtle)] mt-5">
-        {(["posts", "liked"] as Tab[]).map((t) => (
+        {(["posts", "liked", "saved"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => switchTab(t)}
@@ -109,7 +112,7 @@ export default function UserProfilePage() {
               tab === t ? "text-[var(--color-text-primary)]" : "text-[var(--color-text-tertiary)]"
             }`}
           >
-            {t === "posts" ? "发布" : "赞过"}
+            {t === "posts" ? "发布" : t === "liked" ? "赞过" : "收藏"}
             {tab === t && <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-[var(--color-accent)] rounded-full" />}
           </button>
         ))}
@@ -137,7 +140,7 @@ export default function UserProfilePage() {
         ) : (
           <div className="grid grid-cols-2 gap-2.5 px-1">
             {posts.map((p) => (
-              <PostCard key={p.id} post={p} />
+              <PostCard key={p.id} post={p} isLiked={likedPosts.has(p.id)} onLike={(id) => { if (!user) { requireLogin(); return; } toggleLike(id); }} onCardClick={(id) => router.push(`/post/${id}`)} isSaved={savedPosts.has(p.id)} onSave={(id) => { if (!user) { requireLogin(); return; } toggleSave(id); }} />
             ))}
           </div>
         )}

@@ -2,15 +2,17 @@
 import React from "react";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "@/components/Navbar";
 import PostCard from "@/components/PostCard";
 import { FeedSkeleton } from "@/components/Skeleton";
 import AdCard from "@/components/AdCard";
+import { useAuth } from "@/lib/auth";
 import { useData } from "@/lib/store";
 
 const ALL_CATEGORIES = [
-  "推荐", "数码", "科技", "汽车", "运动", "游戏", "健身",
+  "推荐", "谈婚论嫁", "思维探讨", "数码", "科技", "汽车", "运动", "游戏", "健身",
   "户外", "财经", "美食", "旅游", "穿搭", "机车", "摄影",
   "宠物", "篮球", "足球", "音乐", "电影", "动漫", "格斗",
 ];
@@ -35,8 +37,11 @@ function trafficScore(p: { views?: number; likes?: number; comments?: number; cr
 }
 
 export default function HomePage() {
-  const { posts, loading, hasMore, loadMore, resetAndReload, searchQuery, setSearchQuery } = useData();
-  const [customCats, setCustomCats] = useState<string[]>(["推荐"]);
+  const router = useRouter();
+  const { posts, loading, hasMore, loadMore, resetAndReload, searchQuery, setSearchQuery, likedPosts, toggleLike, savedPosts, toggleSave } = useData();
+  const { user, requireLogin } = useAuth();
+  const FIXED_CATS = ["推荐", "思维探讨", "数码"];
+  const [customCats, setCustomCats] = useState<string[]>([...FIXED_CATS]);
   const [activeCat, setActiveCat] = useState("推荐");
   const [showCatPicker, setShowCatPicker] = useState(false);
 
@@ -87,6 +92,7 @@ export default function HomePage() {
   const totalContent = sortedPinned.length + announcements.length + sorted.length;
 
   function toggleCat(cat: string) {
+    if (FIXED_CATS.includes(cat)) { setActiveCat(cat); return; }
     if (cat === "推荐") {
       setCustomCats(["推荐"]);
       setActiveCat("推荐");
@@ -150,11 +156,24 @@ export default function HomePage() {
           )}
         </div>
 
+
+        {/* Sunshine Hero Banner */}
+        <div className="mx-3 mt-3 mb-1 rounded-2xl overflow-hidden relative" style={{ background: "linear-gradient(135deg, #1e40af 0%, #3b82f6 30%, #60a5fa 60%, #93c5fd 100%)" }}>
+          <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(circle at 20% 50%, white 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
+          <div className="relative px-5 py-6 flex flex-col items-center text-center">
+            <div>
+              <p className="text-white/50 text-[9px] font-medium tracking-[0.2em] uppercase mb-2">WELCOME TO DALANYING</p>
+              <h2 className="text-6xl font-['Dancing_Script',_'Pacifico',_'Great_Vibes',_cursive] text-white tracking-wide" style={{ fontFamily: "'Dancing Script', 'Pacifico', 'Great Vibes', cursive" }}>Sunshine</h2>
+              <p className="text-white/40 text-xs mt-2">发现生活的每一种可能</p>
+            </div>
+          </div>
+        </div>
+
         {/* Content */}
         <section className="pb-20">
           {/* Active search indicator */}
           {searchQuery && (
-            <div className="px-3 py-2 flex items-center justify-between bg-[var(--color-bg-card)] border-b-[0.5px] border-[var(--color-border-subtle)]">
+            <div className="px-3 py-2 flex flex-col items-center text-center bg-[var(--color-bg-card)] border-b-[0.5px] border-[var(--color-border-subtle)]">
               <p className="text-[12px] text-[var(--color-text-secondary)]">
                 搜索：<span className="font-medium text-[var(--color-text-primary)]">"{searchQuery}"</span>
                 <span className="text-[var(--color-text-tertiary)] ml-1">— {totalContent} 条结果</span>
@@ -191,7 +210,7 @@ export default function HomePage() {
                     </div>
                     {sortedPinned.map((p, i) => (
                       <div key={p.id} className={`transition-all duration-500 ${i === pinnedIndex ? "opacity-100" : "opacity-0 absolute inset-0 pointer-events-none"}`}>
-                        <div onClick={() => window.location.href = `/post/${p.id}`} className="flex cursor-pointer">
+                        <div onClick={() => router.push(`/post/${p.id}`)} className="flex cursor-pointer">
                           {p.images?.[0] && <div className="w-[100px] h-[100px] shrink-0"><img src={p.images[0]} alt="" className="w-full h-full object-cover" loading="lazy" /></div>}
                           <div className="flex-1 p-3 flex flex-col justify-center min-w-0">
                             <h3 className="text-[14px] font-bold text-[var(--color-text-primary)] line-clamp-2 leading-snug">{p.title}</h3>
@@ -221,7 +240,7 @@ export default function HomePage() {
                 <div key={p.id} className="px-2 pt-2">
                   <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
                     className="bg-gradient-to-r from-[var(--color-accent)]/10 via-[var(--color-accent)]/5 to-[var(--color-accent)]/10 border-[0.5px] border-[var(--color-accent)]/30 rounded-xl overflow-hidden cursor-pointer"
-                    onClick={() => window.location.href = `/post/${p.id}`}>
+                    onClick={() => router.push(`/post/${p.id}`)}>
                     <div className="px-4 py-3 flex items-center gap-3">
                       <span className="text-xl shrink-0">📢</span>
                       <div className="flex-1 min-w-0">
@@ -237,10 +256,10 @@ export default function HomePage() {
 
               {/* Post grid */}
               <AnimatePresence mode="wait">
-                <motion.div key={activeCat + searchQuery} variants={container} initial="hidden" animate="show" className="grid grid-cols-2 gap-2.5 pt-3 px-2">
+                <motion.div key={activeCat + searchQuery} variants={container} initial="hidden" animate="show" className="columns-2 gap-2.5 pt-3 px-2 [column-fill:balance]" style={{ columnFill: "balance" } as React.CSSProperties}>
                   {sorted.map((p, i) => (
                     <React.Fragment key={p.id}>
-                      <motion.div variants={item}><PostCard post={p} /></motion.div>
+                      <motion.div variants={item} className="break-inside-avoid mb-2.5"><PostCard post={p} isLiked={likedPosts.has(p.id)} onLike={(id) => { if (!user) { requireLogin(); return; } toggleLike(id); }} onCardClick={(id) => router.push(`/post/${id}`)} isSaved={savedPosts.has(p.id)} onSave={(id) => { if (!user) { requireLogin(); return; } toggleSave(id); }} /></motion.div>
                       {(i + 1) % 6 === 0 && i < sorted.length - 1 && (
                         <motion.div variants={item}><AdCard index={Math.floor(i / 6)} /></motion.div>
                       )}

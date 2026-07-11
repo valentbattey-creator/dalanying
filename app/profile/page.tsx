@@ -4,9 +4,9 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
+import { useAuth } from "@/lib/auth";
 import PostCard from "@/components/PostCard";
 import { FeedSkeleton } from "@/components/Skeleton";
-import { useAuth } from "@/lib/auth";
 import { useData } from "@/lib/store";
 
 export default function ProfilePage() {
@@ -94,7 +94,7 @@ export default function ProfilePage() {
             <div className="space-y-4 pb-12">
               {displayPosts.map((p, i) => (
                 <div key={p.id} style={{ animationDelay: `${i * 40}ms` }} className="animate-fade-up">
-                  <PostCard post={p} />
+                  <PostCard post={p} isLiked={likedPosts.has(p.id)} onLike={(id) => { if (!currentUser) { requireLogin(); return; } toggleLike(id); }} onCardClick={(id) => router.push(`/post/${id}`)} isSaved={savedPosts.has(p.id)} onSave={(id) => { if (!currentUser) { requireLogin(); return; } toggleSave(id); }} />
                 </div>
               ))}
             </div>

@@ -173,7 +173,7 @@ export default function PostDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { user, requireLogin } = useAuth();
-  const { getPostById, getCommentsByPostId, addComment, fetchPostById, loading } = useData();
+  const { getPostById, getCommentsByPostId, addComment, deleteComment, fetchPostById, loading } = useData();
   const [commentText, setCommentText] = useState("");
   const [replyTo, setReplyTo] = useState<Comment | null>(null);
   const [showEmoji, setShowEmoji] = useState(false);
@@ -225,7 +225,7 @@ export default function PostDetailPage() {
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-[var(--color-text-tertiary)]"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           </div>
           <p className="text-sm text-[var(--color-text-tertiary)]">内容不存在或已被删除</p>
-          <button type="button" onClick={() => window.location.href = "/" }
+          <button type="button" onClick={() => router.push("/") }
             className="text-sm text-[var(--color-accent)] mt-3 inline-block hover:underline transition-all duration-300"
           >返回首页</button>
         </div>
@@ -270,7 +270,7 @@ export default function PostDetailPage() {
       {/* Glass back-bar */}
       <div className="glass sticky top-0 z-50">
         <div className="max-w-3xl mx-auto px-5 h-14 flex items-center">
-          <button type="button" onClick={() => window.location.href = "/" }
+          <button type="button" onClick={() => router.push("/") }
             className="inline-flex items-center gap-1.5 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] transition-all duration-300 px-2 py-1.5 -ml-2 rounded-lg hover:bg-[var(--color-bg-hover)]"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
@@ -350,6 +350,7 @@ export default function PostDetailPage() {
                 <div className="flex-1 relative">
                   <textarea
                     value={commentText}
+                    onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleComment(e as any, replyTo?.id || null); } }}
                     onChange={(e) => setCommentText(e.target.value)}
                     placeholder={replyTo ? `回复 @${replyTo.author}...` : "写下你的看法..."}
                     maxLength={500}
@@ -422,6 +423,8 @@ export default function PostDetailPage() {
                   <CommentItem
                     comment={c}
                     onReply={handleReply}
+                    user={user}
+                    deleteComment={deleteComment}
                   />
                   {/* Nested replies */}
                   {replies[c.id] && replies[c.id].length > 0 && (
@@ -431,6 +434,8 @@ export default function PostDetailPage() {
                           <CommentItem
                             comment={reply}
                             onReply={handleReply}
+                            user={user}
+                            deleteComment={deleteComment}
                             isReply
                           />
                         </div>
@@ -450,10 +455,14 @@ export default function PostDetailPage() {
 function CommentItem({
   comment,
   onReply,
+  user,
+  deleteComment,
   isReply = false,
 }: {
   comment: Comment;
   onReply: (c: Comment) => void;
+  user: any;
+  deleteComment: (id: string) => void;
   isReply?: boolean;
 }) {
   return (
@@ -469,6 +478,9 @@ function CommentItem({
         <div className="flex items-baseline gap-2">
           <span className={`${isReply ? "text-[12px]" : "text-[13px]"} font-medium text-[var(--color-text-primary)]`}>
             {comment.author}
+            {user && comment.authorId === user.id && (
+              <button type="button" onClick={(e) => { e.stopPropagation(); if (confirm("确定删除这条评论吗？")) { deleteComment(comment.id); toast.success("评论已删除"); } }} className="text-[10px] text-red-400/60 hover:text-red-400 ml-2 transition-colors">删除</button>
+            )}
           </span>
           <span className="text-[10px] text-[var(--color-text-tertiary)]">
             {timeAgo(comment.createdAt)}

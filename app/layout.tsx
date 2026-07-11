@@ -6,6 +6,7 @@ import LoginModal from "@/components/LoginModal";
 import ProfileSetup from "@/components/ProfileSetup";
 import BottomNav from "@/components/BottomNav";
 import { Toaster } from "sonner";
+import "./tailwind.css";
 import "./globals.css";
 
 export const viewport: Viewport = {
@@ -42,12 +43,19 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="zh-CN" data-theme="dark" suppressHydrationWarning>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&family=Pacifico&family=Great+Vibes&display=swap" rel="stylesheet" />
+      </head>
       <body>
         <script
           dangerouslySetInnerHTML={{
             __html: `
               try {
                 var bg = localStorage.getItem("dalanying_bg_image");
+                var fs = localStorage.getItem("dalanying_font_size");
+                if (fs) document.documentElement.style.setProperty("--font-scale", fs + "px");
                 if (bg) document.documentElement.style.setProperty("--user-bg-image", "url(" + bg + ")");
               } catch(e) {}
             `,

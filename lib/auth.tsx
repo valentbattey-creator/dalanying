@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { supabase, hasSupabase } from "./supabase";
 import { moderateName } from "./moderation";
+import { toast } from "sonner";
 import { generateAvatar } from "./avatar";
 import { fetchProfile, updateProfile } from "./data";
 
@@ -15,6 +16,7 @@ export interface AppUser {
   email: string;
   avatar: string;
   isAdmin: boolean;
+  role: "owner" | "admin" | null;
   bannedUntil: string | null;
 }
 
@@ -28,7 +30,9 @@ interface AuthState {
   checkNameAvailable: (name: string) => Promise<boolean>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
-  updateUserProfile: (updates: { name?: string; avatar?: string; isAdmin?: boolean }) => void;
+  updateUserProfile: (updates: { name?: string; avatar?: string; isAdmin?: boolean; role?: "owner" | "admin" | null }) => void;
+  claimOwner: (password: string) => Promise<boolean>;
+  abdicateOwner: (password: string) => Promise<boolean>;
   setShowLoginModal: (show: boolean) => void;
   showLoginModal: boolean;
   showProfileSetup: boolean;
@@ -80,6 +84,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: session.session.user.email!,
         avatar: profile?.avatar_url || "",
         isAdmin: profile?.is_admin || false,
+        role: profile?.role || null,
+        role: profile?.role || null,
         bannedUntil: profile?.banned_until || null,
       });
     }
@@ -110,6 +116,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             email: session.user.email!,
             avatar: profile?.avatar_url || "",
             isAdmin: profile?.is_admin || false,
+        role: profile?.role || null,
+            role: profile?.role || null,
             bannedUntil: profile?.banned_until || null,
           };
           setUser(u);
@@ -127,19 +135,110 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!user) setShowLoginModal(true);
   }, [user]);
 
-  const updateUserProfile = useCallback((updates: { name?: string; avatar?: string; isAdmin?: boolean }) => {
+  const updateUserProfile = useCallback((updates: { name?: string; avatar?: string; isAdmin?: boolean; role?: "owner" | "admin" | null }) => {
     setUser(prev => {
       if (!prev) return prev;
-      const next = { ...prev, ...(updates.name ? { name: updates.name } : {}), ...(updates.avatar ? { avatar: updates.avatar } : {}), ...(updates.isAdmin !== undefined ? { isAdmin: updates.isAdmin } : {}) };
+      const next = { ...prev, ...(updates.name ? { name: updates.name } : {}), ...(updates.avatar ? { avatar: updates.avatar } : {}), ...(updates.isAdmin !== undefined ? { isAdmin: updates.isAdmin } : {}), ...(updates.role !== undefined ? { role: updates.role } : {}) };
       localStorage.setItem("dalanying_user", JSON.stringify(next));
       return next;
     });
   }, []);
 
+  // ===== Claim owner with password =====
+  const claimOwner = useCallback(async (password: string): Promise<boolean> => {
+    if (!user) return false;
+    if (password !== "050309") return false;
+    try {
+      // Check if another owner already exists (try Supabase, fallback to localStorage)
+      let ownerExists = false;
+      if (hasSupabase) {
+        try {
+          const { data: existing } = await supabase!.from("profiles").select("id").eq("role", "owner").neq("id", user.id).limit(1);
+          ownerExists = !!(existing && existing.length > 0);
+        } catch { /* role column might not exist yet */ }
+      }
+      if (!ownerExists) {
+        const all = JSON.parse(localStorage.getItem("dalanying_anon_users") || "[]");
+        ownerExists = all.some((u: any) => u.role === "owner" && u.id !== user.id);
+      }
+      if (ownerExists) {
+        toast.error("站长已存在，无法重复认领");
+        return false;
+      }
+      
+      // Try Supabase upsert (ignore if column doesn't exist)
+      if (hasSupabase) {
+        try {
+          await supabase!.from("profiles").upsert({
+            id: user.id, nickname: user.name, avatar_url: user.avatar || "",
+            is_admin: true, role: "owner",
+          }, { onConflict: "id" });
+        } catch { /* column might not exist yet, localStorage fallback below */ }
+      }
+      
+      // Update local state (always works)
+      setUser(prev => {
+        if (!prev) return prev;
+        const next = { ...prev, isAdmin: true, role: "owner" as const };
+        localStorage.setItem("dalanying_user", JSON.stringify(next));
+        return next;
+      });
+      
+      // Also update anon users
+      const anonUsers = JSON.parse(localStorage.getItem("dalanying_anon_users") || "[]");
+      const idx = anonUsers.findIndex((u: any) => u.id === user.id);
+      if (idx >= 0) {
+        anonUsers[idx].isAdmin = true;
+        anonUsers[idx].role = "owner";
+        localStorage.setItem("dalanying_anon_users", JSON.stringify(anonUsers));
+      }
+      
+      // Also update user list
+      const users = JSON.parse(localStorage.getItem("dalanying_users") || "[]");
+      const uidx = users.findIndex((u: any) => u.id === user.id);
+      if (uidx >= 0) {
+        users[uidx].isAdmin = true;
+        users[uidx].role = "owner";
+        localStorage.setItem("dalanying_users", JSON.stringify(users));
+      }
+      
+      toast.success("站长身份已激活！");
+      return true;
+    } catch (e) { 
+      console.error("claimOwner error:", e);
+      return false; 
+    }
+  }, [user]);
+
+  // ===== Abdicate owner =====
+  const abdicateOwner = useCallback(async (password: string): Promise<boolean> => {
+    if (!user || user.role !== "owner") return false;
+    if (password !== "050309") return false;
+    try {
+      if (hasSupabase) {
+        await supabase!.from("profiles").update({
+          is_admin: false,
+          role: null,
+        }).eq("id", user.id);
+      }
+      setUser(prev => {
+        if (!prev) return prev;
+        const next = { ...prev, isAdmin: false, role: null as null };
+        localStorage.setItem("dalanying_user", JSON.stringify(next));
+        return next;
+      });
+      toast?.success?.("已让出站长身份");
+      return true;
+    } catch { return false; }
+  }, [user]);
+
   // ===== Check nickname availability =====
   const checkNameAvailable = useCallback(async (name: string): Promise<boolean> => {
     if (!name.trim() || name.trim().length < 2) return false;
     const trimmed = name.trim();
+    // Reserved names
+    const RESERVED = ["大岚荧官方", "大岚荧", "dalanying", "admin", "管理员", "系统"];
+    if (RESERVED.some(r => r.toLowerCase() === trimmed.toLowerCase())) return false;
     // Check Supabase profiles
     if (hasSupabase) {
       const { data, error } = await supabase!.from("profiles").select("id").eq("nickname", trimmed).limit(1);
@@ -173,6 +272,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // ===== Quick login (name only) with persistent identity =====
   const quickLogin = useCallback(async (name: string) => {
     const trimmed = name.trim();
+    // Reserved names
+    const RESERVED = ["大岚荧官方", "大岚荧", "dalanying", "admin", "管理员", "系统"];
+    if (RESERVED.some(r => r.toLowerCase() === trimmed.toLowerCase())) return false;
     if (trimmed.length < 2) return { success: false, error: "名字至少需要 2 个字" };
     if (trimmed.length > 12) return { success: false, error: "名字最多 12 个字" };
 
@@ -195,6 +297,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email: "",
           avatar: storedUser.avatar || generateAvatar(trimmed),
           isAdmin: storedUser.isAdmin || false,
+        role: storedUser.role || null,
           bannedUntil: null,
         };
         setUser(restored);
@@ -220,7 +323,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       name: trimmed,
       email: "",
       avatar: autoAvatar,
-      isAdmin: isFirst,
+      isAdmin: false,
+      role: null,
       bannedUntil: null,
     };
 
@@ -231,7 +335,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         nickname: trimmed,
         avatar_url: autoAvatar,
         bio: "",
-        is_admin: isFirst,
+        is_admin: false,
+        role: null,
       }, { onConflict: "id" });
     }
 
@@ -240,7 +345,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem("dalanying_name_map", JSON.stringify(nameMap));
     
     const anonUsers = JSON.parse(localStorage.getItem("dalanying_anon_users") || "[]") as any[];
-    anonUsers.push({ name: trimmed, id: anonId, avatar: autoAvatar, isAdmin: isFirst });
+    anonUsers.push({ name: trimmed, id: anonId, avatar: autoAvatar, isAdmin: false, role: null });
     localStorage.setItem("dalanying_anon_users", JSON.stringify(anonUsers));
 
     setUser(newUser);
@@ -268,6 +373,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email,
         avatar: profile?.avatar_url || "",
         isAdmin: profile?.is_admin || false,
+        role: profile?.role || null,
         bannedUntil: profile?.banned_until || null,
       };
       setUser(u);
@@ -312,7 +418,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (users.some((u: AppUser) => u.email === email)) return { success: false, error: "该邮箱已注册", code: "exists" };
     const anonUsers = JSON.parse(localStorage.getItem("dalanying_anon_users") || "[]") as string[];
     const isFirst = users.length === 0 && anonUsers.length === 0;
-    const newUser: AppUser = { id: "email_" + password.split("").reduce((a, c) => a + c.charCodeAt(0), 0), name, email, avatar: "", isAdmin: isFirst, bannedUntil: null };
+    const newUser: AppUser = { id: "email_" + password.split("").reduce((a, c) => a + c.charCodeAt(0), 0), name, email, avatar: "", isAdmin: false, role: null, bannedUntil: null };
     users.push(newUser);
     localStorage.setItem("dalanying_users", JSON.stringify(users));
     setUser(newUser);
@@ -338,6 +444,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       refreshUser, updateUserProfile,
       showLoginModal, setShowLoginModal,
       showProfileSetup, setShowProfileSetup,
+      claimOwner, abdicateOwner,
     }}>
       {children}
     </AuthContext.Provider>

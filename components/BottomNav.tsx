@@ -3,14 +3,13 @@
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 
-const HIDE_ON = ["/settings", "/admin", "/create", "/messages"];
+const HIDE_ON = ["/settings", "/admin", "/create"];
 
 export default function BottomNav() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, requireLogin } = useAuth();
 
-  // Hide on certain pages
   if (HIDE_ON.includes(pathname)) return null;
 
   const isHome = pathname === "/";
@@ -21,12 +20,11 @@ export default function BottomNav() {
   }
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 glass border-t-[0.5px] border-white/[0.06] safe-area-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 glass border-t-[0.5px] border-white/[0.06] safe-area-bottom pointer-events-auto">
       <div className="max-w-lg mx-auto h-14 flex items-center justify-around px-4">
-        {/* 首页 */}
         <button
           onClick={() => router.push("/")}
-          className={`flex flex-col items-center gap-0.5 transition-all duration-200 active:scale-90 ${
+          className={`flex flex-col items-center gap-0.5 transition-all duration-200 active:scale-90 cursor-pointer ${
             isHome ? "text-[var(--color-text-primary)]" : "text-[var(--color-text-tertiary)]"
           }`}
         >
@@ -37,10 +35,9 @@ export default function BottomNav() {
           <span className="text-[10px] font-medium">首页</span>
         </button>
 
-        {/* 发布 */}
         <button
           onClick={handleCreate}
-          className="relative -mt-5 flex flex-col items-center transition-all duration-200 active:scale-90"
+          className="relative -mt-5 flex flex-col items-center transition-all duration-200 active:scale-90 cursor-pointer"
         >
           <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[var(--color-accent)] to-[#ff6b81] flex items-center justify-center shadow-lg shadow-[var(--color-accent)]/25 transition-all duration-200 hover:shadow-[var(--color-accent)]/40 hover:scale-105">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round">
@@ -51,13 +48,12 @@ export default function BottomNav() {
           <span className="text-[10px] font-medium mt-0.5 text-[var(--color-text-tertiary)]">发布</span>
         </button>
 
-        {/* 消息 */}
         <button
           onClick={() => {
             if (!user) { requireLogin(); return; }
             router.push("/messages");
           }}
-          className={`flex flex-col items-center gap-0.5 transition-all duration-200 active:scale-90 ${
+          className={`flex flex-col items-center gap-0.5 transition-all duration-200 active:scale-90 cursor-pointer ${
             pathname.startsWith("/messages") ? "text-[var(--color-text-primary)]" : "text-[var(--color-text-tertiary)]"
           }`}
         >
@@ -67,13 +63,12 @@ export default function BottomNav() {
           <span className="text-[10px] font-medium">消息</span>
         </button>
 
-        {/* 我的 */}
         <button
           onClick={() => {
             if (!user) { requireLogin(); return; }
             router.push(`/user/${user.id}`);
           }}
-          className={`flex flex-col items-center gap-0.5 transition-all duration-200 active:scale-90 ${
+          className={`flex flex-col items-center gap-0.5 transition-all duration-200 active:scale-90 cursor-pointer ${
             pathname.startsWith("/user") ? "text-[var(--color-text-primary)]" : "text-[var(--color-text-tertiary)]"
           }`}
         >
