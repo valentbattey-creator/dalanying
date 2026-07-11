@@ -425,6 +425,8 @@ export const dataService = {
   async unbanUser(userId: string): Promise<boolean> {
     return this.updateProfile(userId, { banned_until: null });
   },
+};
+
 // ===== Backward Compat Exports =====
 export async function syncSeedToSupabase(userId: string): Promise<boolean> {
   if (!hasSupabase || !supabase) return false;
