@@ -199,7 +199,7 @@ export default function DonatePage() {
               <div className="bg-gradient-to-r from-amber-500/20 via-orange-400/10 to-amber-500/20 px-5 py-8 text-center">
                 <div className="text-6xl mb-4">☕</div>
                 <h2 className="text-xl font-bold text-[var(--color-text-primary)]">请站长喝杯咖啡</h2>
-                <p className="text-xs text-[var(--color-text-tertiary)] mt-2">dalanying因你而更好，每一份支持都是动力</p>
+                <p className="text-xs text-[var(--color-text-tertiary)] mt-2">大岚荧因你而更好，每一份支持都是动力</p>
               </div>
               <div className="p-5 space-y-4">
                 <p className="text-xs text-[var(--color-text-tertiary)] text-center">选择金额</p>

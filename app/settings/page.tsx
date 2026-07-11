@@ -461,7 +461,7 @@ export default function SettingsPage() {
         </div>
 
         <div className="text-center pb-8 pt-4">
-          <p className="text-xs text-[var(--color-text-tertiary)]">dalanying v1.0</p>
+          <p className="text-xs text-[var(--color-text-tertiary)]">大岚荧 v1.0</p>
           <p className="text-[10px] text-[var(--color-text-tertiary)] mt-0.5">发现 · 分享 · 连接</p>
         </div>
       </div>

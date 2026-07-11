@@ -235,7 +235,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!name.trim() || name.trim().length < 2) return false;
     const trimmed = name.trim();
     // Reserved names
-    const RESERVED = ["dalanying官方", "dalanying", "admin", "管理员", "系统"];
+    const RESERVED = ["大岚荧官方", "大岚荧", "admin", "管理员", "系统"];
     if (RESERVED.some(r => r.toLowerCase() === trimmed.toLowerCase())) return false;
     // Check Supabase profiles
     if (hasSupabase) {
@@ -271,7 +271,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const quickLogin = useCallback(async (name: string) => {
     const trimmed = name.trim();
     // Reserved names
-    const RESERVED = ["dalanying官方", "dalanying", "admin", "管理员", "系统"];
+    const RESERVED = ["大岚荧官方", "大岚荧", "admin", "管理员", "系统"];
     if (RESERVED.some(r => r.toLowerCase() === trimmed.toLowerCase())) return { success: false, error: "该名字不可使用" };
     if (trimmed.length < 2) return { success: false, error: "名字至少需要 2 个字" };
     if (trimmed.length > 12) return { success: false, error: "名字最多 12 个字" };

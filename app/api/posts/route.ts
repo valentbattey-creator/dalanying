@@ -1,143 +1,161 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServiceSupabase, mapPost } from "@/lib/server-supabase";
+import { createClient } from "@supabase/supabase-js";
 
-// GET: Paginated posts list
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || "https://aawoajhmhvysedabncoz.supabase.co",
+  process.env.SUPABASE_SERVICE_ROLE_KEY || ""
+);
+
+const VALID_CATEGORIES = [
+  "推荐", "数码", "科技", "汽车", "运动", "游戏", "健身", "户外", "财经",
+  "美食", "旅游", "音乐", "电影", "时尚", "宠物", "摄影", "读书",
+  "职场", "教育", "房产", "军事", "历史", "哲学", "设计", "动漫",
+  "骑行", "钓鱼", "篮球", "足球", "跑步", "格斗", "穿搭", "机车",
+  "思维探讨", "谈婚论嫁", "成长", "健康", "手工", "家居", "天文", "趣闻", "科普",
+];
+
 export async function GET(req: NextRequest) {
   try {
-    const supabase = getServiceSupabase();
-    const url = new URL(req.url);
-    const from = parseInt(url.searchParams.get("from") || "0");
-    const to = parseInt(url.searchParams.get("to") || "9");
-    const category = url.searchParams.get("category") || "";
-    const search = url.searchParams.get("search") || "";
-    const userId = url.searchParams.get("userId") || "";
+    const { searchParams } = new URL(req.url);
+    const from = parseInt(searchParams.get("from") || "0");
+    const to = parseInt(searchParams.get("to") || "9");
+    const category = searchParams.get("category") || "";
+    const search = searchParams.get("search") || "";
+    const userId = searchParams.get("userId") || "";
 
-    let query = supabase
+    let query = supabaseAdmin
       .from("posts")
       .select("*, profiles!posts_user_id_fkey(nickname, avatar_url)", { count: "exact" })
       .order("is_pinned", { ascending: false })
       .order("created_at", { ascending: false })
       .range(from, to);
 
-    if (category) query = query.eq("category", category);
+    if (category && category !== "推荐") query = query.eq("category", category);
     if (search) query = query.or(`title.ilike.%${search}%,content.ilike.%${search}%`);
     if (userId) query = query.eq("user_id", userId);
 
     const { data, error, count } = await query;
+    if (error) return NextResponse.json({ posts: [], total: 0, error: error.message });
 
-    if (error) {
-      console.error("GET posts error:", error);
-      return NextResponse.json({ posts: [], total: 0 });
+    // Get likes/comments counts for these posts
+    const postIds = (data || []).map((item: any) => item.id);
+    let likesMap: Map<string, number> = new Map();
+    let commentsMap: Map<string, number> = new Map();
+    
+    if (postIds.length > 0) {
+      try {
+        const [{ data: ld }, { data: cd }] = await Promise.all([
+          supabaseAdmin.from("likes").select("post_id").in("post_id", postIds),
+          supabaseAdmin.from("comments").select("post_id").in("post_id", postIds),
+        ]);
+        (ld || []).forEach((r: any) => {
+          const pid = String(r.post_id);
+          likesMap.set(pid, (likesMap.get(pid) || 0) + 1);
+        });
+        (cd || []).forEach((r: any) => {
+          const pid = String(r.post_id);
+          commentsMap.set(pid, (commentsMap.get(pid) || 0) + 1);
+        });
+      } catch {}
     }
 
-    const posts = (data as Record<string, unknown>[] || []).map(mapPost);
+    const posts = (data || []).map((item: any) => ({
+      id: item.id,
+      title: item.title,
+      content: item.content || "",
+      images: item.image_urls || [],
+      category: item.category || "",
+      tags: item.tags || [],
+      author: item.profiles?.nickname || "",
+      authorId: item.user_id || "",
+      authorAvatar: item.profiles?.avatar_url || "",
+      createdAt: item.created_at,
+      isPinned: item.is_pinned || false,
+      isAnnouncement: item.is_announcement || false,
+      likes: likesMap.get(String(item.id)) || 0,
+      comments: commentsMap.get(String(item.id)) || 0,
+      views: item.views || 0,
+    }));
 
-    // Get likes and comments counts for these posts
-    if (posts.length > 0) {
-      const postIds = posts.map(p => p.id);
-      const [{ data: likesData }, { data: commentsData }] = await Promise.all([
-        supabase.from("likes").select("post_id").in("post_id", postIds),
-        supabase.from("comments").select("post_id").in("post_id", postIds),
-      ]);
-
-      const likesCount = new Map<string, number>();
-      const commentsCount = new Map<string, number>();
-      if (likesData) likesData.forEach(r => {
-        const pid = String(r.post_id);
-        likesCount.set(pid, (likesCount.get(pid) || 0) + 1);
-      });
-      if (commentsData) commentsData.forEach(r => {
-        const pid = String(r.post_id);
-        commentsCount.set(pid, (commentsCount.get(pid) || 0) + 1);
-      });
-
-      posts.forEach(p => {
-        p.likes = likesCount.get(p.id) || 0;
-        p.comments = commentsCount.get(p.id) || 0;
-      });
-    }
-
-    return NextResponse.json({ posts, total: count || posts.length });
-  } catch (e) {
-    console.error("API GET posts error:", e);
-    return NextResponse.json({ posts: [], total: 0 });
+    return NextResponse.json({ posts, total: count || 0 });
+  } catch (e: any) {
+    return NextResponse.json({ posts: [], total: 0, error: e.message });
   }
 }
 
-// POST: Create a new post
 export async function POST(req: NextRequest) {
   try {
-    const supabase = getServiceSupabase();
     const body = await req.json();
-    const { title, content, images, category, tags, authorId, author, authorAvatar, isPinned, isAnnouncement } = body;
+    let { title, content, images, category, tags, authorId, author, authorAvatar, isPinned, isAnnouncement } = body;
 
-    if (!title || !content) {
-      return NextResponse.json({ error: "Title and content are required" }, { status: 400 });
+    // Validate category
+    if (!category || !VALID_CATEGORIES.includes(category)) {
+      category = "推荐";
     }
 
-    // Insert post
-    const insertData: Record<string, unknown> = {
-      title,
-      content,
-      image_urls: images || [],
-      category: category || "digital",
-      tags: tags || [],
-      user_id: authorId,
-      created_at: new Date().toISOString(),
-    };
+    // Ensure profile exists
+    if (authorId) {
+      await supabaseAdmin.from("profiles").upsert(
+        { id: authorId, nickname: author || "", avatar_url: authorAvatar || "", is_admin: false },
+        { onConflict: "id" }
+      );
+    }
 
-    // Add optional fields if they exist in schema
-    try {
-      insertData.is_pinned = isPinned || false;
-      insertData.is_announcement = isAnnouncement || false;
-    } catch {}
-
-    const { data, error } = await supabase
+    // Attempt insert
+    let { data, error } = await supabaseAdmin
       .from("posts")
-      .insert(insertData)
+      .insert({
+        title,
+        content: content || "",
+        image_urls: images || [],
+        category,
+        tags: tags || [],
+        user_id: authorId || null,
+        is_pinned: isPinned || false,
+        is_announcement: isAnnouncement || false,
+      })
       .select("*, profiles!posts_user_id_fkey(nickname, avatar_url)")
       .single();
 
-    if (error) {
-      // Try minimal insert
-      const minimalInsert = {
-        title, content, image_urls: images || [], category: category || "digital",
-        tags: tags || [], user_id: authorId, created_at: new Date().toISOString(),
-      };
-      const { data: d2, error: e2 } = await supabase
+    // If category constraint fails, retry with "推荐"
+    if (error && (error.message?.includes("category") || error.message?.includes("check"))) {
+      const retry = await supabaseAdmin
         .from("posts")
-        .insert(minimalInsert)
+        .insert({
+          title,
+          content: content || "",
+          image_urls: images || [],
+          category: "推荐",
+          tags: tags || [],
+          user_id: authorId || null,
+          is_pinned: isPinned || false,
+          is_announcement: isAnnouncement || false,
+        })
         .select("*, profiles!posts_user_id_fkey(nickname, avatar_url)")
         .single();
-
-      if (e2) {
-        console.error("POST insert error:", e2);
-        return NextResponse.json({ error: e2.message }, { status: 500 });
-      }
-      const post = mapPost(d2 as Record<string, unknown>);
-      post.author = author;
-      post.authorId = authorId;
-      post.authorAvatar = authorAvatar || "";
-      return NextResponse.json({ post, stored: "supabase" });
+      if (!retry.error) { data = retry.data; error = null; }
     }
 
-    // Upsert profile
-    if (author && authorId) {
-      await supabase.from("profiles").upsert({
-        id: authorId,
-        nickname: author,
-        avatar_url: authorAvatar || "",
-        bio: "",
-      }, { onConflict: "id" });
-    }
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
-    const post = mapPost(data as Record<string, unknown>);
-    post.author = author || post.author;
-    post.authorAvatar = authorAvatar || post.authorAvatar;
-
-    return NextResponse.json({ post, stored: "supabase" });
+    return NextResponse.json({
+      id: data.id,
+      title: data.title,
+      content: data.content || "",
+      images: data.image_urls || [],
+      category: data.category || "",
+      tags: data.tags || [],
+      author: data.profiles?.nickname || author || "",
+      authorId: data.user_id || "",
+      authorAvatar: data.profiles?.avatar_url || authorAvatar || "",
+      createdAt: data.created_at,
+      isPinned: data.is_pinned || false,
+      isAnnouncement: data.is_announcement || false,
+      likes: 0,
+      comments: 0,
+      views: data.views || 0,
+    });
   } catch (e: any) {
-    console.error("API POST error:", e);
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }

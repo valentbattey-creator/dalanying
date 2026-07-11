@@ -9,7 +9,7 @@ export const CATEGORIES = [
   "美食", "旅游", "音乐", "电影", "时尚", "宠物", "摄影", "读书",
   "职场", "教育", "房产", "军事", "历史", "哲学", "设计", "动漫",
   "骑行", "钓鱼", "篮球", "足球", "跑步", "格斗", "穿搭", "机车",
-  "思维探讨", "成长", "健康", "手工", "家居", "天文", "趣闻", "科普",
+  "思维探讨", "谈婚论嫁", "成长", "健康", "手工", "家居", "天文", "趣闻", "科普",
 ];
 
 // ===== Types =====
@@ -68,7 +68,7 @@ function lsSet<T>(key: string, value: T) {
 
 // ===== Seed Data =====
 const SEED_POSTS: Post[] = [
-  { id: "seed1", title: "欢迎来到dalanying", content: "这是一个属于硬汉的社区。分享你的生活、爱好和态度，和志同道合的兄弟一起交流。无论你是喜欢科技、运动、汽车还是游戏，这里都有你的位置。", images: [], category: "推荐", tags: ["公告"], author: "dalanying官方", authorId: "system", authorAvatar: "", createdAt: "2026-07-09T00:00:00Z", likes: 42, views: 1280, comments: 8, isAnnouncement: true, isPinned: true },
+  { id: "seed1", title: "欢迎来到大岚荧", content: "这是一个属于硬汉的社区。分享你的生活、爱好和态度，和志同道合的兄弟一起交流。无论你是喜欢科技、运动、汽车还是游戏，这里都有你的位置。", images: [], category: "推荐", tags: ["公告"], author: "大岚荧官方", authorId: "system", authorAvatar: "", createdAt: "2026-07-09T00:00:00Z", likes: 42, views: 1280, comments: 8, isAnnouncement: true, isPinned: true },
   { id: "seed2", title: "NBA夏季联赛观赛指南", content: "今年夏季联赛看点颇多，各队新秀表现如何？让我们一起来分析一下。", images: [], category: "篮球", tags: ["NBA", "篮球"], author: "球场老兵", authorId: "seeduser2", authorAvatar: "", createdAt: "2026-07-08T12:00:00Z", likes: 28, views: 560, comments: 5, isAnnouncement: false, isPinned: false },
   { id: "seed3", title: "我的新车改装日记", content: "终于完成了这台车的改装，从轮毂到排气，一步步记录下这个历程。", images: [], category: "汽车", tags: ["改装", "汽车"], author: "改装达人", authorId: "seeduser3", authorAvatar: "", createdAt: "2026-07-07T08:00:00Z", likes: 35, views: 720, comments: 12, isAnnouncement: false, isPinned: false },
 ];
@@ -76,69 +76,52 @@ const SEED_COMMENTS: Comment[] = [
   { id: "c1", postId: "seed1", parentId: null, author: "新来的", authorId: "u1", authorAvatar: "", content: "来报道！支持一下", image: "", createdAt: "2026-07-09T01:00:00Z" },
 ];
 
-// ===== Supabase Helpers =====
-function mapPost(data: Record<string, unknown>): Post {
-  return {
-    id: String(data.id || ""),
-    title: String(data.title || ""),
-    content: String(data.content || ""),
-    images: (data.image_urls as string[]) || [],
-    category: String(data.category || ""),
-    tags: (data.tags as string[]) || [],
-    author: String((data as any).profiles?.nickname || data.author_name || ""),
-    authorId: String(data.user_id || ""),
-    authorAvatar: String((data as any).profiles?.avatar_url || data.author_avatar || ""),
-    createdAt: String(data.created_at || new Date().toISOString()),
-    likes: 0, comments: 0, views: 0,
-    isAnnouncement: Boolean(data.is_announcement),
-    isPinned: Boolean(data.is_pinned),
-  };
+// ===== API Helpers =====
+let apiCache: { baseUrl: string; available: boolean | null } = { baseUrl: "", available: null };
+
+function getApiBase(): string {
+  if (!apiCache.baseUrl) {
+    apiCache.baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+  }
+  return apiCache.baseUrl;
 }
 
-async function sbFetchPosts(from: number, to: number, category?: string, search?: string, userId?: string) {
-  if (!hasSupabase || !supabase) return { posts: [] as Post[], total: 0 };
+async function apiGet<T>(path: string): Promise<T | null> {
   try {
-    let query = supabase
-      .from("posts")
-      .select("*, profiles!posts_user_id_fkey(nickname, avatar_url)", { count: "exact" })
-      .order("is_pinned", { ascending: false })
-      .order("created_at", { ascending: false })
-      .range(from, to);
+    const res = await fetch(getApiBase() + path, { headers: { "Content-Type": "application/json" } });
+    if (!res.ok) return null;
+    return await res.json() as T;
+  } catch { return null; }
+}
 
-    if (category) query = query.eq("category", category);
-    if (search) query = query.or(`title.ilike.%${search}%,content.ilike.%${search}%`);
-    if (userId) query = query.eq("user_id", userId);
+async function apiPost<T>(path: string, body: unknown): Promise<T | null> {
+  try {
+    const res = await fetch(getApiBase() + path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) return null;
+    return await res.json() as T;
+  } catch { return null; }
+}
 
-    const { data, error, count } = await query;
-    if (error || !data) return { posts: [] as Post[], total: 0 };
+async function apiPatch(path: string, body: unknown): Promise<boolean> {
+  try {
+    const res = await fetch(getApiBase() + path, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    return res.ok;
+  } catch { return false; }
+}
 
-    const posts = (data as Record<string, unknown>[]).map(mapPost);
-
-    // Get likes/comments counts
-    if (posts.length > 0) {
-      const postIds = posts.map(p => p.id);
-      try {
-        const [{ data: ld }, { data: cd }] = await Promise.all([
-          supabase.from("likes").select("post_id").in("post_id", postIds),
-          supabase.from("comments").select("post_id").in("post_id", postIds),
-        ]);
-        const lc = new Map<string, number>();
-        const cc = new Map<string, number>();
-        if (ld) ld.forEach((r: any) => { const pid = String(r.post_id); lc.set(pid, (lc.get(pid) || 0) + 1); });
-        if (cd) cd.forEach((r: any) => { const pid = String(r.post_id); cc.set(pid, (cc.get(pid) || 0) + 1); });
-        posts.forEach(p => {
-          const sl = lc.get(p.id);
-          const sc = cc.get(p.id);
-          if (sl !== undefined) p.likes = sl;
-          if (sc !== undefined) p.comments = sc;
-        });
-      } catch {}
-    }
-
-    return { posts, total: count || posts.length };
-  } catch {
-    return { posts: [] as Post[], total: 0 };
-  }
+async function apiDelete(path: string): Promise<boolean> {
+  try {
+    const res = await fetch(getApiBase() + path, { method: "DELETE" });
+    return res.ok;
+  } catch { return false; }
 }
 
 // ===== Data Service =====
@@ -146,32 +129,47 @@ export const dataService = {
   PAGE_SIZE: 10,
 
   async fetchPostsPaginated(from: number, category?: string, search?: string): Promise<{ posts: Post[]; total: number }> {
-    // Try Supabase first
-    if (hasSupabase && supabase) {
-      const result = await sbFetchPosts(from, from + this.PAGE_SIZE - 1, category, search);
-      if (result.posts.length > 0 || result.total > 0) {
-        // Merge with localStorage
-        const localPosts = lsGet<Post[]>("posts", []);
-        const serverIds = new Set(result.posts.map(p => p.id));
-        const missing = localPosts.filter(p => !serverIds.has(p.id));
-        let merged = [...result.posts, ...missing];
-        if (category) merged = merged.filter(p => p.category === category);
-        if (search && search.trim()) {
-          const q = search.trim().toLowerCase();
-          merged = merged.filter(p => p.title.toLowerCase().includes(q) || p.content.toLowerCase().includes(q));
-        }
-        merged.sort((a, b) => {
-          if (a.isPinned && !b.isPinned) return -1;
-          if (!a.isPinned && b.isPinned) return 1;
-          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    // Try API route first (uses service role key to bypass RLS)
+    const params = new URLSearchParams();
+    params.set("from", String(from));
+    params.set("to", String(from + this.PAGE_SIZE - 1));
+    if (category && category !== "推荐") params.set("category", category);
+    if (search) params.set("search", search);
+
+    const apiResult = await apiGet<{ posts: Post[]; total: number; error?: string }>(`/api/posts?${params.toString()}`);
+
+    if (apiResult && apiResult.posts && !apiResult.error) {
+      // Merge with localStorage posts
+      const localPosts = lsGet<Post[]>("posts", []);
+      const serverIds = new Set(apiResult.posts.map(p => p.id));
+      const missing = localPosts.filter(p => !serverIds.has(p.id));
+      let merged = [...apiResult.posts, ...missing];
+
+      // Apply filters to local posts
+      if (category && category !== "推荐") merged = merged.filter(p => p.category === category || serverIds.has(p.id));
+      if (search && search.trim()) {
+        const q = search.trim().toLowerCase();
+        merged = merged.filter(p => {
+          if (serverIds.has(p.id)) return true; // Server already filtered
+          return p.title.toLowerCase().includes(q) || p.content.toLowerCase().includes(q);
         });
-        return { posts: merged.slice(from, from + this.PAGE_SIZE), total: merged.length };
       }
+
+      merged.sort((a, b) => {
+        if (a.isPinned && !b.isPinned) return -1;
+        if (!a.isPinned && b.isPinned) return 1;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+
+      return {
+        posts: merged.slice(from, from + this.PAGE_SIZE),
+        total: apiResult.total + missing.length,
+      };
     }
 
-    // Full localStorage fallback
+    // Fallback: localStorage only
     let all = [...SEED_POSTS, ...lsGet<Post[]>("posts", [])];
-    if (category) all = all.filter(p => p.category === category);
+    if (category && category !== "推荐") all = all.filter(p => p.category === category);
     if (search && search.trim()) {
       const q = search.trim().toLowerCase();
       all = all.filter(p => p.title.toLowerCase().includes(q) || p.content.toLowerCase().includes(q));
@@ -185,46 +183,35 @@ export const dataService = {
   },
 
   async fetchPostById(postId: string): Promise<Post | null> {
-    if (hasSupabase && supabase) {
-      try {
-        const { data } = await supabase.from("posts")
-          .select("*, profiles!posts_user_id_fkey(nickname, avatar_url)")
-          .eq("id", postId).single();
-        if (data) {
-          const post = mapPost(data as Record<string, unknown>);
-          const [{ data: ld }, { data: cd }] = await Promise.all([
-            supabase.from("likes").select("post_id").eq("post_id", postId),
-            supabase.from("comments").select("post_id").eq("post_id", postId),
-          ]);
-          post.likes = ld?.length || 0;
-          post.comments = cd?.length || 0;
-          return post;
-        }
-      } catch {}
+    // Try API
+    const apiResult = await apiGet<any>(`/api/posts/${postId}`);
+    if (apiResult && !apiResult.error) {
+      return apiResult as Post;
     }
+    // Fallback
     return [...SEED_POSTS, ...lsGet<Post[]>("posts", [])].find(p => p.id === postId) || null;
   },
 
   async fetchUserPosts(userId: string): Promise<Post[]> {
-    if (hasSupabase && supabase) {
-      const result = await sbFetchPosts(0, 99, undefined, undefined, userId);
-      if (result.posts.length > 0) return result.posts;
-    }
+    const params = new URLSearchParams();
+    params.set("from", "0");
+    params.set("to", "99");
+    params.set("userId", userId);
+    const apiResult = await apiGet<{ posts: Post[]; total: number }>(`/api/posts?${params.toString()}`);
+    if (apiResult && apiResult.posts && apiResult.posts.length > 0) return apiResult.posts;
     return [...SEED_POSTS, ...lsGet<Post[]>("posts", [])].filter(p => p.authorId === userId);
   },
 
   async fetchUserLikedPosts(userId: string): Promise<Post[]> {
-    if (hasSupabase && supabase) {
-      try {
-        const { data: ld } = await supabase.from("likes").select("post_id").eq("user_id", userId);
-        if (ld && ld.length > 0) {
-          const ids = ld.map((r: any) => String(r.post_id));
-          const { data } = await supabase.from("posts")
-            .select("*, profiles!posts_user_id_fkey(nickname, avatar_url)")
-            .in("id", ids).order("created_at", { ascending: false });
-          if (data) return (data as Record<string, unknown>[]).map(mapPost);
-        }
-      } catch {}
+    // Try API
+    const likedResult = await apiGet<{ likes: string[] }>(`/api/likes?userId=${encodeURIComponent(userId)}`);
+    if (likedResult && likedResult.likes && likedResult.likes.length > 0) {
+      const ids = likedResult.likes;
+      // Fetch posts by IDs
+      const allResult = await apiGet<{ posts: Post[] }>(`/api/posts?from=0&to=999`);
+      if (allResult && allResult.posts) {
+        return allResult.posts.filter(p => ids.includes(p.id));
+      }
     }
     const likedKeys = lsGet<string[]>("likedPosts", []);
     const ids = likedKeys.filter(k => k.endsWith("_" + userId)).map(k => k.replace("_" + userId, ""));
@@ -232,266 +219,132 @@ export const dataService = {
   },
 
   async fetchUserSavedPosts(userId: string): Promise<Post[]> {
-    if (hasSupabase && supabase) {
-      try {
-        const { data: sd } = await supabase.from("saves").select("post_id").eq("user_id", userId);
-        if (sd && sd.length > 0) {
-          const ids = sd.map((r: any) => String(r.post_id));
-          const { data } = await supabase.from("posts")
-            .select("*, profiles!posts_user_id_fkey(nickname, avatar_url)")
-            .in("id", ids).order("created_at", { ascending: false });
-          if (data) return (data as Record<string, unknown>[]).map(mapPost);
-        }
-        return [];
-      } catch { return []; }
-    }
     const savedKeys = lsGet<string[]>("savedPosts", []);
     const ids = savedKeys.filter(k => k.endsWith("_" + userId)).map(k => k.replace("_" + userId, ""));
     return [...SEED_POSTS, ...lsGet<Post[]>("posts", [])].filter(p => ids.includes(p.id));
   },
 
   async createPost(post: Omit<Post, "id" | "createdAt" | "likes" | "comments" | "views">): Promise<Post> {
-    let supabasePost: Post | null = null;
+    // Try API first
+    const apiResult = await apiPost<any>("/api/posts", {
+      title: post.title,
+      content: post.content,
+      images: post.images || [],
+      category: post.category || "推荐",
+      tags: post.tags || [],
+      authorId: post.authorId,
+      author: post.author,
+      authorAvatar: post.authorAvatar || "",
+      isPinned: post.isPinned || false,
+      isAnnouncement: post.isAnnouncement || false,
+    });
 
-    // Try Supabase
-    if (hasSupabase && supabase) {
-      try {
-        const insertData: Record<string, unknown> = {
-          title: post.title, content: post.content, image_urls: post.images || [],
-          category: post.category || "推荐", tags: post.tags || [], user_id: post.authorId,
-          created_at: new Date().toISOString(),
-        };
-        try { insertData.is_pinned = post.isPinned || false; insertData.is_announcement = post.isAnnouncement || false; } catch {}
-
-        const { data, error } = await supabase.from("posts").insert(insertData)
-          .select("*, profiles!posts_user_id_fkey(nickname, avatar_url)").single();
-
-        if (!error && data) {
-          supabasePost = mapPost(data as Record<string, unknown>);
-          supabasePost.author = post.author;
-          supabasePost.authorId = post.authorId;
-          supabasePost.authorAvatar = post.authorAvatar || "";
-        }
-      } catch (e) { console.warn("Supabase insert failed:", e); }
+    if (apiResult && !apiResult.error) {
+      // Sync to localStorage as backup
+      const posts = lsGet<Post[]>("posts", []);
+      posts.unshift(apiResult);
+      lsSet("posts", posts);
+      return apiResult;
     }
 
-    // Always create local copy
+    // Fallback: localStorage only
     const newPost: Post = {
-      ...post as any, id: supabasePost?.id || gid(),
-      createdAt: supabasePost?.createdAt || new Date().toISOString(),
+      ...post as any,
+      id: gid(),
+      createdAt: new Date().toISOString(),
       likes: 0, comments: 0, views: 0,
     };
-
     const posts = lsGet<Post[]>("posts", []);
     posts.unshift(newPost);
     if (posts.length > 500) posts.length = 500;
     lsSet("posts", posts);
-
-    return supabasePost || newPost;
+    return newPost;
   },
 
   async deletePost(postId: string): Promise<boolean> {
-    if (hasSupabase && supabase) {
-      try {
-        const { data: post } = await supabase.from("posts").select("image_urls").eq("id", postId).single();
-        if (post) {
-          const urls = (post as any).image_urls as string[];
-          if (urls?.length > 0) {
-            const paths = urls.map((u: string) => u.split("/").pop()).filter(Boolean) as string[];
-            if (paths.length > 0) await supabase.storage.from("post-images").remove(paths);
-          }
-        }
-        await supabase.from("likes").delete().eq("post_id", postId);
-        await supabase.from("comments").delete().eq("post_id", postId);
-        await supabase.from("posts").delete().eq("id", postId);
-      } catch {}
-    }
+    // Try API
+    const apiOk = await apiDelete(`/api/posts/${postId}`);
+    // Always clean localStorage
     const posts = lsGet<Post[]>("posts", []);
     lsSet("posts", posts.filter(p => p.id !== postId));
     const comments = lsGet<Comment[]>("comments", []);
     lsSet("comments", comments.filter(c => c.postId !== postId));
-    return true;
+    return apiOk || true;
   },
 
-  async updatePost(postId: string, updates: { title?: string; content?: string; category?: string; tags?: string[]; isPinned?: boolean; isAnnouncement?: boolean }): Promise<boolean> {
-    if (hasSupabase && supabase) {
-      try {
-        const patch: Record<string, unknown> = {};
-        if (updates.title !== undefined) patch.title = updates.title;
-        if (updates.content !== undefined) patch.content = updates.content;
-        if (updates.category !== undefined) patch.category = updates.category;
-        if (updates.tags !== undefined) patch.tags = updates.tags;
-        if (updates.isPinned !== undefined) patch.is_pinned = updates.isPinned;
-        if (updates.isAnnouncement !== undefined) patch.is_announcement = updates.isAnnouncement;
-        await supabase.from("posts").update(patch).eq("id", postId);
-      } catch {}
-    }
+  async updatePost(postId: string, updates: { title?: string; content?: string; category?: string; tags?: string[]; images?: string[]; isPinned?: boolean; isAnnouncement?: boolean }): Promise<boolean> {
+    const apiOk = await apiPatch(`/api/posts/${postId}`, { ...updates, image_urls: updates.images });
+    // Update localStorage
     const posts = lsGet<Post[]>("posts", []);
-    const idx = posts.findIndex(p => p.id === postId);
-    if (idx >= 0) {
-      if (updates.title !== undefined) posts[idx].title = updates.title;
-      if (updates.content !== undefined) posts[idx].content = updates.content;
-      if (updates.category !== undefined) posts[idx].category = updates.category;
-      if (updates.tags !== undefined) posts[idx].tags = updates.tags;
-      if (updates.isPinned !== undefined) posts[idx].isPinned = updates.isPinned;
-      if (updates.isAnnouncement !== undefined) posts[idx].isAnnouncement = updates.isAnnouncement;
-      lsSet("posts", posts);
-    }
-    return true;
+    lsSet("posts", posts.map(p => p.id === postId ? { ...p, ...updates } : p));
+    return apiOk || true;
   },
 
-  // ===== Comments =====
-  async fetchComments(postId?: string): Promise<Comment[]> {
-    if (hasSupabase && supabase) {
-      try {
-        let query = supabase.from("comments").select("*").order("created_at", { ascending: true });
-        if (postId) query = query.eq("post_id", postId);
-        const { data } = await query;
-        if (data && data.length > 0) {
-          return (data as Record<string, unknown>[]).map(r => ({
-            id: String(r.id), postId: String(r.post_id),
-            parentId: r.parent_id ? String(r.parent_id) : null,
-            author: String(r.author_name || ""), authorId: String(r.user_id || ""),
-            authorAvatar: String(r.author_avatar || ""), content: String(r.content || ""),
-            image: String(r.image_url || ""), createdAt: String(r.created_at || ""),
-          }));
-        }
-      } catch {}
-    }
-    const local = lsGet<Comment[]>("comments", SEED_COMMENTS);
-    return postId ? local.filter(c => c.postId === postId) : local;
+  async fetchComments(postId: string): Promise<Comment[]> {
+    const apiResult = await apiGet<{ comments: Comment[] }>(`/api/comments?postId=${encodeURIComponent(postId)}`);
+    if (apiResult && apiResult.comments) return apiResult.comments;
+    return [...SEED_COMMENTS, ...lsGet<Comment[]>("comments", [])].filter(c => c.postId === postId);
   },
 
-  async createComment(comment: Omit<Comment, "id" | "createdAt">): Promise<Comment | null> {
-    let supabaseComment: Comment | null = null;
-    if (hasSupabase && supabase) {
-      try {
-        const { data, error } = await supabase.from("comments").insert({
-          post_id: comment.postId, parent_id: comment.parentId, user_id: comment.authorId,
-          author_name: comment.author, author_avatar: comment.authorAvatar,
-          content: comment.content, image_url: comment.image || "",
-          created_at: new Date().toISOString(),
-        }).select("*").single();
-        if (!error && data) {
-          const r = data as Record<string, unknown>;
-          supabaseComment = {
-            id: String(r.id), postId: String(r.post_id),
-            parentId: r.parent_id ? String(r.parent_id) : null,
-            author: String(r.author_name || ""), authorId: String(r.user_id || ""),
-            authorAvatar: String(r.author_avatar || ""), content: String(r.content || ""),
-            image: String(r.image_url || ""), createdAt: String(r.created_at || ""),
-          };
-        }
-      } catch {}
+  async createComment(data: { postId: string; parentId: string | null; author: string; authorId: string; authorAvatar: string; content: string; image?: string }): Promise<Comment | null> {
+    const apiResult = await apiPost<any>("/api/comments", data);
+    if (apiResult && !apiResult.error) {
+      const comments = lsGet<Comment[]>("comments", []);
+      comments.push(apiResult);
+      lsSet("comments", comments);
+      return apiResult;
     }
-
-    const newComment: Comment = {
-      ...comment as any, id: supabaseComment?.id || gid(),
-      createdAt: supabaseComment?.createdAt || new Date().toISOString(),
+    // Fallback
+    const comment: Comment = {
+      id: gid(), postId: data.postId, parentId: data.parentId,
+      author: data.author, authorId: data.authorId, authorAvatar: data.authorAvatar,
+      content: data.content, image: data.image || "", createdAt: new Date().toISOString(),
     };
     const comments = lsGet<Comment[]>("comments", []);
-    comments.push(newComment);
+    comments.push(comment);
     lsSet("comments", comments);
-    return newComment;
+    return comment;
   },
 
   async deleteComment(commentId: string): Promise<boolean> {
-    if (hasSupabase && supabase) {
-      try {
-        await supabase.from("comments").delete().eq("parent_id", commentId);
-        await supabase.from("comments").delete().eq("id", commentId);
-      } catch {}
-    }
+    // No dedicated API route for deleting comments yet, handle locally
     const comments = lsGet<Comment[]>("comments", []);
     lsSet("comments", comments.filter(c => c.id !== commentId && c.parentId !== commentId));
     return true;
   },
 
-  // ===== Likes =====
   async toggleLike(postId: string, userId: string, currentlyLiked: boolean): Promise<number> {
-    if (hasSupabase && supabase) {
-      try {
-        if (currentlyLiked) {
-          await supabase.from("likes").delete().eq("post_id", postId).eq("user_id", userId);
-        } else {
-          await supabase.from("likes").insert({ post_id: postId, user_id: userId });
-        }
-        const { count } = await supabase.from("likes").select("*", { count: "exact", head: true }).eq("post_id", postId);
-        let count2 = count ?? -1;
-        if (count2 < 0) {
-          const allPosts = lsGet<Post[]>("posts", []);
-          const found = allPosts.find(p => p.id === postId);
-          count2 = found ? found.likes + (currentlyLiked ? -1 : 1) : 0;
-        }
-        // Update localStorage
-        const liked = lsGet<string[]>("likedPosts", []);
-        const key = postId + "_" + userId;
-        if (currentlyLiked) lsSet("likedPosts", liked.filter(k => k !== key));
-        else lsSet("likedPosts", [...liked, key]);
-        return count2;
-      } catch {}
+    const apiResult = await apiPost<{ count: number; error?: string }>("/api/likes", {
+      postId, userId, toggle: currentlyLiked,
+    });
+    if (apiResult && !apiResult.error && typeof apiResult.count === "number") {
+      return apiResult.count;
     }
-    // localStorage fallback
+    // Fallback: estimate
+    const key = postId + "_" + userId;
     const liked = lsGet<string[]>("likedPosts", []);
+    const newLiked = currentlyLiked ? liked.filter(k => k !== key) : [...liked, key];
+    lsSet("likedPosts", newLiked);
+    return newLiked.length;
+  },
+
+  toggleSave(postId: string, userId: string, currentlySaved: boolean): void {
     const key = postId + "_" + userId;
-    if (currentlyLiked) lsSet("likedPosts", liked.filter(k => k !== key));
-    else lsSet("likedPosts", [...liked, key]);
-    const posts = lsGet<Post[]>("posts", []);
-    const post = posts.find(p => p.id === postId);
-    if (post) {
-      post.likes += currentlyLiked ? -1 : 1;
-      lsSet("posts", posts);
-      return post.likes;
-    }
-    return 0;
+    const saved = lsGet<string[]>("savedPosts", []);
+    const newSaved = currentlySaved ? saved.filter(k => k !== key) : [...saved, key];
+    lsSet("savedPosts", newSaved);
   },
 
-  async fetchLikes(userId: string): Promise<{ userLikes: Set<string>; likesMap: Map<string, number> }> {
-    if (hasSupabase && supabase) {
-      try {
-        const { data } = await supabase.from("likes").select("post_id, user_id");
-        if (data) {
-          const likesMap = new Map<string, number>();
-          const userLikes = new Set<string>();
-          data.forEach((r: any) => {
-            const pid = String(r.post_id);
-            likesMap.set(pid, (likesMap.get(pid) || 0) + 1);
-            if (String(r.user_id) === userId) userLikes.add(pid);
-          });
-          return { userLikes, likesMap };
-        }
-      } catch {}
-    }
-    const keys = lsGet<string[]>("likedPosts", []);
-    return {
-      userLikes: new Set(keys.filter(k => k.endsWith("_" + userId)).map(k => k.replace("_" + userId, ""))),
-      likesMap: new Map(),
-    };
-  },
-
-  // ===== Saved Posts =====
-  loadSavedPosts(userId: string): Set<string> {
-    const keys = lsGet<string[]>("savedPosts", []);
-    return new Set(keys.filter(k => k.endsWith("_" + userId)).map(k => k.replace("_" + userId, "")));
-  },
-
-  toggleSave(postId: string, userId: string, currentlySaved: boolean): boolean {
-    const keys = lsGet<string[]>("savedPosts", []);
-    const key = postId + "_" + userId;
-    if (currentlySaved) { lsSet("savedPosts", keys.filter(k => k !== key)); return false; }
-    else { lsSet("savedPosts", [...keys, key]); return true; }
-  },
-
-  // ===== Profiles =====
   async fetchProfile(userId: string): Promise<Profile | null> {
     if (hasSupabase && supabase) {
       try {
-        const { data } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
+        const { data } = await supabase.from("profiles").select("*").eq("id", userId).single();
         if (data) {
           const d = data as Record<string, unknown>;
           return { id: String(d.id), nickname: String(d.nickname || ""),
             avatar_url: String(d.avatar_url || ""), bio: String(d.bio || ""),
-            is_admin: Boolean(d.is_admin), role: (d.role as "owner" | "admin" | null) ?? null, banned_until: d.banned_until ? String(d.banned_until) : null };
+            is_admin: Boolean(d.is_admin), role: (d.role as "owner" | "admin" | null) ?? null,
+            banned_until: d.banned_until ? String(d.banned_until) : null };
         }
       } catch {}
     }
@@ -508,7 +361,8 @@ export const dataService = {
         if (data) return (data as Record<string, unknown>[]).map(d => ({
           id: String(d.id), nickname: String(d.nickname || ""),
           avatar_url: String(d.avatar_url || ""), bio: String(d.bio || ""),
-          is_admin: Boolean(d.is_admin), role: (d.role as "owner" | "admin" | null) ?? null, banned_until: d.banned_until ? String(d.banned_until) : null,
+          is_admin: Boolean(d.is_admin), role: (d.role as "owner" | "admin" | null) ?? null,
+          banned_until: d.banned_until ? String(d.banned_until) : null,
         }));
       } catch {}
     }
@@ -581,7 +435,7 @@ export async function syncSeedToSupabase(userId: string): Promise<boolean> {
       for (const seed of SEED_POSTS) {
         await supabase.from("posts").insert({
           title: seed.title, content: seed.content, image_urls: seed.images,
-          category: seed.category, tags: seed.tags, user_id: seed.authorId,
+          category: seed.category, tags: seed.tags, user_id: seed.authorId === "system" ? userId : seed.authorId,
           created_at: seed.createdAt, is_pinned: seed.isPinned, is_announcement: seed.isAnnouncement,
         });
       }
