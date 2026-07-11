@@ -77,7 +77,7 @@ export default function UserProfilePage() {
         <div className="px-4 -mt-10 relative z-10">
           <div className="w-20 h-20 rounded-full border-2 border-[var(--color-bg-primary)] bg-gradient-to-br from-zinc-600 to-zinc-500 flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
             {profile?.avatar_url || user?.avatar ? (
-              <img src={profile.avatar_url || user?.avatar} alt="" className="w-full h-full object-cover" />
+              <img src={profile?.avatar_url || user?.avatar || ""} alt="" className="w-full h-full object-cover" />
             ) : (
               (profile?.nickname || user?.name || "?").charAt(0).toUpperCase()
             )}

@@ -12,7 +12,7 @@ import { useData } from "@/lib/store";
 export default function ProfilePage() {
   const router = useRouter();
   const { user, loading: authLoading, logout } = useAuth();
-  const { posts, savedPosts, loading } = useData();
+  const { posts, savedPosts, likedPosts, loading, toggleLike, toggleSave } = useData();
   const [tab, setTab] = useState<"posts" | "saved">("posts");
 
   if (authLoading) {
@@ -94,7 +94,7 @@ export default function ProfilePage() {
             <div className="space-y-4 pb-12">
               {displayPosts.map((p, i) => (
                 <div key={p.id} style={{ animationDelay: `${i * 40}ms` }} className="animate-fade-up">
-                  <PostCard post={p} isLiked={likedPosts.has(p.id)} onLike={(id) => { if (!currentUser) { requireLogin(); return; } toggleLike(id); }} onCardClick={(id) => router.push(`/post/${id}`)} isSaved={savedPosts.has(p.id)} onSave={(id) => { if (!currentUser) { requireLogin(); return; } toggleSave(id); }} />
+                  <PostCard post={p} isLiked={likedPosts.has(p.id)} onLike={(id) => { toggleLike(id); }} onCardClick={(id) => router.push(`/post/${id}`)} isSaved={savedPosts.has(p.id)} onSave={(id) => { toggleSave(id); }} />
                 </div>
               ))}
             </div>

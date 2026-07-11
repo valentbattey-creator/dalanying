@@ -115,17 +115,17 @@ export default function SettingsPage() {
     if (nameStatus === "taken") { toast.error("昵称已被占用"); return; }
     setSaving(true);
     try {
-      let avatarUrl = avatarPreview;
+      let avatarUrl: string | null = avatarPreview;
       if (avatarFile) {
-        try { avatarUrl = await uploadAvatar(avatarFile, user.id); setAvatarPreview(avatarUrl); }
+        try { avatarUrl = await uploadAvatar(avatarFile, user.id); setAvatarPreview(avatarUrl ?? ""); }
         catch (e: unknown) { toast.error("头像上传失败"); }
       }
       // Save background as data URL
       if (bgFile) {
         localStorage.setItem("dalanying_bg_image", bgPreview);
       }
-      await updateProfile(user.id, { nickname: trimmed, avatar_url: avatarUrl, bio: bio.trim() });
-      updateUserProfile({ name: trimmed, avatar: avatarUrl });
+      await updateProfile(user.id, { nickname: trimmed, avatar_url: avatarUrl ?? "", bio: bio.trim() });
+      updateUserProfile({ name: trimmed, avatar: avatarUrl ?? "" });
       toast.success("设置已保存");
     } catch (e: unknown) { toast.error("保存失败"); }
     setSaving(false);

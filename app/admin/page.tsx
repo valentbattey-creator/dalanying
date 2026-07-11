@@ -249,7 +249,7 @@ export default function AdminPage() {
                       <span>金额: <strong className="text-amber-400">¥{order.amount}</strong></span>
                       <span>{order.paymentMethod === "wechat" ? "微信" : "支付宝"}</span>
                       {order.boostPostId && <span>帖子: {order.boostPostId}</span>}
-                      {order.boostDays > 0 && <span>{order.boostDays}天</span>}
+                      {(order.boostDays ?? 0) > 0 && <span>{order.boostDays}天</span>}
                     </div>
 
                     {order.proofImage && (

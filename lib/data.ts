@@ -231,6 +231,25 @@ export const dataService = {
     return [...SEED_POSTS, ...lsGet<Post[]>("posts", [])].filter(p => ids.includes(p.id));
   },
 
+  async fetchUserSavedPosts(userId: string): Promise<Post[]> {
+    if (hasSupabase && supabase) {
+      try {
+        const { data: sd } = await supabase.from("saves").select("post_id").eq("user_id", userId);
+        if (sd && sd.length > 0) {
+          const ids = sd.map((r: any) => String(r.post_id));
+          const { data } = await supabase.from("posts")
+            .select("*, profiles!posts_user_id_fkey(nickname, avatar_url)")
+            .in("id", ids).order("created_at", { ascending: false });
+          if (data) return (data as Record<string, unknown>[]).map(mapPost);
+        }
+        return [];
+      } catch { return []; }
+    }
+    const savedKeys = lsGet<string[]>("savedPosts", []);
+    const ids = savedKeys.filter(k => k.endsWith("_" + userId)).map(k => k.replace("_" + userId, ""));
+    return [...SEED_POSTS, ...lsGet<Post[]>("posts", [])].filter(p => ids.includes(p.id));
+  },
+
   async createPost(post: Omit<Post, "id" | "createdAt" | "likes" | "comments" | "views">): Promise<Post> {
     let supabasePost: Post | null = null;
 
@@ -278,7 +297,7 @@ export const dataService = {
         if (post) {
           const urls = (post as any).image_urls as string[];
           if (urls?.length > 0) {
-            const paths = urls.map((u: string) => u.split("/").pop()).filter(Boolean);
+            const paths = urls.map((u: string) => u.split("/").pop()).filter(Boolean) as string[];
             if (paths.length > 0) await supabase.storage.from("post-images").remove(paths);
           }
         }
@@ -472,7 +491,7 @@ export const dataService = {
           const d = data as Record<string, unknown>;
           return { id: String(d.id), nickname: String(d.nickname || ""),
             avatar_url: String(d.avatar_url || ""), bio: String(d.bio || ""),
-            is_admin: Boolean(d.is_admin), role: d.role || null, banned_until: d.banned_until ? String(d.banned_until) : null };
+            is_admin: Boolean(d.is_admin), role: (d.role as "owner" | "admin" | null) ?? null, banned_until: d.banned_until ? String(d.banned_until) : null };
         }
       } catch {}
     }
@@ -489,7 +508,7 @@ export const dataService = {
         if (data) return (data as Record<string, unknown>[]).map(d => ({
           id: String(d.id), nickname: String(d.nickname || ""),
           avatar_url: String(d.avatar_url || ""), bio: String(d.bio || ""),
-          is_admin: Boolean(d.is_admin), banned_until: d.banned_until ? String(d.banned_until) : null,
+          is_admin: Boolean(d.is_admin), role: (d.role as "owner" | "admin" | null) ?? null, banned_until: d.banned_until ? String(d.banned_until) : null,
         }));
       } catch {}
     }

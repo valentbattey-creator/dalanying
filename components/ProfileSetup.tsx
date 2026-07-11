@@ -27,13 +27,13 @@ export default function ProfileSetup() {
     if (nickname.trim().length < 2) { toast.error("昵称至少2个字符"); return; }
     setSaving(true);
     try {
-      const u = user!; let avatarUrl = u.avatar;
+      const u = user!; let avatarUrl: string | null = u.avatar;
       if (avatarFile) {
         avatarUrl = await uploadAvatar(avatarFile, u.id);
       }
-      const ok = await updateProfile(u.id, { nickname: nickname.trim(), avatar_url: avatarUrl });
+      const ok = await updateProfile(u.id, { nickname: nickname.trim(), avatar_url: avatarUrl ?? "" });
       if (ok) {
-        updateUserProfile({ name: nickname.trim(), avatar: avatarUrl });
+        updateUserProfile({ name: nickname.trim(), avatar: avatarUrl ?? undefined });
         toast.success("个人资料更新成功！");
         setShowProfileSetup(false);
       } else {

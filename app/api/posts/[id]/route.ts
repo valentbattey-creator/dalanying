@@ -71,7 +71,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     if (post) {
       const urls = (post as any).image_urls as string[] | null;
       if (urls && urls.length > 0) {
-        const paths = urls.map((u: string) => u.split("/").pop()).filter(Boolean);
+        const paths = urls.map((u: string) => u.split("/").pop()).filter(Boolean) as string[];
         if (paths.length > 0) {
           await supabase.storage.from("post-images").remove(paths);
         }
