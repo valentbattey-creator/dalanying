@@ -280,7 +280,8 @@ export const dataService = {
     return apiOk || true;
   },
 
-  async fetchComments(postId: string): Promise<Comment[]> {
+  async fetchComments(postId?: string): Promise<Comment[]> {
+    if (!postId) return [...SEED_COMMENTS, ...lsGet<Comment[]>("comments", [])];
     const apiResult = await apiGet<{ comments: Comment[] }>(`/api/comments?postId=${encodeURIComponent(postId)}`);
     if (apiResult && apiResult.comments) return apiResult.comments;
     return [...SEED_COMMENTS, ...lsGet<Comment[]>("comments", [])].filter(c => c.postId === postId);
@@ -424,8 +425,6 @@ export const dataService = {
   async unbanUser(userId: string): Promise<boolean> {
     return this.updateProfile(userId, { banned_until: null });
   },
-};
-
 // ===== Backward Compat Exports =====
 export async function syncSeedToSupabase(userId: string): Promise<boolean> {
   if (!hasSupabase || !supabase) return false;
@@ -455,3 +454,15 @@ export async function uploadAvatar(file: File, userId: string) { return dataServ
 export async function createAnnouncement(post: Omit<Post, "id" | "createdAt" | "likes" | "comments">): Promise<Post | null> {
   return dataService.createPost({ ...post, isAnnouncement: true, isPinned: true });
 }
+
+
+dataService.fetchLikes = async function (userId: string): Promise<{ userLikes: Set<string> }> {
+  const liked = lsGet<string[]>("likedPosts", []);
+  const ids = liked.filter(k => k.endsWith("_" + userId)).map(k => k.replace("_" + userId, ""));
+  return { userLikes: new Set(ids) };
+};
+dataService.loadSavedPosts = function (userId: string): Set<string> {
+  const saved = lsGet<string[]>("savedPosts", []);
+  const ids = saved.filter(k => k.endsWith("_" + userId)).map(k => k.replace("_" + userId, ""));
+  return new Set(ids);
+};
