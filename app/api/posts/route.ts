@@ -6,13 +6,26 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || ""
 );
 
-const VALID_CATEGORIES = [
-  "推荐", "数码", "科技", "汽车", "运动", "游戏", "健身", "户外", "财经",
-  "美食", "旅游", "音乐", "电影", "时尚", "宠物", "摄影", "读书",
-  "职场", "教育", "房产", "军事", "历史", "哲学", "设计", "动漫",
-  "骑行", "钓鱼", "篮球", "足球", "跑步", "格斗", "穿搭", "机车",
-  "思维探讨", "谈婚论嫁", "成长", "健康", "手工", "家居", "天文", "趣闻", "科普",
-];
+// Map Chinese categories to Supabase-allowed values
+// TODO: After fixing the posts_category_check constraint on Supabase,
+// remove this mapping and use Chinese categories directly
+const CATEGORY_MAP: Record<string, string> = {
+  "推荐": "tech", "数码": "tech", "科技": "tech", "汽车": "tech", 
+  "运动": "fitness", "游戏": "tech", "健身": "fitness", "户外": "fitness",
+  "财经": "tech", "美食": "tech", "旅游": "tech", "音乐": "tech",
+  "电影": "tech", "时尚": "tech", "宠物": "tech", "摄影": "tech",
+  "读书": "tech", "职场": "tech", "教育": "tech", "房产": "tech",
+  "军事": "tech", "历史": "tech", "哲学": "tech", "设计": "tech",
+  "动漫": "tech", "骑行": "fitness", "钓鱼": "fitness", "篮球": "fitness",
+  "足球": "fitness", "跑步": "fitness", "格斗": "fitness", "穿搭": "tech",
+  "机车": "tech", "思维探讨": "tech", "谈婚论嫁": "tech", "成长": "tech",
+  "健康": "fitness", "手工": "tech", "家居": "tech", "天文": "tech",
+  "趣闻": "tech", "科普": "tech",
+};
+
+function mapCategory(cat: string): string {
+  return CATEGORY_MAP[cat] || "tech";
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -30,14 +43,16 @@ export async function GET(req: NextRequest) {
       .order("created_at", { ascending: false })
       .range(from, to);
 
-    if (category && category !== "推荐") query = query.eq("category", category);
+    if (category && category !== "推荐") {
+      const mapped = mapCategory(category);
+      query = query.eq("category", mapped);
+    }
     if (search) query = query.or(`title.ilike.%${search}%,content.ilike.%${search}%`);
     if (userId) query = query.eq("user_id", userId);
 
     const { data, error, count } = await query;
     if (error) return NextResponse.json({ posts: [], total: 0, error: error.message });
 
-    // Get likes/comments counts for these posts
     const postIds = (data || []).map((item: any) => item.id);
     let likesMap: Map<string, number> = new Map();
     let commentsMap: Map<string, number> = new Map();
@@ -59,12 +74,18 @@ export async function GET(req: NextRequest) {
       } catch {}
     }
 
+    // Reverse map categories for display
+    const REVERSE_MAP: Record<string, string> = {};
+    for (const [cn, en] of Object.entries(CATEGORY_MAP)) {
+      if (!REVERSE_MAP[en]) REVERSE_MAP[en] = cn;
+    }
+
     const posts = (data || []).map((item: any) => ({
       id: item.id,
       title: item.title,
       content: item.content || "",
       images: item.image_urls || [],
-      category: item.category || "",
+      category: REVERSE_MAP[item.category] || item.category || "推荐",
       tags: item.tags || [],
       author: item.profiles?.nickname || "",
       authorId: item.user_id || "",
@@ -88,10 +109,8 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     let { title, content, images, category, tags, authorId, author, authorAvatar, isPinned, isAnnouncement } = body;
 
-    // Validate category
-    if (!category || !VALID_CATEGORIES.includes(category)) {
-      category = "推荐";
-    }
+    // Map category to valid Supabase value
+    const supabaseCategory = mapCategory(category || "推荐");
 
     // Ensure profile exists
     if (authorId) {
@@ -101,14 +120,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Attempt insert
-    let { data, error } = await supabaseAdmin
+    const { data, error } = await supabaseAdmin
       .from("posts")
       .insert({
         title,
         content: content || "",
         image_urls: images || [],
-        category,
+        category: supabaseCategory,
         tags: tags || [],
         user_id: authorId || null,
         is_pinned: isPinned || false,
@@ -117,25 +135,6 @@ export async function POST(req: NextRequest) {
       .select("*, profiles!posts_user_id_fkey(nickname, avatar_url)")
       .single();
 
-    // If category constraint fails, retry with "推荐"
-    if (error && (error.message?.includes("category") || error.message?.includes("check"))) {
-      const retry = await supabaseAdmin
-        .from("posts")
-        .insert({
-          title,
-          content: content || "",
-          image_urls: images || [],
-          category: "推荐",
-          tags: tags || [],
-          user_id: authorId || null,
-          is_pinned: isPinned || false,
-          is_announcement: isAnnouncement || false,
-        })
-        .select("*, profiles!posts_user_id_fkey(nickname, avatar_url)")
-        .single();
-      if (!retry.error) { data = retry.data; error = null; }
-    }
-
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
     return NextResponse.json({
@@ -143,7 +142,7 @@ export async function POST(req: NextRequest) {
       title: data.title,
       content: data.content || "",
       images: data.image_urls || [],
-      category: data.category || "",
+      category: category || "推荐",
       tags: data.tags || [],
       author: data.profiles?.nickname || author || "",
       authorId: data.user_id || "",
