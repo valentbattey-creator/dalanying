@@ -21,17 +21,17 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: {
-    default: "大岚荧 - 发现你的兴趣世界",
-    template: "%s | 大岚荧",
+    default: "dalanying - 发现你的兴趣世界",
+    template: "%s | dalanying",
   },
-  description: "大岚荧，一个面向新一代的内容社区。发现科技、汽车、运动、游戏、财经、美食、旅游等热门领域，分享你的热爱。",
+  description: "dalanying，一个面向新一代的内容社区。发现科技、汽车、运动、游戏、财经、美食、旅游等热门领域，分享你的热爱。",
   keywords: ["社区", "内容", "分享", "科技", "汽车", "运动", "游戏", "数码", "男性社区"],
-  authors: [{ name: "大岚荧" }],
+  authors: [{ name: "dalanying" }],
   openGraph: {
     type: "website",
     locale: "zh_CN",
-    siteName: "大岚荧",
-    title: "大岚荧 - 发现你的兴趣世界",
+    siteName: "dalanying",
+    title: "dalanying - 发现你的兴趣世界",
     description: "一个面向新一代的内容社区",
   },
   robots: { index: true, follow: true },

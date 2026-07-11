@@ -1,4 +1,4 @@
-// ===== 内容审核系统 - 大岚荧 =====
+// ===== 内容审核系统 - dalanying =====
 
 // 敏感词库（政治敏感、色情、暴力、血腥等）
 const BLOCKED_KEYWORDS: { word: string; category: string }[] = [
@@ -34,7 +34,7 @@ const BLOCKED_KEYWORDS: { word: string; category: string }[] = [
 // 昵称审核关键词
 const NAME_BLOCKED: string[] = [
   "习近平", "胡锦涛", "温家宝", "李克强", "毛泽东", "邓小平", "江泽民",
-  "admin", "管理员", "站长", "owner", "大岚荧官方", "官方", "系统",
+  "admin", "管理员", "站长", "owner", "dalanying官方", "官方", "系统",
   "fuck", "shit", "操", "他妈", "傻逼", "sb", "脑残", "去死",
   "妓女", "婊子", "鸡巴", "龟头", "fag", "nigger", "纳粹", "希特勒",
 ];
