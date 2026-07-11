@@ -85,8 +85,7 @@ function ImageGallery({ images }: { images: string[] }) {
           className="fixed inset-0 z-[200] bg-black/95 flex items-center justify-center"
           onClick={() => setViewerOpen(false)}
         >
-          <button
-            onClick={() => setViewerOpen(false)}
+          <button type="button" onClick={() => setViewerOpen(false)}
             className="absolute top-5 right-5 w-10 h-10 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-all duration-300 z-10"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -94,8 +93,7 @@ function ImageGallery({ images }: { images: string[] }) {
             </svg>
           </button>
 
-          <button
-            onClick={prevImage}
+          <button type="button" onClick={prevImage}
             className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-all duration-300 z-10"
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>
@@ -108,8 +106,7 @@ function ImageGallery({ images }: { images: string[] }) {
             onClick={(e) => e.stopPropagation()}
           />
 
-          <button
-            onClick={nextImage}
+          <button type="button" onClick={nextImage}
             className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 flex items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20 transition-all duration-300 z-10"
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
@@ -142,7 +139,7 @@ function InteractionBar({ post }: { post: Post }) {
 
   return (
     <div className="flex items-center gap-5 py-3 border-y border-[var(--color-border-subtle)]">
-      <button onClick={handleLike}
+      <button type="button" onClick={handleLike}
         className={`flex items-center gap-1.5 text-sm transition-all duration-300 ${
           liked ? "text-red-400 scale-105" : "text-[var(--color-text-tertiary)] hover:text-red-400"
         }`}
@@ -152,7 +149,7 @@ function InteractionBar({ post }: { post: Post }) {
         </svg>
         <span className="font-medium">{post.likes}</span>
       </button>
-      <button onClick={handleSave}
+      <button type="button" onClick={handleSave}
         className={`flex items-center gap-1.5 text-sm transition-all duration-300 ${
           saved ? "text-[var(--color-accent)] scale-105" : "text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)]"
         }`}
@@ -273,8 +270,7 @@ export default function PostDetailPage() {
       {/* Glass back-bar */}
       <div className="glass sticky top-0 z-50">
         <div className="max-w-3xl mx-auto px-5 h-14 flex items-center">
-          <button
-            onClick={() => window.location.href = "/" }
+          <button type="button" onClick={() => window.location.href = "/" }
             className="inline-flex items-center gap-1.5 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] transition-all duration-300 px-2 py-1.5 -ml-2 rounded-lg hover:bg-[var(--color-bg-hover)]"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
@@ -407,8 +403,7 @@ export default function PostDetailPage() {
               </div>
             </form>
           ) : (
-            <button
-              onClick={requireLogin}
+            <button type="button" onClick={requireLogin}
               className="w-full mb-6 py-3 rounded-xl border border-dashed border-[var(--color-border-default)] text-sm text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] hover:border-[var(--color-accent)] transition-all duration-300"
             >
               登录后参与评论
@@ -487,8 +482,7 @@ function CommentItem({
             <img src={comment.image} alt="" className="max-h-40 rounded-lg object-cover" loading="lazy" />
           </div>
         )}
-        <button
-          onClick={() => onReply(comment)}
+        <button type="button" onClick={() => onReply(comment)}
           className="text-[10px] text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] mt-1 transition-colors duration-200"
         >
           回复
