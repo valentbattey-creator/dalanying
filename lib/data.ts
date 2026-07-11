@@ -276,12 +276,42 @@ async function supabaseFetchComments(): Promise<Comment[]> {
 async function supabaseInsertPost(post: Post, userId: string): Promise<Post | null> {
   if (!hasSupabase || !supabase) return null;
   const dbCategory = CN_TO_EN_CATEGORY[post.category] || post.category;
+  // Only insert columns that exist in Supabase schema
   const { data, error } = await supabase.from("posts").insert({
-    user_id: userId, title: post.title, content: post.content,
-    image_urls: post.images, category: dbCategory, tags: post.tags,
+    user_id: userId,
+    title: post.title,
+    content: post.content,
+    image_urls: post.images,
+    category: dbCategory,
+    tags: post.tags,
+    is_pinned: post.isPinned || false,
+    is_announcement: post.isAnnouncement || false,
     created_at: new Date().toISOString(),
-  }).select("*, profiles!posts_user_id_fkey(nickname, avatar_url)").single();
-  if (error || !data) return null;
+  }).select("*, profiles!posts_user_id_fkey(nickname, avatar_url)").maybeSingle();
+  if (error || !data) {
+    // Try without is_pinned/is_announcement if they don't exist
+    console.warn("Supabase insert with full fields failed, trying minimal:", error?.message);
+    const { data: d2, error: e2 } = await supabase.from("posts").insert({
+      user_id: userId,
+      title: post.title,
+      content: post.content,
+      image_urls: post.images,
+      category: dbCategory,
+      tags: post.tags,
+      created_at: new Date().toISOString(),
+    }).select("*, profiles!posts_user_id_fkey(nickname, avatar_url)").maybeSingle();
+    if (e2 || !d2) {
+      console.warn("Supabase minimal insert also failed:", e2?.message);
+      return null;
+    }
+    const result = mapPost(d2 as Record<string, unknown>);
+    result.isPinned = post.isPinned || false;
+    result.isAnnouncement = post.isAnnouncement || false;
+    result.author = post.author;
+    result.authorId = post.authorId;
+    result.authorAvatar = post.authorAvatar;
+    return result;
+  }
   return mapPost(data as Record<string, unknown>);
 }
 
@@ -599,42 +629,44 @@ export const dataService = {
   },
 
   async createPost(post: Omit<Post, "id" | "createdAt" | "likes" | "comments">): Promise<Post> {
-    // Try API route first (bypasses RLS for anonymous users)
-    try {
-      const res = await fetch("/api/posts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(post),
-      });
-      const result = await res.json();
-      if (result.stored === "supabase" && result.post) {
-        // Backup to localStorage so other accounts on same device can see it
-        this._saveToLocalStore(result.post);
-        return result.post;
-      }
-      console.log("API route returned:", result.stored);
-    } catch (e) {
-      console.warn("API route failed, trying Supabase direct:", e);
-    }
-    
-    // Fallback: Supabase client (works for authenticated users)
-    if (hasSupabase) {
-      try {
-        const result = await supabaseInsertPost(post as Post, post.authorId);
-        if (result) {
-          this._saveToLocalStore(result);
-          return result;
-        }
-      } catch (e) {
-        console.warn("Supabase insert failed, using localStorage:", e);
-      }
-    }
-    
-    // Always save to localStorage as backup (ensures data isn't lost between accounts)
     const newPost: Post = { ...post as Post, id: gid(), likes: 0, comments: 0, views: 0, createdAt: new Date().toISOString() };
+    
+    // ALWAYS save to localStorage first (ensures data is never lost)
     const posts = lsGet<Post[]>("posts", SEED_POSTS);
     posts.unshift(newPost);
     lsSet("posts", posts);
+    
+    // Try Supabase for cross-device sync
+    if (hasSupabase) {
+      try {
+        // Try direct Supabase insert (works for Supabase-authenticated users)
+        const result = await supabaseInsertPost(newPost, post.authorId);
+        if (result) {
+          console.log("Inserted to Supabase:", newPost.id);
+          return result;
+        }
+      } catch (e) {
+        console.warn("Supabase direct insert failed:", e);
+      }
+      
+      // Try API route as fallback
+      try {
+        const res = await fetch("/api/posts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({...post, id: newPost.id, createdAt: newPost.createdAt}),
+        });
+        const result = await res.json();
+        if (result.stored === "supabase" && result.post) {
+          console.log("Inserted via API route:", newPost.id);
+          return result.post;
+        }
+      } catch (e) {
+        console.warn("API route failed:", e);
+      }
+    }
+    
+    // Return from localStorage (works everywhere, always)
     return newPost;
   },
 

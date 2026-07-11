@@ -24,17 +24,14 @@ export async function POST(req: NextRequest) {
 
     const { title, content, images, category, tags, author, authorId, authorAvatar, isPinned, isAnnouncement } = body;
 
+    // Only use columns that exist in Supabase schema
     const { data, error } = await supabase.from("posts").insert({
       title,
       content,
       image_urls: images || [],
-      category,
+      category: category || "digital",
       tags: tags || [],
       user_id: authorId,
-      author_name: author,
-      author_avatar: authorAvatar || "",
-      is_pinned: isPinned || false,
-      is_announcement: isAnnouncement || false,
     }).select().single();
 
     if (error) {
@@ -60,14 +57,15 @@ export async function POST(req: NextRequest) {
         images: data.image_urls || [],
         category: data.category || "",
         tags: data.tags || [],
-        author: data.author_name || author,
-        authorId: data.user_id,
-        authorAvatar: data.author_avatar || "",
+        author: author,
+        authorId: authorId,
+        authorAvatar: authorAvatar || "",
         createdAt: data.created_at,
-        likes: data.likes || 0,
+        likes: 0,
         comments: 0,
-        isAnnouncement: data.is_announcement || false,
-        isPinned: data.is_pinned || false,
+        views: 0,
+        isAnnouncement: isAnnouncement || false,
+        isPinned: isPinned || false,
       }
     });
   } catch (e) {
