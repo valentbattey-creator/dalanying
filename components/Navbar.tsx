@@ -37,9 +37,9 @@ export default function Navbar({ onSearch }: { onSearch?: (q: string) => void })
         </Link>
 
         {/* Search bar */}
-        <div className="flex-1 max-w-[240px] ml-auto mr-1">
+        <div className="flex-1 max-w-[200px] ml-2 mr-2">
           <div className="flex items-center h-7 rounded-full bg-[var(--color-bg-card)] border-[0.5px] border-[var(--color-border-subtle)] focus-within:border-[var(--color-accent)] transition-all overflow-hidden">
-            <span className="pl-3 pr-3 text-[var(--color-text-tertiary)] shrink-0 flex items-center">
+            <span className="pl-3.5 pr-4 text-[var(--color-text-tertiary)] shrink-0 flex items-center">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             </span>
             <input

@@ -118,6 +118,18 @@ async function apiPatch(path: string, body: unknown): Promise<boolean> {
   } catch { return false; }
 }
 
+async function apiPut<T>(path: string, body: unknown): Promise<T | null> {
+  try {
+    const res = await fetch(getApiBase() + path, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) return null;
+    return await res.json() as T;
+  } catch { return null; }
+}
+
 async function apiDelete(path: string): Promise<boolean> {
   try {
     const res = await fetch(getApiBase() + path, { method: "DELETE" });
@@ -374,11 +386,15 @@ export const dataService = {
   },
 
   async updateProfile(userId: string, updates: { nickname?: string; avatar_url?: string; bio?: string; is_admin?: boolean; role?: string; banned_until?: string | null }): Promise<boolean> {
-    if (hasSupabase && supabase) {
-      try {
-        await supabase.from("profiles").upsert({ id: userId, ...updates as any }, { onConflict: "id" });
-      } catch {}
+    // Use API route (service role key, bypasses RLS)
+    const apiResult = await apiPut("/api/profiles", { userId, ...updates });
+    if (!apiResult) {
+      // Fallback: direct Supabase client
+      if (hasSupabase && supabase) {
+        try { await supabase.from("profiles").upsert({ id: userId, ...updates as any }, { onConflict: "id" }); } catch {}
+      }
     }
+    // Always save to localStorage as backup
     if (typeof window !== "undefined") {
       try {
         const key = "dalanying_profile_" + userId;
@@ -430,6 +446,17 @@ export const dataService = {
   },
 
   async fetchLikes(userId: string): Promise<{ userLikes: Set<string> }> {
+    // Try API first for cross-device persistence
+    const apiResult = await apiGet<{ likes: string[] }>(`/api/likes?userId=${userId}`);
+    if (apiResult && apiResult.likes && apiResult.likes.length > 0) {
+      // Also sync to localStorage
+      const existing = lsGet<string[]>("likedPosts", []);
+      const keys = apiResult.likes.map(pid => pid + "_" + userId);
+      const merged = [...new Set([...existing, ...keys])];
+      lsSet("likedPosts", merged);
+      return { userLikes: new Set(apiResult.likes) };
+    }
+    // Fallback: localStorage
     const liked = lsGet<string[]>("likedPosts", []);
     const ids = liked.filter(k => k.endsWith("_" + userId)).map(k => k.replace("_" + userId, ""));
     return { userLikes: new Set(ids) };
