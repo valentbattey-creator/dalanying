@@ -38,22 +38,41 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { postId, parentId, author, authorId, authorAvatar, content, image } = body;
+    const { postId, parentId, author, authorId, userId, authorAvatar, content, image } = body;
+    const uid = authorId || userId;
 
-    const { data, error } = await supabaseAdmin
-      .from("comments")
-      .insert({
+    // Try insert with all fields, fallback to minimal fields
+    let data, error;
+    const fullInsert = {
+      post_id: postId,
+      parent_id: parentId || null,
+      user_id: authorId,
+      author_name: author || "",
+      author_avatar: authorAvatar || "",
+      content,
+      image_url: image || "",
+    };
+    
+    const result = await supabaseAdmin.from("comments").insert(fullInsert).select("*").single();
+    data = result.data;
+    error = result.error;
+    
+    // If column missing, try minimal insert
+    if (error && error.message?.includes("column")) {
+      const minimalInsert: Record<string, any> = {
         post_id: postId,
-        parent_id: parentId || null,
-        user_id: authorId,
-        author_name: author || "",
-        author_avatar: authorAvatar || "",
+        user_id: uid,
         content,
-        image_url: image || "",
-      })
-      .select("*")
-      .single();
-
+      };
+      // Add optional columns only if they might exist
+      if (!error.message.includes("parent_id")) minimalInsert.parent_id = parentId || null;
+      if (!error.message.includes("author_name")) minimalInsert.author_name = author || "";
+      
+      const retry = await supabaseAdmin.from("comments").insert(minimalInsert).select("*").single();
+      data = retry.data;
+      error = retry.error;
+    }
+    
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
     return NextResponse.json({
