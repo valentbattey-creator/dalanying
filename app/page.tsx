@@ -55,15 +55,14 @@ export default function HomePage() {
     ? [...regularPosts]
     : regularPosts.filter((p: any) => p.category === activeCat);
 
-  // Sort by traffic (recommendation) or date
-  const sorted = [...filteredRegular].sort((a, b) => {
-    if (activeCat === "推荐") {
-      return trafficScore(b) - trafficScore(a);
-    }
-    return trafficScore(b) - trafficScore(a);
-  });
+  // Sort by creation date only (posts don't move when liked)
+  const sorted = [...filteredRegular].sort((a, b) => 
+    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
 
-  const sortedPinned = [...pinnedPosts].sort((a, b) => trafficScore(b) - trafficScore(a));
+  const sortedPinned = [...pinnedPosts].sort((a, b) => 
+    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
 
   const sentinelRef = useRef<HTMLDivElement>(null);
   const [pinnedIndex, setPinnedIndex] = useState(0);

@@ -432,7 +432,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (password.length < 6) return { success: false, error: "密码至少6位", code: "short_password" };
 
     if (hasSupabase) {
-      const { data, error } = await supabase!.auth.signUp({ email, password, options: { data: { full_name: name } } });
+      const { data, error } = await supabase!.auth.signUp({ email, password, options: { data: { full_name: name, phone: phone || "" } } });
       if (error) {
         if (error.message.includes("already registered")) return { success: false, error: "该邮箱已注册", code: "exists" };
         return { success: false, error: error.message, code: "unknown" };

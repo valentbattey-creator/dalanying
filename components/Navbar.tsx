@@ -32,7 +32,7 @@ export default function Navbar({ onSearch }: { onSearch?: (q: string) => void })
         {/* Logo */}
         <Link href="/" className="flex items-center gap-1 shrink-0">
           <span className="text-xl font-extrabold tracking-tight text-[var(--color-text-primary)]">
-            大岚荧
+            dalanying
           </span>
         </Link>
 

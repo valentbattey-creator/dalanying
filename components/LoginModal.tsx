@@ -19,6 +19,7 @@ export default function LoginModal() {
   const [touchedName, setTouchedName] = useState(false);
   const [nameAvailable, setNameAvailable] = useState<boolean | null>(null);
   const [celebration, setCelebration] = useState(false);
+  const [localRegCount, setLocalRegCount] = useState<number | null>(null);
   const [checkingName, setCheckingName] = useState(false);
 
   // Debounced name check
@@ -63,19 +64,35 @@ export default function LoginModal() {
   // Registration celebration overlay
   if (celebration) {
     return (
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" onClick={() => { setCelebration(false); setShowLoginModal(false); resetForm(); }}>
         <div className="absolute inset-0 bg-black/70 backdrop-blur-md" />
-        <div className="relative z-10 text-center animate-fade-up">
-          <div className="text-6xl mb-4">🎉</div>
-          <h2 className="text-2xl font-bold text-white mb-2">恭喜你！</h2>
-          <p className="text-lg text-[var(--color-accent)] font-semibold mb-1">
-            成为大岚荧第 {registrationCount || "???"} 位居民
-          </p>
-          <p className="text-sm text-[var(--color-text-tertiary)] mt-3">欢迎加入这个社区</p>
-          <div className="mt-6 flex justify-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)] animate-bounce" style={{ animationDelay: "0ms" }} />
-            <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)] animate-bounce" style={{ animationDelay: "150ms" }} />
-            <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)] animate-bounce" style={{ animationDelay: "300ms" }} />
+        <div className="relative z-10 w-full max-w-sm animate-fade-up" onClick={e => e.stopPropagation()}>
+          {/* Celebration */}
+          <div className="text-center mb-6">
+            <div className="text-6xl mb-4">🎉</div>
+            <h2 className="text-2xl font-bold text-white mb-2">恭喜你！</h2>
+            <p className="text-lg text-[var(--color-accent)] font-semibold mb-1">
+              成为大岚荧第 {registrationCount || localRegCount || "???"} 位居民
+            </p>
+            <p className="text-sm text-[var(--color-text-tertiary)] mt-2">欢迎加入这个社区 ✨</p>
+          </div>
+          {/* Community Announcement */}
+          <div className="bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] rounded-2xl p-5 mt-4">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-lg">📢</span>
+              <h3 className="text-sm font-bold text-[var(--color-text-primary)]">社区须知</h3>
+            </div>
+            <div className="space-y-2 text-xs text-[var(--color-text-secondary)] leading-relaxed">
+              <p>🔹 欢迎来到大岚荧，一个属于大家的自由社区</p>
+              <p>🔹 尊重每一位用户，友善交流</p>
+              <p>🔹 严禁发布暴力、色情、违法内容</p>
+              <p>🔹 严禁发布违反国家法律法规的内容</p>
+              <p>🔹 违规内容将被删除，严重者封号处理</p>
+              <p>🔹 保护个人隐私，谨防诈骗</p>
+            </div>
+            <p className="text-[10px] text-[var(--color-text-tertiary)] mt-4 text-center">
+              点击任意处开始你的大岚荧之旅
+            </p>
           </div>
         </div>
       </div>
@@ -105,6 +122,12 @@ export default function LoginModal() {
     setSubmitting(true);
     const result = await quickLogin(name.trim());
     if (result.success) {
+      // Fetch registration count
+      try {
+        const res = await fetch("/api/profiles?count=true");
+        const data = await res.json();
+        if (data.count) setLocalRegCount(data.count);
+      } catch {}
       setCelebration(true);
       setTimeout(() => {
         setCelebration(false);
@@ -136,6 +159,11 @@ export default function LoginModal() {
       if (result.code === "check_email") {
         setSuccess("注册成功！请前往邮箱点击激活链接以完成验证");
       } else if (mode === "register") {
+        try {
+          const res = await fetch("/api/profiles?count=true");
+          const data = await res.json();
+          if (data.count) setLocalRegCount(data.count);
+        } catch {}
         setCelebration(true);
         setTimeout(() => {
           setCelebration(false);
