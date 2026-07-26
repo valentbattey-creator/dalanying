@@ -71,7 +71,7 @@ export async function PUT(req: NextRequest) {
     if (nickname !== undefined) patch.nickname = nickname;
     if (avatar_url !== undefined) patch.avatar_url = avatar_url;
     if (bio !== undefined) patch.bio = bio;
-    if (phone !== undefined) patch.phone = phone;
+    if (phone !== undefined && phone !== "") patch.phone = phone;
     if (is_admin !== undefined) patch.is_admin = is_admin;
     if (banned_until !== undefined) patch.banned_until = banned_until;
 
