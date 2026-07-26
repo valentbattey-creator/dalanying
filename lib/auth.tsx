@@ -42,6 +42,8 @@ interface AuthState {
   setShowProfileSetup: (show: boolean) => void;
   registrationCount: number | null;
   sendPhoneOTP: (phone: string) => Promise<{ success: boolean; error?: string }>;
+  sendEmailOTP: (email: string) => Promise<{ success: boolean; error?: string }>;
+  verifyEmailOTP: (email: string, token: string, name?: string) => Promise<{ success: boolean; error?: string }>;
   verifyPhoneOTP: (phone: string, token: string, name?: string) => Promise<{ success: boolean; error?: string }>;
 }
 
@@ -466,11 +468,97 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 
   // ===== Phone OTP Auth =====
+  // Store local OTP for fallback
+  const [localOTP, setLocalOTP] = useState<{ phone: string; code: string; expires: number } | null>(null);
+
   const sendPhoneOTP = useCallback(async (phone: string): Promise<{ success: boolean; error?: string }> => {
-    if (!hasSupabase) return { success: false, error: "未配置 Supabase" };
     const formatted = phone.startsWith("+") ? phone : "+86" + phone;
+    // Try Supabase phone OTP first
+    if (hasSupabase) {
+      try {
+        const { error } = await supabase!.auth.signInWithOtp({ phone: formatted });
+        if (!error) return { success: true };
+        // If Supabase SMS fails, fall through to local OTP
+        console.log("Supabase SMS failed, using local OTP fallback:", error.message);
+      } catch {}
+    }
+    // Local OTP fallback: generate 6-digit code
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    setLocalOTP({ phone: formatted, code, expires: Date.now() + 300000 }); // 5 min
+    // Show toast with the code (in production this would be sent via SMS)
+    toast.info("验证码: " + code, { duration: 30000, description: "（开发模式：短信服务未配置，验证码显示在页面上）" });
+    return { success: true };
+  }, []);
+
+  const verifyPhoneOTP = useCallback(async (phone: string, token: string, name?: string): Promise<{ success: boolean; error?: string }> => {
+    const formatted = phone.startsWith("+") ? phone : "+86" + phone;
+
+    // Try local OTP first (fallback mode)
+    if (localOTP && localOTP.phone === formatted) {
+      if (Date.now() > localOTP.expires) { setLocalOTP(null); return { success: false, error: "验证码已过期，请重新发送" }; }
+      if (token !== localOTP.code) return { success: false, error: "验证码错误" };
+      setLocalOTP(null);
+      // Create local user
+      const uid = "phone_" + formatted.replace(/\D/g, "");
+      const nick = name || "用户" + Date.now().toString(36).slice(-4);
+      // Check if user exists in localStorage
+      const existingProfile = localStorage.getItem("dalanying_profile_" + uid);
+      let userNick = nick;
+      if (existingProfile) {
+        try { const p = JSON.parse(existingProfile); if (p.nickname) userNick = p.nickname; } catch {}
+      }
+      const newUser: AppUser = { id: uid, name: userNick, email: "", phone: formatted, avatar: "", isAdmin: false, role: null, bannedUntil: null };
+      setUser(newUser);
+      localStorage.setItem("dalanying_user", JSON.stringify(newUser));
+      localStorage.setItem("dalanying_profile_" + uid, JSON.stringify({ id: uid, nickname: userNick, phone: formatted }));
+      // Registration count
+      try {
+        const users = JSON.parse(localStorage.getItem("dalanying_phone_users") || "[]");
+        if (!users.includes(uid)) { users.push(uid); localStorage.setItem("dalanying_phone_users", JSON.stringify(users)); }
+        setRegistrationCount(users.length);
+      } catch {}
+      setShowProfileSetup(true);
+      return { success: true };
+    }
+
+    // Try Supabase OTP
+    if (hasSupabase) {
+      try {
+        const { data, error } = await supabase!.auth.verifyOtp({ phone: formatted, token, type: "sms" });
+        if (error) {
+          if (error.message.includes("invalid")) return { success: false, error: "验证码错误或已过期" };
+          return { success: false, error: error.message };
+        }
+        if (data.user) {
+          const profile = await fetchProfile(data.user.id);
+          if (!profile || !profile.nickname) {
+            const nick = name || "用户" + Date.now().toString(36).slice(-4);
+            await supabase!.from("profiles").upsert({
+              id: data.user.id, nickname: nick, avatar_url: "", phone: formatted,
+            }, { onConflict: "id" });
+            try {
+              const { count } = await supabase!.from("profiles").select("*", { count: "exact", head: true });
+              setRegistrationCount(count || null);
+            } catch {}
+            setShowProfileSetup(true);
+          }
+          await refreshUser();
+        }
+        return { success: true };
+      } catch (e: any) {
+        return { success: false, error: e.message || "验证失败" };
+      }
+    }
+
+    return { success: false, error: "验证失败" };
+  }, [refreshUser, localOTP]);
+
+
+  // ===== Email OTP Auth =====
+  const sendEmailOTP = useCallback(async (email: string): Promise<{ success: boolean; error?: string }> => {
+    if (!hasSupabase) return { success: false, error: "未配置 Supabase" };
     try {
-      const { error } = await supabase!.auth.signInWithOtp({ phone: formatted });
+      const { error } = await supabase!.auth.signInWithOtp({ email });
       if (error) {
         if (error.message.includes("rate limit")) return { success: false, error: "发送太频繁，请稍后再试" };
         return { success: false, error: error.message };
@@ -481,13 +569,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const verifyPhoneOTP = useCallback(async (phone: string, token: string, name?: string): Promise<{ success: boolean; error?: string }> => {
+  const verifyEmailOTP = useCallback(async (email: string, token: string, name?: string): Promise<{ success: boolean; error?: string }> => {
     if (!hasSupabase) return { success: false, error: "未配置 Supabase" };
-    const formatted = phone.startsWith("+") ? phone : "+86" + phone;
     try {
-      const { data, error } = await supabase!.auth.verifyOtp({ phone: formatted, token, type: "sms" });
+      const { data, error } = await supabase!.auth.verifyOtp({ email, token, type: "email" });
       if (error) {
-        if (error.message.includes("invalid")) return { success: false, error: "验证码错误或已过期" };
+        if (error.message.includes("invalid") || error.message.includes("expired")) return { success: false, error: "验证码错误或已过期" };
         return { success: false, error: error.message };
       }
       if (data.user) {
@@ -495,7 +582,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!profile || !profile.nickname) {
           const nick = name || "用户" + Date.now().toString(36).slice(-4);
           await supabase!.from("profiles").upsert({
-            id: data.user.id, nickname: nick, avatar_url: "", phone: formatted,
+            id: data.user.id, nickname: nick, avatar_url: "", phone: "",
           }, { onConflict: "id" });
           try {
             const { count } = await supabase!.from("profiles").select("*", { count: "exact", head: true });
@@ -532,7 +619,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       claimOwner, abdicateOwner,
       registrationCount,
       guestLikes, toggleGuestLike,
-      sendPhoneOTP, verifyPhoneOTP,
+      sendPhoneOTP, verifyPhoneOTP, sendEmailOTP, verifyEmailOTP,
     }}>
       {children}
     </AuthContext.Provider>

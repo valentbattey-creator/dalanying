@@ -5,14 +5,17 @@ import { useAuth, isValidEmail } from "@/lib/auth";
 import { toast } from "sonner";
 
 export default function LoginModal() {
-  const { showLoginModal, setShowLoginModal, login, register, quickLogin, checkNameAvailable, registrationCount, sendPhoneOTP, verifyPhoneOTP } = useAuth();
-  const [mode, setMode] = useState<"phone" | "login" | "register" | "quick">("phone");
+  const { showLoginModal, setShowLoginModal, login, register, quickLogin, checkNameAvailable, registrationCount, sendPhoneOTP, verifyPhoneOTP, sendEmailOTP, verifyEmailOTP } = useAuth();
+  const [mode, setMode] = useState<"phone" | "email" | "login" | "register" | "quick">("phone");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [phone, setPhone] = useState("");
   const [otpCode, setOtpCode] = useState("");
   const [otpSent, setOtpSent] = useState(false);
+  const [emailOtp, setEmailOtp] = useState("");
+  const [emailOtpSent, setEmailOtpSent] = useState(false);
+  const [emailOtpCountdown, setEmailOtpCountdown] = useState(0);
   const [otpCountdown, setOtpCountdown] = useState(0);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -39,10 +42,18 @@ export default function LoginModal() {
     return () => clearInterval(t);
   }, [otpCountdown]);
 
+  // Email OTP countdown
+  useEffect(() => {
+    if (emailOtpCountdown <= 0) return;
+    const t = setInterval(() => setEmailOtpCountdown(prev => prev - 1), 1000);
+    return () => clearInterval(t);
+  }, [emailOtpCountdown]);
+
   // Validation
   const emailCheck = useMemo(() => { if (!email) return { valid: false, reason: "" }; return isValidEmail(email); }, [email]);
   const phoneValid = /^1[3-9]\d{9}$/.test(phone.trim());
   const otpValid = /^\d{6}$/.test(otpCode.trim());
+  const emailOtpValid = /^\d{6}$/.test(emailOtp.trim());
   const nameValid = name.trim().length >= 2 && name.trim().length <= 12;
 
   if (!showLoginModal) return null;
@@ -80,7 +91,7 @@ export default function LoginModal() {
 
   function resetForm() {
     setName(""); setEmail(""); setPassword(""); setPhone(""); setOtpCode("");
-    setError(""); setSuccess(""); setOtpSent(false); setOtpCountdown(0);
+    setError(""); setSuccess(""); setOtpSent(false); setOtpCountdown(0); setEmailOtp(""); setEmailOtpSent(false); setEmailOtpCountdown(0);
     setTouchedEmail(false); setTouchedPassword(false); setTouchedName(false);
   }
 
@@ -107,6 +118,36 @@ export default function LoginModal() {
     setSubmitting(true);
     setError("");
     const result = await verifyPhoneOTP(phone.trim(), otpCode.trim(), name.trim() || undefined);
+    if (result.success) {
+      toast.success("登录成功");
+      setCelebration(true);
+    } else {
+      setError(result.error || "验证失败");
+    }
+    setSubmitting(false);
+  }
+
+  async function handleSendEmailOTP() {
+    if (!emailCheck.valid) { toast.error("请输入正确的邮箱"); return; }
+    setSubmitting(true);
+    setError("");
+    const result = await sendEmailOTP(email.trim());
+    if (result.success) {
+      setEmailOtpSent(true);
+      setEmailOtpCountdown(60);
+      toast.success("验证码已发送到邮箱");
+    } else {
+      setError(result.error || "发送失败");
+    }
+    setSubmitting(false);
+  }
+
+  async function handleEmailSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!emailCheck.valid || !emailOtp.trim()) return;
+    setSubmitting(true);
+    setError("");
+    const result = await verifyEmailOTP(email.trim(), emailOtp.trim(), name.trim() || undefined);
     if (result.success) {
       toast.success("登录成功");
       setCelebration(true);
@@ -149,10 +190,10 @@ export default function LoginModal() {
         {/* Title */}
         <div className="text-center mb-6">
           <h2 className="text-lg font-bold text-[var(--color-text-primary)]">
-            {mode === "phone" ? "手机登录/注册" : mode === "login" ? "邮箱登录" : mode === "register" ? "注册账号" : "快速开始"}
+            {mode === "phone" ? "手机登录/注册" : mode === "email" ? "邮箱验证码登录" : mode === "login" ? "邮箱密码登录" : mode === "register" ? "注册账号" : "快速开始"}
           </h2>
           <p className="text-xs text-[var(--color-text-tertiary)] mt-1">
-            {mode === "phone" ? "手机号 + 验证码，一步到位" : mode === "quick" ? "起个名字就能玩" : ""}
+            {mode === "phone" ? "手机号 + 验证码，一步到位" : mode === "email" ? "邮箱 + 验证码，安全便捷" : mode === "quick" ? "起个名字就能玩" : ""}
           </p>
         </div>
 
@@ -285,9 +326,68 @@ export default function LoginModal() {
           </form>
         )}
 
+        {/* Email OTP mode */}
+        {mode === "email" && (
+          <form onSubmit={handleEmailSubmit} className="space-y-3">
+            {!emailOtpSent && (
+              <div>
+                <label className="text-[11px] font-medium text-[var(--color-text-secondary)] ml-1">昵称 <span className="text-[10px] text-[var(--color-text-tertiary)]">（可选）</span></label>
+                <input type="text" placeholder="给自己起个名字" value={name} maxLength={12}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full mt-1 px-3 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] outline-none focus:border-[var(--color-accent)] transition-all" />
+              </div>
+            )}
+            <div>
+              <label className="text-[11px] font-medium text-[var(--color-text-secondary)] ml-1">邮箱</label>
+              <input type="email" placeholder="your@email.com" value={email}
+                onChange={(e) => { setEmail(e.target.value); if (emailOtpSent) { setEmailOtpSent(false); setEmailOtp(""); } }}
+                className="w-full mt-1 px-3 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] outline-none focus:border-[var(--color-accent)] transition-all" />
+            </div>
+            {emailOtpSent && (
+              <div>
+                <label className="text-[11px] font-medium text-[var(--color-text-secondary)] ml-1">邮箱验证码</label>
+                <div className="flex gap-2 mt-1">
+                  <input type="text" placeholder="6位验证码" value={emailOtp} maxLength={6}
+                    onChange={(e) => setEmailOtp(e.target.value.replace(/\D/g, ""))}
+                    className="flex-1 px-3 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] outline-none focus:border-[var(--color-accent)] transition-all tracking-widest" />
+                  <button type="button" onClick={handleSendEmailOTP} disabled={emailOtpCountdown > 0 || submitting}
+                    className="shrink-0 px-3 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] disabled:opacity-40 transition-all">
+                    {emailOtpCountdown > 0 ? `${emailOtpCountdown}s` : "重发"}
+                  </button>
+                </div>
+              </div>
+            )}
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 flex items-center gap-2">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                <p className="text-xs text-red-400">{error}</p>
+              </div>
+            )}
+            {!emailOtpSent ? (
+              <button type="button" onClick={handleSendEmailOTP} disabled={!emailCheck.valid || submitting}
+                className="btn-primary w-full py-2.5 rounded-xl text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+                {submitting ? "发送中..." : "发送验证码"}
+              </button>
+            ) : (
+              <button type="submit" disabled={!emailOtpValid || submitting}
+                className="btn-primary w-full py-2.5 rounded-xl text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+                {submitting ? "验证中..." : "验证并登录"}
+              </button>
+            )}
+          </form>
+        )}
+
         {/* Footer links */}
         <div className="mt-4 space-y-2 text-center">
-          {mode !== "phone" && (
+          {mode === "phone" && (
+            <p>
+              <button type="button" onClick={() => switchMode("email")}
+                className="text-[11px] text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] transition-all">
+                📧 邮箱验证码登录 →
+              </button>
+            </p>
+          )}
+          {mode === "email" && (
             <p>
               <button type="button" onClick={() => switchMode("phone")}
                 className="text-[11px] text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] transition-all">
@@ -295,11 +395,11 @@ export default function LoginModal() {
               </button>
             </p>
           )}
-          {mode === "phone" && (
+          {mode !== "login" && mode !== "register" && (
             <p>
               <button type="button" onClick={() => switchMode("login")}
                 className="text-[11px] text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] transition-all">
-                📧 邮箱密码登录 →
+                🔑 邮箱密码登录 →
               </button>
             </p>
           )}
