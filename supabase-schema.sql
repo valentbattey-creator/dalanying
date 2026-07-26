@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS posts (
   title TEXT NOT NULL,
   content TEXT DEFAULT '',
   image_urls TEXT[] DEFAULT '{}',
-  category TEXT NOT NULL CHECK (category IN ('tech','car','sport','game','finance','fitness','outdoor','digital')),
+  category TEXT NOT NULL DEFAULT ''推荐''
   tags TEXT[] DEFAULT '{}',
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()

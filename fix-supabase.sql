@@ -1,5 +1,5 @@
 -- =============================================
--- 大岚荧 - Supabase 修复脚本 v3
+-- 大岚荧 - Supabase 修复脚本 v4
 -- 请在 Supabase SQL Editor 中运行此文件
 -- =============================================
 
@@ -14,10 +14,8 @@ ALTER TABLE comments ADD COLUMN IF NOT EXISTS author_name TEXT DEFAULT '';
 ALTER TABLE comments ADD COLUMN IF NOT EXISTS author_avatar TEXT DEFAULT '';
 ALTER TABLE comments ADD COLUMN IF NOT EXISTS image_url TEXT DEFAULT '';
 
--- 修复 category 约束
+-- 删除 category 约束（不再重新添加限制性约束，允许任意中文分类）
 ALTER TABLE posts DROP CONSTRAINT IF EXISTS posts_category_check;
-ALTER TABLE posts ADD CONSTRAINT posts_category_check 
-  CHECK (category IN ('tech','car','sport','game','finance','fitness','outdoor','digital'));
 
 -- 启用 RLS
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
@@ -105,4 +103,4 @@ CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION handle_new_user();
 
-SELECT '修复完成！' as status;
+SELECT '修复完成！category约束已删除，所有中文分类均可使用' as status;

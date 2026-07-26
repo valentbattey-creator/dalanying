@@ -43,10 +43,8 @@ export async function GET(req: NextRequest) {
       .order("created_at", { ascending: false })
       .range(from, to);
 
-    if (category && category !== "推荐") {
-      const mapped = mapCategory(category);
-      query = query.eq("category", mapped);
-    }
+    // Note: category filtering done post-fetch since mapped categories are broad
+    // if (category && category !== "推荐") query = query.eq("category", mapCategory(category));
     if (search) query = query.or(`title.ilike.%${search}%,content.ilike.%${search}%`);
     if (userId) query = query.eq("user_id", userId);
 
@@ -74,19 +72,24 @@ export async function GET(req: NextRequest) {
       } catch {}
     }
 
-    // Reverse map categories for display
-    const REVERSE_MAP: Record<string, string> = {};
-    for (const [cn, en] of Object.entries(CATEGORY_MAP)) {
-      if (!REVERSE_MAP[en]) REVERSE_MAP[en] = cn;
-    }
-
-    const posts = (data || []).map((item: any) => ({
+    // Reverse map for legacy data
+    const REVERSE_CATEGORY: Record<string, string> = { "tech": "推荐", "fitness": "运动" };
+    
+    const posts = (data || []).map((item: any) => {
+      // Extract original category from __cat: tag if present
+      const tags = (item.tags || []).filter((t: string) => !t.startsWith("__cat:"));
+      const catTag = (item.tags || []).find((t: string) => t.startsWith("__cat:"));
+      const rawCat = item.category || "推荐";
+      const displayCategory = catTag ? catTag.replace("__cat:", "") : (REVERSE_CATEGORY[rawCat] || rawCat);
+      // Skip posts that don't match selected category
+      if (category && category !== "推荐" && displayCategory !== category) return null;
+      return {
       id: item.id,
       title: item.title,
       content: item.content || "",
       images: item.image_urls || [],
-      category: REVERSE_MAP[item.category] || item.category || "推荐",
-      tags: item.tags || [],
+      category: displayCategory,
+      tags: tags,
       author: item.profiles?.nickname || "",
       authorId: item.user_id || "",
       authorAvatar: item.profiles?.avatar_url || "",
@@ -96,9 +99,10 @@ export async function GET(req: NextRequest) {
       likes: likesMap.get(String(item.id)) || 0,
       comments: commentsMap.get(String(item.id)) || 0,
       views: item.views || 0,
-    }));
+    };});
 
-    return NextResponse.json({ posts, total: count || 0 });
+    const filtered = posts.filter(Boolean);
+    return NextResponse.json({ posts: filtered, total: count || 0 });
   } catch (e: any) {
     return NextResponse.json({ posts: [], total: 0, error: e.message });
   }
@@ -110,7 +114,8 @@ export async function POST(req: NextRequest) {
     let { title, content, images, category, tags, authorId, author, authorAvatar, isPinned, isAnnouncement } = body;
 
     // Map category to valid Supabase value
-    const supabaseCategory = mapCategory(category || "推荐");
+    // Try Chinese category first; if constraint fails, use mapped value
+    let supabaseCategory = category || "推荐";
 
     // Ensure profile exists
     if (authorId) {
@@ -135,6 +140,25 @@ export async function POST(req: NextRequest) {
       .select("*, profiles!posts_user_id_fkey(nickname, avatar_url)")
       .single();
 
+    // If constraint violation, retry with mapped category
+    if (error && error.message?.includes("check constraint")) {
+      supabaseCategory = mapCategory(category || "推荐");
+      const retry = await supabaseAdmin.from("posts").insert({
+        title, content: content || "", image_urls: images || [],
+        category: supabaseCategory, tags: [...(tags || []), "__cat:" + (category || "推荐")],
+        user_id: authorId || null, is_pinned: isPinned || false, is_announcement: isAnnouncement || false,
+      }).select("*, profiles!posts_user_id_fkey(nickname, avatar_url)").single();
+      if (retry.error) return NextResponse.json({ error: retry.error.message }, { status: 400 });
+      const d = retry.data;
+      return NextResponse.json({
+        id: d.id, title: d.title, content: d.content || "", images: d.image_urls || [],
+        category: category || "推荐", tags: (d.tags || []).filter((t: string) => !t.startsWith("__cat:")),
+        author: d.profiles?.nickname || author || "", authorId: d.user_id || "",
+        authorAvatar: d.profiles?.avatar_url || authorAvatar || "",
+        createdAt: d.created_at, isPinned: d.is_pinned || false, isAnnouncement: d.is_announcement || false,
+        likes: 0, comments: 0, views: d.views || 0,
+      });
+    }
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
     return NextResponse.json({

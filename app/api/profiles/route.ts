@@ -9,6 +9,13 @@ export async function GET(req: NextRequest) {
     const userId = url.searchParams.get("userId") || "";
     const all = url.searchParams.get("all") || "";
 
+    // Get user count
+    const countParam = url.searchParams.get("count");
+    if (countParam === "true") {
+      const { count } = await supabase.from("profiles").select("*", { count: "exact", head: true });
+      return NextResponse.json({ count: count || 0 });
+    }
+
     if (all === "true") {
       const { data } = await supabase.from("profiles").select("*");
       const profiles = (data as Record<string, unknown>[] || []).map(d => ({

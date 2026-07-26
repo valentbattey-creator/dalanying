@@ -37,6 +37,7 @@ interface AuthState {
   showLoginModal: boolean;
   showProfileSetup: boolean;
   setShowProfileSetup: (show: boolean) => void;
+  registrationCount: number | null;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -71,6 +72,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
+  const [registrationCount, setRegistrationCount] = useState<number | null>(null);
   const [hydrated, setHydrated] = useState(false);
 
   const refreshUser = useCallback(async () => {
@@ -407,6 +409,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       if (data.user) {
         if (data.user.identities && data.user.identities.length === 0) return { success: false, error: "该邮箱已注册", code: "exists" };
+        // Fetch registration count
+        try {
+          const res = await fetch("/api/profiles?count=true");
+          const data = await res.json();
+          setRegistrationCount(data.count || 0);
+        } catch {}
         return { success: true, code: "check_email" };
       }
       return { success: true, code: "check_email" };
@@ -443,6 +451,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       showLoginModal, setShowLoginModal,
       showProfileSetup, setShowProfileSetup,
       claimOwner, abdicateOwner,
+      registrationCount,
     }}>
       {children}
     </AuthContext.Provider>

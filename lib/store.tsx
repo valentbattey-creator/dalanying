@@ -85,6 +85,22 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   const [currentCategory, setCurrentCategory] = useState("");
   const initialized = useRef(false);
 
+  // Fetch accurate likes for posts from server
+  const fetchLikesForPosts = useCallback(async (postIds: string[]) => {
+    if (!postIds.length) return;
+    try {
+      const res = await fetch(`/api/likes?postIds=${postIds.join(",")}`);
+      const data = await res.json();
+      if (data.counts) {
+        setPosts(prev => prev.map(p => {
+          const serverCount = data.counts[p.id];
+          return serverCount !== undefined ? { ...p, likes: serverCount } : p;
+        }));
+      }
+    } catch {}
+  }, []);
+
+
   const loadMore = useCallback(async () => {
     if (!hasMore || loading) return;
     setLoading(true);

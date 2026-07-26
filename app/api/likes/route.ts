@@ -12,6 +12,18 @@ export async function GET(req: NextRequest) {
     const postId = searchParams.get("postId") || "";
     const userId = searchParams.get("userId") || "";
 
+    // Support bulk postIds query
+    const postIdsParam = searchParams.get("postIds");
+    if (postIdsParam) {
+      const ids = postIdsParam.split(",");
+      const counts: Record<string, number> = {};
+      for (const pid of ids) {
+        const { count } = await supabaseAdmin.from("likes").select("*", { count: "exact", head: true }).eq("post_id", pid);
+        counts[pid] = count || 0;
+      }
+      return NextResponse.json({ counts });
+    }
+
     let query = supabaseAdmin.from("likes").select("post_id", { count: "exact" });
     if (postId) query = query.eq("post_id", postId);
     if (userId) query = query.eq("user_id", userId);

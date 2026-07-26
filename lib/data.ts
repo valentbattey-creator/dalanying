@@ -425,6 +425,18 @@ export const dataService = {
   async unbanUser(userId: string): Promise<boolean> {
     return this.updateProfile(userId, { banned_until: null });
   },
+
+  async fetchLikes(userId: string): Promise<{ userLikes: Set<string> }> {
+    const liked = lsGet<string[]>("likedPosts", []);
+    const ids = liked.filter(k => k.endsWith("_" + userId)).map(k => k.replace("_" + userId, ""));
+    return { userLikes: new Set(ids) };
+  },
+
+  loadSavedPosts(userId: string): Set<string> {
+    const saved = lsGet<string[]>("savedPosts", []);
+    const ids = saved.filter(k => k.endsWith("_" + userId)).map(k => k.replace("_" + userId, ""));
+    return new Set(ids);
+  },
 };
 
 // ===== Backward Compat Exports =====
@@ -433,11 +445,14 @@ export async function syncSeedToSupabase(userId: string): Promise<boolean> {
   try {
     const { count } = await supabase.from("posts").select("*", { count: "exact", head: true });
     if ((count || 0) === 0) {
+      // Use API route which handles category mapping
       for (const seed of SEED_POSTS) {
-        await supabase.from("posts").insert({
-          title: seed.title, content: seed.content, image_urls: seed.images,
-          category: seed.category, tags: seed.tags, user_id: seed.authorId === "system" ? userId : seed.authorId,
-          created_at: seed.createdAt, is_pinned: seed.isPinned, is_announcement: seed.isAnnouncement,
+        await apiPost("/api/posts", {
+          title: seed.title, content: seed.content, images: seed.images,
+          category: seed.category, tags: seed.tags,
+          authorId: seed.authorId === "system" ? userId : seed.authorId,
+          author: seed.author, authorAvatar: seed.authorAvatar || "",
+          isPinned: seed.isPinned, isAnnouncement: seed.isAnnouncement,
         });
       }
       return true;
@@ -457,14 +472,3 @@ export async function createAnnouncement(post: Omit<Post, "id" | "createdAt" | "
   return dataService.createPost({ ...post, isAnnouncement: true, isPinned: true });
 }
 
-
-dataService.fetchLikes = async function (userId: string): Promise<{ userLikes: Set<string> }> {
-  const liked = lsGet<string[]>("likedPosts", []);
-  const ids = liked.filter(k => k.endsWith("_" + userId)).map(k => k.replace("_" + userId, ""));
-  return { userLikes: new Set(ids) };
-};
-dataService.loadSavedPosts = function (userId: string): Set<string> {
-  const saved = lsGet<string[]>("savedPosts", []);
-  const ids = saved.filter(k => k.endsWith("_" + userId)).map(k => k.replace("_" + userId, ""));
-  return new Set(ids);
-};

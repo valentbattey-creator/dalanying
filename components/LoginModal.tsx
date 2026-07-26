@@ -5,7 +5,7 @@ import { useAuth, isValidEmail } from "@/lib/auth";
 import { toast } from "sonner";
 
 export default function LoginModal() {
-  const { showLoginModal, setShowLoginModal, login, register, quickLogin, checkNameAvailable } = useAuth();
+  const { showLoginModal, setShowLoginModal, login, register, quickLogin, checkNameAvailable, registrationCount } = useAuth();
   const [mode, setMode] = useState<"quick" | "login" | "register">("quick");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -17,6 +17,7 @@ export default function LoginModal() {
   const [touchedPassword, setTouchedPassword] = useState(false);
   const [touchedName, setTouchedName] = useState(false);
   const [nameAvailable, setNameAvailable] = useState<boolean | null>(null);
+  const [celebration, setCelebration] = useState(false);
   const [checkingName, setCheckingName] = useState(false);
 
   // Debounced name check
@@ -56,6 +57,28 @@ export default function LoginModal() {
 
   if (!showLoginModal) return null;
 
+  // Registration celebration overlay
+  if (celebration) {
+    return (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="absolute inset-0 bg-black/70 backdrop-blur-md" />
+        <div className="relative z-10 text-center animate-fade-up">
+          <div className="text-6xl mb-4">🎉</div>
+          <h2 className="text-2xl font-bold text-white mb-2">恭喜你！</h2>
+          <p className="text-lg text-[var(--color-accent)] font-semibold mb-1">
+            成为大岚荧第 {registrationCount || "???"} 位居民
+          </p>
+          <p className="text-sm text-[var(--color-text-tertiary)] mt-3">欢迎加入这个社区</p>
+          <div className="mt-6 flex justify-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)] animate-bounce" style={{ animationDelay: "0ms" }} />
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)] animate-bounce" style={{ animationDelay: "150ms" }} />
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)] animate-bounce" style={{ animationDelay: "300ms" }} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   function resetForm() {
     setName(""); setEmail(""); setPassword("");
     setError(""); setSuccess("");
@@ -79,9 +102,12 @@ export default function LoginModal() {
     setSubmitting(true);
     const result = await quickLogin(name.trim());
     if (result.success) {
-      toast.success(`欢迎，${name.trim()}！`);
-      setShowLoginModal(false);
-      resetForm();
+      setCelebration(true);
+      setTimeout(() => {
+        setCelebration(false);
+        setShowLoginModal(false);
+        resetForm();
+      }, 3000);
     } else {
       setError(result.error || "注册失败");
     }
@@ -106,8 +132,15 @@ export default function LoginModal() {
     if (result.success) {
       if (result.code === "check_email") {
         setSuccess("注册成功！请前往邮箱点击激活链接以完成验证");
+      } else if (mode === "register") {
+        setCelebration(true);
+        setTimeout(() => {
+          setCelebration(false);
+          setShowLoginModal(false);
+          resetForm();
+        }, 3000);
       } else {
-        toast.success(mode === "login" ? "登录成功" : "注册成功");
+        toast.success("登录成功");
         setShowLoginModal(false);
         resetForm();
       }
