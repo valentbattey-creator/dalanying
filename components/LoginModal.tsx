@@ -1,16 +1,19 @@
 "use client";
 
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useAuth, isValidEmail } from "@/lib/auth";
 import { toast } from "sonner";
 
 export default function LoginModal() {
-  const { showLoginModal, setShowLoginModal, login, register, quickLogin, checkNameAvailable, registrationCount } = useAuth();
-  const [mode, setMode] = useState<"quick" | "login" | "register">("quick");
+  const { showLoginModal, setShowLoginModal, login, register, quickLogin, checkNameAvailable, registrationCount, sendPhoneOTP, verifyPhoneOTP } = useAuth();
+  const [mode, setMode] = useState<"phone" | "login" | "register" | "quick">("phone");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [phone, setPhone] = useState("");
+  const [otpCode, setOtpCode] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
+  const [otpCountdown, setOtpCountdown] = useState(0);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -24,75 +27,51 @@ export default function LoginModal() {
 
   // Debounced name check
   useEffect(() => {
-    if (mode !== "quick" || name.trim().length < 2) {
-      setNameAvailable(null);
-      return;
-    }
-    const timer = setTimeout(async () => {
-      setCheckingName(true);
-      const ok = await checkNameAvailable(name.trim());
-      setNameAvailable(ok);
-      setCheckingName(false);
-    }, 400);
+    if (mode !== "quick" || name.trim().length < 2) { setNameAvailable(null); return; }
+    const timer = setTimeout(async () => { setCheckingName(true); const ok = await checkNameAvailable(name.trim()); setNameAvailable(ok); setCheckingName(false); }, 400);
     return () => clearTimeout(timer);
   }, [name, mode, checkNameAvailable]);
 
-  // Validation
-  const emailCheck = useMemo(() => {
-    if (!email) return { valid: false, reason: "" };
-    return isValidEmail(email);
-  }, [email]);
-  const emailError = touchedEmail && email.trim() && !emailCheck.valid;
-  const emailReason = emailError ? emailCheck.reason : "";
-  const passwordError = touchedPassword && password.trim() && password.length < 6;
-  const phoneValid = /^1[3-9]\d{9}$/.test(phone.trim());
-  const phoneError = phone.trim() && !phoneValid;
-  const nameError = touchedName && (mode === "register" || mode === "quick") && name.trim() && name.trim().length < 2;
+  // OTP countdown
+  useEffect(() => {
+    if (otpCountdown <= 0) return;
+    const t = setInterval(() => setOtpCountdown(prev => prev - 1), 1000);
+    return () => clearInterval(t);
+  }, [otpCountdown]);
 
-  const canSubmit = useMemo(() => {
-    if (mode === "quick") {
-      return name.trim().length >= 2 && name.trim().length <= 12 && nameAvailable === true && !submitting;
-    }
-    if (mode === "register") {
-      return emailCheck.valid && password.length >= 6 && name.trim().length >= 2 && phoneValid && !submitting;
-    }
-    return emailCheck.valid && password.length >= 6 && !submitting;
-  }, [emailCheck.valid, password.length, name, mode, submitting, nameAvailable]);
+  // Validation
+  const emailCheck = useMemo(() => { if (!email) return { valid: false, reason: "" }; return isValidEmail(email); }, [email]);
+  const phoneValid = /^1[3-9]\d{9}$/.test(phone.trim());
+  const otpValid = /^\d{6}$/.test(otpCode.trim());
+  const nameValid = name.trim().length >= 2 && name.trim().length <= 12;
 
   if (!showLoginModal) return null;
 
-  // Registration celebration overlay
+  // Celebration overlay
   if (celebration) {
     return (
       <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" onClick={() => { setCelebration(false); setShowLoginModal(false); resetForm(); }}>
         <div className="absolute inset-0 bg-black/70 backdrop-blur-md" />
         <div className="relative z-10 w-full max-w-sm animate-fade-up" onClick={e => e.stopPropagation()}>
-          {/* Celebration */}
           <div className="text-center mb-6">
             <div className="text-6xl mb-4">🎉</div>
             <h2 className="text-2xl font-bold text-white mb-2">恭喜你！</h2>
-            <p className="text-lg text-[var(--color-accent)] font-semibold mb-1">
-              成为大岚荧第 {registrationCount || localRegCount || "???"} 位居民
-            </p>
+            <p className="text-lg text-[var(--color-accent)] font-semibold mb-1">成为大岚荧第 {registrationCount || localRegCount || "???"} 位居民</p>
             <p className="text-sm text-[var(--color-text-tertiary)] mt-2">欢迎加入这个社区 ✨</p>
           </div>
-          {/* Community Announcement */}
           <div className="bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] rounded-2xl p-5 mt-4">
             <div className="flex items-center gap-2 mb-3">
               <span className="text-lg">📢</span>
               <h3 className="text-sm font-bold text-[var(--color-text-primary)]">社区须知</h3>
             </div>
             <div className="space-y-2 text-xs text-[var(--color-text-secondary)] leading-relaxed">
-              <p>🔹 欢迎来到大岚荧，一个属于大家的自由社区</p>
               <p>🔹 尊重每一位用户，友善交流</p>
               <p>🔹 严禁发布暴力、色情、违法内容</p>
               <p>🔹 严禁发布违反国家法律法规的内容</p>
               <p>🔹 违规内容将被删除，严重者封号处理</p>
               <p>🔹 保护个人隐私，谨防诈骗</p>
             </div>
-            <p className="text-[10px] text-[var(--color-text-tertiary)] mt-4 text-center">
-              点击任意处开始你的大岚荧之旅
-            </p>
+            <p className="text-[10px] text-[var(--color-text-tertiary)] mt-4 text-center">点击任意处开始你的大岚荧之旅</p>
           </div>
         </div>
       </div>
@@ -100,301 +79,255 @@ export default function LoginModal() {
   }
 
   function resetForm() {
-    setName(""); setEmail(""); setPassword(""); setPhone("");
-    setError(""); setSuccess("");
+    setName(""); setEmail(""); setPassword(""); setPhone(""); setOtpCode("");
+    setError(""); setSuccess(""); setOtpSent(false); setOtpCountdown(0);
     setTouchedEmail(false); setTouchedPassword(false); setTouchedName(false);
-    setNameAvailable(null);
   }
 
-  function switchMode(m: "quick" | "login" | "register") {
-    setMode(m);
-    setError(""); setSuccess("");
-    setTouchedEmail(false); setTouchedPassword(false); setTouchedName(false);
-    setNameAvailable(null);
-  }
+  function switchMode(m: typeof mode) { resetForm(); setMode(m); }
 
-  async function handleQuickStart(e: React.FormEvent) {
-    e.preventDefault();
-    setError("");
-    if (name.trim().length < 2) { setError("名字至少 2 个字"); return; }
-    if (name.trim().length > 12) { setError("名字最多 12 个字"); return; }
-    if (nameAvailable === false) { setError("这个名字被占用了，换一个吧"); return; }
+  async function handleSendOTP() {
+    if (!phoneValid) { toast.error("请输入正确的手机号"); return; }
     setSubmitting(true);
-    const result = await quickLogin(name.trim());
+    setError("");
+    const result = await sendPhoneOTP(phone.trim());
     if (result.success) {
-      // Fetch registration count
-      try {
-        const res = await fetch("/api/profiles?count=true");
-        const data = await res.json();
-        if (data.count) setLocalRegCount(data.count);
-      } catch {}
-      setCelebration(true);
-      setTimeout(() => {
-        setCelebration(false);
-        setShowLoginModal(false);
-        resetForm();
-      }, 3000);
+      setOtpSent(true);
+      setOtpCountdown(60);
+      toast.success("验证码已发送");
     } else {
-      setError(result.error || "注册失败");
+      setError(result.error || "发送失败");
+    }
+    setSubmitting(false);
+  }
+
+  async function handlePhoneSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!phoneValid || !otpCode.trim()) return;
+    setSubmitting(true);
+    setError("");
+    const result = await verifyPhoneOTP(phone.trim(), otpCode.trim(), name.trim() || undefined);
+    if (result.success) {
+      toast.success("登录成功");
+      setCelebration(true);
+    } else {
+      setError(result.error || "验证失败");
     }
     setSubmitting(false);
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError("");
-    setSuccess("");
-
-    if (mode === "register" && name.trim().length < 2) { setError("昵称至少 2 个字符"); return; }
-    const check = isValidEmail(email);
-    if (!check.valid) { setError(check.reason || "邮箱格式不正确"); return; }
-    if (password.length < 6) { setError("密码至少 6 位"); return; }
-
-    setSubmitting(true);
-    const result = mode === "login"
-      ? await login(email, password)
-      : await register(name, email, password, phone);
-
-    if (result.success) {
-      if (result.code === "check_email") {
-        setSuccess("注册成功！请前往邮箱点击激活链接以完成验证");
-      } else if (mode === "register") {
-        try {
-          const res = await fetch("/api/profiles?count=true");
-          const data = await res.json();
-          if (data.count) setLocalRegCount(data.count);
-        } catch {}
-        setCelebration(true);
-        setTimeout(() => {
-          setCelebration(false);
-          setShowLoginModal(false);
-          resetForm();
-        }, 3000);
-      } else {
-        toast.success("登录成功");
-        setShowLoginModal(false);
-        resetForm();
-      }
-    } else {
-      setError(result.error || "操作失败");
+    setSubmitting(true); setError(""); setSuccess("");
+    if (mode === "quick") {
+      const result = await quickLogin(name.trim());
+      if (result.success) { setCelebration(true); } else { setError(result.error || "失败"); }
+    } else if (mode === "login") {
+      const result = await login(email, password);
+      if (result.success) { toast.success("登录成功"); setShowLoginModal(false); resetForm(); }
+      else { setError(result.error || "登录失败"); }
+    } else if (mode === "register") {
+      const result = await register(name.trim(), email, password, phone.trim());
+      if (result.success) {
+        if (result.code === "check_email") { setSuccess("注册成功！请前往邮箱点击激活链接完成验证"); }
+        else { setCelebration(true); }
+      } else { setError(result.error || "注册失败"); }
     }
     setSubmitting(false);
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-up"
-        onClick={() => { setShowLoginModal(false); resetForm(); }}
-      />
-
-      <div className="relative w-full max-w-sm bg-[var(--color-bg-card)] border-[0.5px] border-[var(--color-border-default)] rounded-2xl p-5 shadow-2xl animate-fade-up z-10 max-h-[90vh] overflow-y-auto">
-        {/* Close button */}
-        <button
-          onClick={() => { setShowLoginModal(false); resetForm(); }}
-          className="absolute top-3 right-3 w-7 h-7 flex items-center justify-center rounded-full hover:bg-[var(--color-bg-hover)] text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)] transition-all duration-200"
-        >
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center">
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => { setShowLoginModal(false); resetForm(); }} />
+      <div className="relative z-10 w-full max-w-md bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] rounded-t-3xl sm:rounded-2xl p-6 animate-fade-up max-h-[90vh] overflow-y-auto">
+        {/* Close */}
+        <button type="button" onClick={() => { setShowLoginModal(false); resetForm(); }}
+          className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full hover:bg-[var(--color-bg-hover)] text-[var(--color-text-tertiary)] transition-all">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
 
-        {/* Success message */}
-        {success ? (
-          <div className="py-10 text-center animate-fade-up">
-            <div className="w-16 h-16 rounded-full bg-green-500/15 flex items-center justify-center mx-auto mb-4">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>
-            </div>
-            <h2 className="text-lg font-bold text-[var(--color-text-primary)] mb-2">验证邮件已发送</h2>
-            <p className="text-xs text-[var(--color-text-secondary)] mb-6 leading-relaxed">{success}</p>
-            <button
-              onClick={() => { setShowLoginModal(false); resetForm(); }}
-              className="text-xs text-[var(--color-accent)] hover:underline"
-            >
-              知道了
-            </button>
-          </div>
-        ) : (
-          <>
-            {/* Header */}
-            <div className="text-center mb-5">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--color-accent)] to-[#6b8cff] flex items-center justify-center mx-auto mb-3">
-                <span className="text-white text-lg font-bold">蓝</span>
+        {/* Title */}
+        <div className="text-center mb-6">
+          <h2 className="text-lg font-bold text-[var(--color-text-primary)]">
+            {mode === "phone" ? "手机登录/注册" : mode === "login" ? "邮箱登录" : mode === "register" ? "注册账号" : "快速开始"}
+          </h2>
+          <p className="text-xs text-[var(--color-text-tertiary)] mt-1">
+            {mode === "phone" ? "手机号 + 验证码，一步到位" : mode === "quick" ? "起个名字就能玩" : ""}
+          </p>
+        </div>
+
+        {/* Phone OTP mode */}
+        {mode === "phone" && (
+          <form onSubmit={handlePhoneSubmit} className="space-y-3">
+            {!otpSent && (
+              <div>
+                <label className="text-[11px] font-medium text-[var(--color-text-secondary)] ml-1">昵称 <span className="text-[10px] text-[var(--color-text-tertiary)]">（可选，首次登录自动创建）</span></label>
+                <input type="text" placeholder="给自己起个名字" value={name} maxLength={12}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full mt-1 px-3 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] outline-none focus:border-[var(--color-accent)] transition-all" />
               </div>
-              <h2 className="text-lg font-bold text-[var(--color-text-primary)]">
-                {mode === "quick" ? "快速开始" : mode === "login" ? "欢迎回来" : "创建账号"}
-              </h2>
-              <p className="text-xs text-[var(--color-text-tertiary)] mt-1">
-                {mode === "quick" ? "输入一个独一无二的名字就能开始" : "发现科技、汽车、运动、游戏等精彩内容"}
-              </p>
+            )}
+            <div>
+              <label className="text-[11px] font-medium text-[var(--color-text-secondary)] ml-1">手机号</label>
+              <input type="tel" placeholder="请输入手机号" value={phone}
+                onChange={(e) => { setPhone(e.target.value.replace(/\D/g, "").slice(0, 11)); if (otpSent) { setOtpSent(false); setOtpCode(""); } }}
+                className="w-full mt-1 px-3 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] outline-none focus:border-[var(--color-accent)] transition-all" />
             </div>
-
-            {/* Quick Start Form */}
-            {mode === "quick" && (
-              <form onSubmit={handleQuickStart} className="space-y-4">
-                <div>
-                  <label className="text-[11px] font-medium text-[var(--color-text-secondary)] ml-1">取个名字</label>
-                  <div className="relative">
-                    <input
-                      type="text" placeholder="你的独特名字（2-12个字）" value={name}
-                      onChange={(e) => { setName(e.target.value); if (!touchedName) setTouchedName(true); }}
-                      onBlur={() => setTouchedName(true)}
-                      maxLength={12}
-                      className={`w-full mt-1 px-3 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] outline-none transition-all duration-300 ${
-                        nameError ? "border-red-500/50" :
-                        nameAvailable === true ? "border-green-500/40" :
-                        nameAvailable === false ? "border-red-500/50" :
-                        "border-[var(--color-border-subtle)] focus:border-[var(--color-accent)]"
-                      }`}
-                    />
-                    {checkingName && (
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                        <div className="w-4 h-4 border-2 border-[var(--color-text-tertiary)] border-t-transparent rounded-full animate-spin" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="mt-1 ml-1 min-h-[16px]">
-                    {nameError && <p className="text-[10px] text-red-400">名字至少需要 2 个字符</p>}
-                    {checkingName && <p className="text-[10px] text-[var(--color-text-tertiary)]">正在检查名字...</p>}
-                    {!checkingName && nameAvailable === true && name.trim().length >= 2 && (
-                      <p className="text-[10px] text-green-500">✓ 这个名字可以用！</p>
-                    )}
-                    {!checkingName && nameAvailable === false && (
-                      <p className="text-[10px] text-red-400">✗ 这个名字已经被占用了，换个试试</p>
-                    )}
-                  </div>
-                </div>
-
-                {error && (
-                  <div className="bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 flex items-center gap-2">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-                    <p className="text-xs text-red-400">{error}</p>
-                  </div>
-                )}
-
-                <button
-                  type="submit" disabled={!canSubmit}
-                  className="btn-primary w-full py-2.5 rounded-xl text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-300"
-                >
-                  {submitting ? "正在进入..." : "开始使用"}
-                </button>
-
-                <p className="text-center text-[10px] text-[var(--color-text-tertiary)]">
-                  后续可以在设置中绑定邮箱，解锁更多功能
-                </p>
-              </form>
-            )}
-
-            {/* Login/Register Form */}
-            {mode !== "quick" && (
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {(mode === "register") && (
-                  <div>
-                    <label className="text-[11px] font-medium text-[var(--color-text-secondary)] ml-1">昵称</label>
-                    <input
-                      type="text" placeholder="你的昵称（至少2个字符）" value={name}
-                      onChange={(e) => { setName(e.target.value); if (!touchedName) setTouchedName(true); }}
-                      onBlur={() => setTouchedName(true)}
-                      className={`w-full mt-1 px-3 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] outline-none transition-all duration-300 ${
-                        nameError ? "border-red-500/50" : "border-[var(--color-border-subtle)] focus:border-[var(--color-accent)]"
-                      }`}
-                    />
-                    {nameError && <p className="text-[10px] text-red-400 mt-1 ml-1">昵称至少需要 2 个字符</p>}
-                  </div>
-                )}
-
-                <div>
-                  <label className="text-[11px] font-medium text-[var(--color-text-secondary)] ml-1">邮箱</label>
-                  <input
-                    type="email" placeholder="your@email.com" value={email}
-                    onChange={(e) => { setEmail(e.target.value); if (!touchedEmail) setTouchedEmail(true); }}
-                    onBlur={() => setTouchedEmail(true)}
-                    className={`w-full mt-1 px-3 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] outline-none transition-all duration-300 ${
-                      emailError ? "border-red-500/50" : emailCheck.valid && email ? "border-green-500/40" : "border-[var(--color-border-subtle)] focus:border-[var(--color-accent)]"
-                    }`}
-                  />
-                  {emailError && <p className="text-[10px] text-red-400 mt-1 ml-1">{emailReason}</p>}
-                </div>
-
-                {mode === "register" && (
-                  <div>
-                    <label className="text-[11px] font-medium text-[var(--color-text-secondary)] ml-1">手机号 <span className="text-red-400">*</span></label>
-                    <input
-                      type="tel" placeholder="11位手机号（一个号一个账号）" value={phone}
-                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 11))}
-                      className={`w-full mt-1 px-3 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] outline-none transition-all duration-300 ${
-                        phoneError ? "border-red-500/50" : phoneValid ? "border-green-500/40" : "border-[var(--color-border-subtle)] focus:border-[var(--color-accent)]"
-                      }`}
-                    />
-                    {phoneError && <p className="text-[10px] text-red-400 mt-1 ml-1">请输入正确的11位手机号</p>}
-                  </div>
-                )}
-
-                <div>
-                  <label className="text-[11px] font-medium text-[var(--color-text-secondary)] ml-1">密码</label>
-                  <input
-                    type="password" placeholder="至少 6 位密码" value={password}
-                    onChange={(e) => { setPassword(e.target.value); if (!touchedPassword) setTouchedPassword(true); }}
-                    onBlur={() => setTouchedPassword(true)}
-                    className={`w-full mt-1 px-3 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] outline-none transition-all duration-300 ${
-                      passwordError ? "border-red-500/50" : "border-[var(--color-border-subtle)] focus:border-[var(--color-accent)]"
-                    }`}
-                  />
-                  {passwordError && <p className="text-[10px] text-red-400 mt-1 ml-1">密码至少需要 6 个字符</p>}
-                </div>
-
-                {error && !success && (
-                  <div className="bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 flex items-center gap-2">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-                    <p className="text-xs text-red-400">{error}</p>
-                  </div>
-                )}
-
-                <button
-                  type="submit" disabled={!canSubmit}
-                  className="btn-primary w-full py-2.5 rounded-xl text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-300"
-                >
-                  {submitting ? "处理中..." : mode === "login" ? "登录" : "注册"}
-                </button>
-              </form>
-            )}
-
-            {/* Footer links */}
-            {mode !== "quick" && (
-              <>
-                <p className="text-center text-xs text-[var(--color-text-tertiary)] mt-4">
-                  {mode === "login" ? "还没有账号？" : "已有账号？"}
-                  <button
-                    type="button"
-                    onClick={() => switchMode(mode === "login" ? "register" : "login")}
-                    className="text-[var(--color-accent)] hover:underline ml-1 font-medium transition-all duration-300"
-                  >
-                    {mode === "login" ? "去注册" : "去登录"}
+            {otpSent && (
+              <div>
+                <label className="text-[11px] font-medium text-[var(--color-text-secondary)] ml-1">验证码</label>
+                <div className="flex gap-2 mt-1">
+                  <input type="text" placeholder="6位验证码" value={otpCode} maxLength={6}
+                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
+                    className="flex-1 px-3 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] outline-none focus:border-[var(--color-accent)] transition-all tracking-widest" />
+                  <button type="button" onClick={handleSendOTP} disabled={otpCountdown > 0 || submitting}
+                    className="shrink-0 px-3 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] disabled:opacity-40 transition-all">
+                    {otpCountdown > 0 ? `${otpCountdown}s` : "重发"}
                   </button>
-                </p>
-                <p className="text-center mt-2">
-                  <button
-                    type="button"
-                    onClick={() => switchMode("quick")}
-                    className="text-[10px] text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] transition-all duration-200"
-                  >
-                    不想注册？快速开始 →
-                  </button>
-                </p>
-              </>
+                </div>
+              </div>
             )}
-
-            {mode === "quick" && (
-              <p className="text-center mt-4">
-                <button
-                  type="button"
-                  onClick={() => switchMode("login")}
-                  className="text-[10px] text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] transition-all duration-200"
-                >
-                  已有账号？邮箱登录 →
-                </button>
-              </p>
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 flex items-center gap-2">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                <p className="text-xs text-red-400">{error}</p>
+              </div>
             )}
-          </>
+            {!otpSent ? (
+              <button type="button" onClick={handleSendOTP} disabled={!phoneValid || submitting}
+                className="btn-primary w-full py-2.5 rounded-xl text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+                {submitting ? "发送中..." : "发送验证码"}
+              </button>
+            ) : (
+              <button type="submit" disabled={!otpValid || submitting}
+                className="btn-primary w-full py-2.5 rounded-xl text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+                {submitting ? "验证中..." : "验证并登录"}
+              </button>
+            )}
+          </form>
         )}
+
+        {/* Email login/register mode */}
+        {(mode === "login" || mode === "register") && (
+          <form onSubmit={handleSubmit} className="space-y-3">
+            {mode === "register" && (
+              <div>
+                <label className="text-[11px] font-medium text-[var(--color-text-secondary)] ml-1">昵称</label>
+                <input type="text" placeholder="给自己起个名字" value={name} maxLength={12}
+                  onChange={(e) => { setName(e.target.value); if (!touchedName) setTouchedName(true); }}
+                  onBlur={() => setTouchedName(true)}
+                  className="w-full mt-1 px-3 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] outline-none focus:border-[var(--color-accent)] transition-all" />
+              </div>
+            )}
+            <div>
+              <label className="text-[11px] font-medium text-[var(--color-text-secondary)] ml-1">邮箱</label>
+              <input type="email" placeholder="your@email.com" value={email}
+                onChange={(e) => { setEmail(e.target.value); if (!touchedEmail) setTouchedEmail(true); }}
+                onBlur={() => setTouchedEmail(true)}
+                className="w-full mt-1 px-3 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] outline-none focus:border-[var(--color-accent)] transition-all" />
+            </div>
+            {mode === "register" && (
+              <div>
+                <label className="text-[11px] font-medium text-[var(--color-text-secondary)] ml-1">手机号</label>
+                <input type="tel" placeholder="11位手机号" value={phone}
+                  onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 11))}
+                  className="w-full mt-1 px-3 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] outline-none focus:border-[var(--color-accent)] transition-all" />
+              </div>
+            )}
+            <div>
+              <label className="text-[11px] font-medium text-[var(--color-text-secondary)] ml-1">密码</label>
+              <input type="password" placeholder="至少 6 位密码" value={password}
+                onChange={(e) => { setPassword(e.target.value); if (!touchedPassword) setTouchedPassword(true); }}
+                onBlur={() => setTouchedPassword(true)}
+                className="w-full mt-1 px-3 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] outline-none focus:border-[var(--color-accent)] transition-all" />
+            </div>
+            {success && (
+              <div className="bg-green-500/10 border border-green-500/20 rounded-lg px-3 py-2">
+                <p className="text-xs text-green-400">{success}</p>
+              </div>
+            )}
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 flex items-center gap-2">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                <p className="text-xs text-red-400">{error}</p>
+              </div>
+            )}
+            <button type="submit" disabled={submitting}
+              className="btn-primary w-full py-2.5 rounded-xl text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+              {submitting ? "处理中..." : mode === "login" ? "登录" : "注册"}
+            </button>
+          </form>
+        )}
+
+        {/* Quick mode */}
+        {mode === "quick" && (
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <div>
+              <input type="text" placeholder="给自己起个名字（2-12字）" value={name} maxLength={12}
+                onChange={(e) => { setName(e.target.value); if (!touchedName) setTouchedName(true); }}
+                onBlur={() => setTouchedName(true)}
+                className="w-full px-3 py-3 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] outline-none focus:border-[var(--color-accent)] transition-all" />
+              {name.trim().length >= 2 && (
+                <p className={`text-[10px] mt-1 ml-1 ${checkingName ? "text-[var(--color-text-tertiary)]" : nameAvailable === true ? "text-green-400" : nameAvailable === false ? "text-red-400" : "text-[var(--color-text-tertiary)]"}`}>
+                  {checkingName ? "检查中..." : nameAvailable === true ? "✓ 名字可用" : nameAvailable === false ? "✗ 名字已被占用" : ""}
+                </p>
+              )}
+            </div>
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 flex items-center gap-2">
+                <p className="text-xs text-red-400">{error}</p>
+              </div>
+            )}
+            <button type="submit" disabled={!nameValid || nameAvailable !== true || submitting}
+              className="btn-primary w-full py-2.5 rounded-xl text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+              {submitting ? "处理中..." : "开始玩"}
+            </button>
+          </form>
+        )}
+
+        {/* Footer links */}
+        <div className="mt-4 space-y-2 text-center">
+          {mode !== "phone" && (
+            <p>
+              <button type="button" onClick={() => switchMode("phone")}
+                className="text-[11px] text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] transition-all">
+                📱 手机验证码登录 →
+              </button>
+            </p>
+          )}
+          {mode === "phone" && (
+            <p>
+              <button type="button" onClick={() => switchMode("login")}
+                className="text-[11px] text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] transition-all">
+                📧 邮箱密码登录 →
+              </button>
+            </p>
+          )}
+          {mode === "login" && (
+            <p>
+              <button type="button" onClick={() => switchMode("register")}
+                className="text-[11px] text-[var(--color-accent)] hover:underline font-medium transition-all">
+                还没有账号？去注册
+              </button>
+            </p>
+          )}
+          {mode === "register" && (
+            <p>
+              <button type="button" onClick={() => switchMode("login")}
+                className="text-[11px] text-[var(--color-accent)] hover:underline font-medium transition-all">
+                已有账号？去登录
+              </button>
+            </p>
+          )}
+          {mode !== "quick" && (
+            <p>
+              <button type="button" onClick={() => switchMode("quick")}
+                className="text-[10px] text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] transition-all">
+                不想注册？快速开始 →
+              </button>
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

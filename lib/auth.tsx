@@ -41,6 +41,8 @@ interface AuthState {
   showProfileSetup: boolean;
   setShowProfileSetup: (show: boolean) => void;
   registrationCount: number | null;
+  sendPhoneOTP: (phone: string) => Promise<{ success: boolean; error?: string }>;
+  verifyPhoneOTP: (phone: string, token: string, name?: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -462,6 +464,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { success: true };
   }, []);
 
+
+  // ===== Phone OTP Auth =====
+  const sendPhoneOTP = useCallback(async (phone: string): Promise<{ success: boolean; error?: string }> => {
+    if (!hasSupabase) return { success: false, error: "未配置 Supabase" };
+    const formatted = phone.startsWith("+") ? phone : "+86" + phone;
+    try {
+      const { error } = await supabase!.auth.signInWithOtp({ phone: formatted });
+      if (error) {
+        if (error.message.includes("rate limit")) return { success: false, error: "发送太频繁，请稍后再试" };
+        return { success: false, error: error.message };
+      }
+      return { success: true };
+    } catch (e: any) {
+      return { success: false, error: e.message || "发送失败" };
+    }
+  }, []);
+
+  const verifyPhoneOTP = useCallback(async (phone: string, token: string, name?: string): Promise<{ success: boolean; error?: string }> => {
+    if (!hasSupabase) return { success: false, error: "未配置 Supabase" };
+    const formatted = phone.startsWith("+") ? phone : "+86" + phone;
+    try {
+      const { data, error } = await supabase!.auth.verifyOtp({ phone: formatted, token, type: "sms" });
+      if (error) {
+        if (error.message.includes("invalid")) return { success: false, error: "验证码错误或已过期" };
+        return { success: false, error: error.message };
+      }
+      if (data.user) {
+        const profile = await fetchProfile(data.user.id);
+        if (!profile || !profile.nickname) {
+          const nick = name || "用户" + Date.now().toString(36).slice(-4);
+          await supabase!.from("profiles").upsert({
+            id: data.user.id, nickname: nick, avatar_url: "", phone: formatted,
+          }, { onConflict: "id" });
+          try {
+            const { count } = await supabase!.from("profiles").select("*", { count: "exact", head: true });
+            setRegistrationCount(count || null);
+          } catch {}
+          setShowProfileSetup(true);
+        }
+        await refreshUser();
+      }
+      return { success: true };
+    } catch (e: any) {
+      return { success: false, error: e.message || "验证失败" };
+    }
+  }, [refreshUser]);
+
   const logout = useCallback(async () => {
     if (hasSupabase) {
       const { data: session } = await supabase!.auth.getSession();
@@ -483,6 +532,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       claimOwner, abdicateOwner,
       registrationCount,
       guestLikes, toggleGuestLike,
+      sendPhoneOTP, verifyPhoneOTP,
     }}>
       {children}
     </AuthContext.Provider>
