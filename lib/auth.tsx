@@ -14,6 +14,7 @@ export interface AppUser {
   id: string;
   name: string;
   email: string;
+  phone: string;
   avatar: string;
   isAdmin: boolean;
   role: "owner" | "admin" | null;
@@ -25,8 +26,10 @@ interface AuthState {
   loading: boolean;
   requireLogin: () => void;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string; code?: string }>;
-  register: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string; code?: string }>;
+  register: (name: string, email: string, password: string, phone?: string) => Promise<{ success: boolean; error?: string; code?: string }>;
   quickLogin: (name: string) => Promise<{ success: boolean; error?: string }>;
+  guestLikes: Set<string>;
+  toggleGuestLike: (postId: string) => void;
   checkNameAvailable: (name: string) => Promise<boolean>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -73,7 +76,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
   const [registrationCount, setRegistrationCount] = useState<number | null>(null);
+  const [guestLikes, setGuestLikes] = useState<Set<string>>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("dalanying_guest_likes");
+        if (stored) return new Set(JSON.parse(stored));
+      } catch {}
+    }
+    return new Set();
+  });
   const [hydrated, setHydrated] = useState(false);
+
+  const toggleGuestLike = useCallback((postId: string) => {
+    setGuestLikes(prev => {
+      const next = new Set(prev);
+      if (next.has(postId)) next.delete(postId); else next.add(postId);
+      try { localStorage.setItem("dalanying_guest_likes", JSON.stringify([...next])); } catch {}
+      return next;
+    });
+  }, []);
 
   const refreshUser = useCallback(async () => {
     if (!hasSupabase) return;
@@ -84,6 +105,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         id: session.session.user.id,
         name: profile?.nickname || session.session.user.user_metadata?.full_name || session.session.user.email!.split("@")[0],
         email: session.session.user.email!,
+        phone: (profile as any)?.phone || "",
         avatar: profile?.avatar_url || "",
         isAdmin: profile?.is_admin || false,
         role: profile?.role || null,
@@ -114,6 +136,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const u: AppUser = {
             id: session.user.id,
             name: profile?.nickname || session.user.user_metadata?.full_name || session.user.email!.split("@")[0],
+            phone: profile?.phone || "",
             email: session.user.email!,
             avatar: profile?.avatar_url || "",
             isAdmin: profile?.is_admin || false,
@@ -295,9 +318,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           id: existingId,
           name: trimmed,
           email: "",
+          phone: "",
           avatar: storedUser.avatar || generateAvatar(trimmed),
           isAdmin: storedUser.isAdmin || false,
-        role: storedUser.role || null,
+          role: storedUser.role || null,
           bannedUntil: null,
         };
         setUser(restored);
@@ -322,6 +346,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       id: anonId,
       name: trimmed,
       email: "",
+      phone: "",
       avatar: autoAvatar,
       isAdmin: false,
       role: null,
@@ -371,6 +396,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         id: data.user.id,
         name: profile?.nickname || data.user.user_metadata?.full_name || email.split("@")[0],
         email,
+        phone: profile?.phone || "",
         avatar: profile?.avatar_url || "",
         isAdmin: profile?.is_admin || false,
         role: profile?.role || null,
@@ -394,8 +420,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { success: true };
   }, []);
 
-  const register = useCallback(async (name: string, email: string, password: string) => {
+  const register = useCallback(async (name: string, email: string, password: string, phone?: string) => {
     if (!name.trim() || !email.trim() || !password.trim()) return { success: false, error: "请填写所有字段", code: "empty" };
+    // Validate phone if provided
+    if (phone && !/^1[3-9]\d{9}$/.test(phone.trim())) {
+      return { success: false, error: "请输入正确的手机号", code: "invalid_phone" };
+    }
     if (name.trim().length < 2) return { success: false, error: "昵称至少2个字符", code: "short_name" };
     const check = isValidEmail(email);
     if (!check.valid) return { success: false, error: check.reason || "邮箱格式不正确", code: "invalid_email" };
@@ -424,7 +454,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (users.some((u: AppUser) => u.email === email)) return { success: false, error: "该邮箱已注册", code: "exists" };
     const anonUsers = JSON.parse(localStorage.getItem("dalanying_anon_users") || "[]") as string[];
     const isFirst = users.length === 0 && anonUsers.length === 0;
-    const newUser: AppUser = { id: "email_" + password.split("").reduce((a, c) => a + c.charCodeAt(0), 0), name, email, avatar: "", isAdmin: false, role: null, bannedUntil: null };
+    const newUser: AppUser = { id: "email_" + password.split("").reduce((a, c) => a + c.charCodeAt(0), 0), name, email, phone: phone || "", avatar: "", isAdmin: false, role: null, bannedUntil: null };
     users.push(newUser);
     localStorage.setItem("dalanying_users", JSON.stringify(users));
     setUser(newUser);
@@ -452,6 +482,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       showProfileSetup, setShowProfileSetup,
       claimOwner, abdicateOwner,
       registrationCount,
+      guestLikes, toggleGuestLike,
     }}>
       {children}
     </AuthContext.Provider>

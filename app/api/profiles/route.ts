@@ -46,6 +46,7 @@ export async function GET(req: NextRequest) {
         nickname: String(d.nickname || ""),
         avatar_url: String(d.avatar_url || ""),
         bio: String(d.bio || ""),
+        phone: String(d.phone || ""),
         is_admin: Boolean(d.is_admin),
         banned_until: d.banned_until ? String(d.banned_until) : null,
       }
@@ -60,7 +61,7 @@ export async function PUT(req: NextRequest) {
   try {
     const supabase = getServiceSupabase();
     const body = await req.json();
-    const { userId, nickname, avatar_url, bio, is_admin, banned_until } = body;
+    const { userId, nickname, avatar_url, bio, phone, is_admin, banned_until } = body;
 
     if (!userId) {
       return NextResponse.json({ error: "userId required" }, { status: 400 });
@@ -70,6 +71,7 @@ export async function PUT(req: NextRequest) {
     if (nickname !== undefined) patch.nickname = nickname;
     if (avatar_url !== undefined) patch.avatar_url = avatar_url;
     if (bio !== undefined) patch.bio = bio;
+    if (phone !== undefined) patch.phone = phone;
     if (is_admin !== undefined) patch.is_admin = is_admin;
     if (banned_until !== undefined) patch.banned_until = banned_until;
 

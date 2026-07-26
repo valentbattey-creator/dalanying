@@ -10,6 +10,7 @@ export default function LoginModal() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [phone, setPhone] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -43,6 +44,8 @@ export default function LoginModal() {
   const emailError = touchedEmail && email.trim() && !emailCheck.valid;
   const emailReason = emailError ? emailCheck.reason : "";
   const passwordError = touchedPassword && password.trim() && password.length < 6;
+  const phoneValid = /^1[3-9]\d{9}$/.test(phone.trim());
+  const phoneError = phone.trim() && !phoneValid;
   const nameError = touchedName && (mode === "register" || mode === "quick") && name.trim() && name.trim().length < 2;
 
   const canSubmit = useMemo(() => {
@@ -50,7 +53,7 @@ export default function LoginModal() {
       return name.trim().length >= 2 && name.trim().length <= 12 && nameAvailable === true && !submitting;
     }
     if (mode === "register") {
-      return emailCheck.valid && password.length >= 6 && name.trim().length >= 2 && !submitting;
+      return emailCheck.valid && password.length >= 6 && name.trim().length >= 2 && phoneValid && !submitting;
     }
     return emailCheck.valid && password.length >= 6 && !submitting;
   }, [emailCheck.valid, password.length, name, mode, submitting, nameAvailable]);
@@ -80,7 +83,7 @@ export default function LoginModal() {
   }
 
   function resetForm() {
-    setName(""); setEmail(""); setPassword("");
+    setName(""); setEmail(""); setPassword(""); setPhone("");
     setError(""); setSuccess("");
     setTouchedEmail(false); setTouchedPassword(false); setTouchedName(false);
     setNameAvailable(null);
@@ -127,7 +130,7 @@ export default function LoginModal() {
     setSubmitting(true);
     const result = mode === "login"
       ? await login(email, password)
-      : await register(name, email, password);
+      : await register(name, email, password, phone);
 
     if (result.success) {
       if (result.code === "check_email") {
@@ -282,6 +285,20 @@ export default function LoginModal() {
                   />
                   {emailError && <p className="text-[10px] text-red-400 mt-1 ml-1">{emailReason}</p>}
                 </div>
+
+                {mode === "register" && (
+                  <div>
+                    <label className="text-[11px] font-medium text-[var(--color-text-secondary)] ml-1">手机号 <span className="text-red-400">*</span></label>
+                    <input
+                      type="tel" placeholder="11位手机号（一个号一个账号）" value={phone}
+                      onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 11))}
+                      className={`w-full mt-1 px-3 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] outline-none transition-all duration-300 ${
+                        phoneError ? "border-red-500/50" : phoneValid ? "border-green-500/40" : "border-[var(--color-border-subtle)] focus:border-[var(--color-accent)]"
+                      }`}
+                    />
+                    {phoneError && <p className="text-[10px] text-red-400 mt-1 ml-1">请输入正确的11位手机号</p>}
+                  </div>
+                )}
 
                 <div>
                   <label className="text-[11px] font-medium text-[var(--color-text-secondary)] ml-1">密码</label>

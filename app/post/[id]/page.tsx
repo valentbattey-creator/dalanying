@@ -122,13 +122,12 @@ function ImageGallery({ images }: { images: string[] }) {
 }
 
 function InteractionBar({ post }: { post: Post }) {
-  const { user, requireLogin } = useAuth();
+  const { user, requireLogin, guestLikes } = useAuth();
   const { likedPosts, savedPosts, toggleLike, toggleSave } = useData();
-  const liked = likedPosts.has(post.id);
+  const liked = likedPosts.has(post.id) || guestLikes.has(post.id);
   const saved = savedPosts.has(post.id);
 
   function handleLike() {
-    if (!user) { requireLogin(); toast("请先登录", { style: { background: "rgba(28,28,31,0.9)", border: "1px solid #333336", color: "#e8e8ea" } }); return; }
     toggleLike(post.id);
   }
 

@@ -39,7 +39,7 @@ function trafficScore(p: { views?: number; likes?: number; comments?: number; cr
 export default function HomePage() {
   const router = useRouter();
   const { posts, loading, hasMore, loadMore, resetAndReload, searchQuery, setSearchQuery, likedPosts, toggleLike, savedPosts, toggleSave } = useData();
-  const { user, requireLogin } = useAuth();
+  const { user, requireLogin, guestLikes } = useAuth();
   const FIXED_CATS = ["推荐", "思维探讨", "数码"];
   const [customCats, setCustomCats] = useState<string[]>([...FIXED_CATS]);
   const [activeCat, setActiveCat] = useState("推荐");
@@ -259,7 +259,7 @@ export default function HomePage() {
                 <motion.div key={activeCat + searchQuery} variants={container} initial="hidden" animate="show" className="columns-2 gap-2.5 pt-3 px-2 [column-fill:balance]" style={{ columnFill: "balance" } as React.CSSProperties}>
                   {sorted.map((p, i) => (
                     <React.Fragment key={p.id}>
-                      <motion.div variants={item} className="break-inside-avoid mb-2.5"><PostCard post={p} isLiked={likedPosts.has(p.id)} onLike={(id) => { if (!user) { requireLogin(); return; } toggleLike(id); }} onCardClick={(id) => router.push(`/post/${id}`)} isSaved={savedPosts.has(p.id)} onSave={(id) => { if (!user) { requireLogin(); return; } toggleSave(id); }} /></motion.div>
+                      <motion.div variants={item} className="break-inside-avoid mb-2.5"><PostCard post={p} isLiked={likedPosts.has(p.id) || guestLikes.has(p.id)} onLike={(id) => { toggleLike(id); }} onCardClick={(id) => router.push(`/post/${id}`)} isSaved={savedPosts.has(p.id)} onSave={(id) => { if (!user) { requireLogin(); return; } toggleSave(id); }} /></motion.div>
                       {(i + 1) % 6 === 0 && i < sorted.length - 1 && (
                         <motion.div variants={item}><AdCard index={Math.floor(i / 6)} /></motion.div>
                       )}

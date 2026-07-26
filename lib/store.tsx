@@ -50,7 +50,7 @@ function isBanned(u: import("./auth").AppUser | null): boolean {
 }
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
+  const { user, guestLikes, toggleGuestLike } = useAuth();
   const [posts, setPosts] = useState<Post[]>([]);
   const [comments, setComments] = useState<Comment[]>([]);
   const [likedPosts, setLikedPosts] = useState<Set<string>>(() => {
@@ -209,7 +209,18 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   }, [user]);
 
   const toggleLike = useCallback(async (postId: string) => {
-    if (!user || isBanned(user)) return;
+    // Guest like - no login required
+    if (!user) {
+      toggleGuestLike(postId);
+      // Update local post likes count
+      setPosts(prev => prev.map(p => {
+        if (p.id !== postId) return p;
+        const isGuestLiked = guestLikes.has(postId);
+        return { ...p, likes: p.likes + (isGuestLiked ? -1 : 1) };
+      }));
+      return;
+    }
+    if (isBanned(user)) return;
     const currentlyLiked = likedPosts.has(postId);
     const newLikes = await dataService.toggleLike(postId, user.id, currentlyLiked);
     const key = postId + "_" + user.id;

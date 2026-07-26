@@ -18,6 +18,7 @@ export interface Profile {
   nickname: string;
   avatar_url: string;
   bio: string;
+  phone: string;
   is_admin: boolean;
   role: "owner" | "admin" | null;
   banned_until: string | null;
@@ -344,6 +345,7 @@ export const dataService = {
           const d = data as Record<string, unknown>;
           return { id: String(d.id), nickname: String(d.nickname || ""),
             avatar_url: String(d.avatar_url || ""), bio: String(d.bio || ""),
+            phone: String((d as any).phone || ""),
             is_admin: Boolean(d.is_admin), role: (d.role as "owner" | "admin" | null) ?? null,
             banned_until: d.banned_until ? String(d.banned_until) : null };
         }
@@ -362,6 +364,7 @@ export const dataService = {
         if (data) return (data as Record<string, unknown>[]).map(d => ({
           id: String(d.id), nickname: String(d.nickname || ""),
           avatar_url: String(d.avatar_url || ""), bio: String(d.bio || ""),
+          phone: String((d as any).phone || ""),
           is_admin: Boolean(d.is_admin), role: (d.role as "owner" | "admin" | null) ?? null,
           banned_until: d.banned_until ? String(d.banned_until) : null,
         }));
