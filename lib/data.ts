@@ -56,6 +56,8 @@ export interface Comment {
 
 // ===== Helpers =====
 function gid() { return Date.now().toString(36) + Math.random().toString(36).substring(2, 10); }
+function isValidUUID(id: string): boolean { return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id); }
+function safeUUID(id: string | undefined | null): string | null { return id && isValidUUID(id) ? id : null; }
 
 function lsGet<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
@@ -389,7 +391,7 @@ export const dataService = {
           image_urls: post.images || [],
           category: post.category || "推荐",
           tags: post.tags || [],
-          user_id: post.authorId || null,
+          user_id: safeUUID(post.authorId),
           is_pinned: post.isPinned || false,
           is_announcement: post.isAnnouncement || false,
         }),
