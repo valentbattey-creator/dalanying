@@ -208,7 +208,7 @@ export default function HomePage() {
                       <span>📌</span> 置顶
                     </div>
                     {sortedPinned.map((p, i) => (
-                      <div key={p.id} className={`transition-all duration-500 ${i === pinnedIndex ? "opacity-100" : "opacity-0 absolute inset-0 pointer-events-none"}`}>
+                      <div key={p.id} className={`transition-all duration-500 ${i === pinnedIndex ? "opacity-100 relative" : "opacity-0 h-0 overflow-hidden pointer-events-none"}`}>
                         <div onClick={() => router.push(`/post/${p.id}`)} className="flex cursor-pointer">
                           {p.images?.[0] && <div className="w-[100px] h-[100px] shrink-0"><img src={p.images[0]} alt="" className="w-full h-full object-cover" loading="lazy" /></div>}
                           <div className="flex-1 p-3 flex flex-col justify-center min-w-0">

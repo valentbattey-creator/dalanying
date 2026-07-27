@@ -13,6 +13,7 @@ import {
   type PaymentConfig,
   type PaymentOrder,
 } from "@/lib/payment";
+import { useData, type Post } from "@/lib/store";
 
 export default function DonatePage() {
   const router = useRouter();
@@ -29,6 +30,8 @@ export default function DonatePage() {
 
   // Boost form
   const [boostPostId, setBoostPostId] = useState("");
+  const [userPosts, setUserPosts] = useState<Post[]>([]);
+  const { posts: allPosts } = useData();
   const [boostDays, setBoostDays] = useState(7);
   const [boostAmount, setBoostAmount] = useState(0);
 
@@ -48,6 +51,12 @@ export default function DonatePage() {
   useEffect(() => {
     getPaymentConfig().then(setConfig);
   }, []);
+
+  useEffect(() => {
+    if (user && tab === "boost") {
+      setUserPosts(allPosts.filter(p => p.authorId === user.id));
+    }
+  }, [user, tab, allPosts]);
 
   useEffect(() => {
     if (user && tab === "orders") {
@@ -116,7 +125,7 @@ export default function DonatePage() {
   // ===== Boost flow =====
   async function startBoost(pkg: { days: number; amount: number }) {
     if (!user) { requireLogin(); return; }
-    if (!boostPostId.trim()) { toast.error("请先输入要推流的帖子ID"); return; }
+    if (!boostPostId.trim()) { toast.error("请先选择要推流的帖子"); return; }
     setBoostDays(pkg.days);
     setBoostAmount(pkg.amount);
     setAmount(pkg.amount);
@@ -125,7 +134,7 @@ export default function DonatePage() {
 
   async function submitBoostProof() {
     if (!user || !proofFile) { toast.error("请上传付款截图"); return; }
-    if (!boostPostId.trim()) { toast.error("请输入帖子ID"); return; }
+    if (!boostPostId.trim()) { toast.error("请先选择要推流的帖子"); return; }
     setUploading(true);
     try {
       const proofUrl = await uploadPaymentQR(proofFile, method);
@@ -230,13 +239,24 @@ export default function DonatePage() {
               </div>
               <div className="p-5 space-y-4">
                 <div>
-                  <label className="text-xs text-[var(--color-text-tertiary)] mb-1.5 block">帖子ID</label>
-                  <input
-                    value={boostPostId}
-                    onChange={e => setBoostPostId(e.target.value)}
-                    placeholder="在帖子详情页URL中可找到，如 /post/abc123"
-                    className="w-full px-4 py-3 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] outline-none focus:border-blue-400 transition-all"
-                  />
+                  <label className="text-xs text-[var(--color-text-tertiary)] mb-1.5 block">选择要推流的帖子</label>
+                  {userPosts.length > 0 ? (
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {userPosts.map(p => (
+                        <button key={p.id} onClick={() => setBoostPostId(p.id)}
+                          className={`w-full text-left px-4 py-3 rounded-xl border text-sm transition-all ${
+                            boostPostId === p.id
+                              ? "bg-blue-500/10 border-blue-500/50 text-blue-400"
+                              : "bg-[var(--color-bg-secondary)] border-[var(--color-border-subtle)] text-[var(--color-text-secondary)] hover:border-blue-400"
+                          }`}>
+                          <p className="font-medium line-clamp-1">{p.title}</p>
+                          <p className="text-[10px] text-[var(--color-text-tertiary)] mt-0.5">{p.content.slice(0, 50)}...</p>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-[var(--color-text-tertiary)] py-4 text-center">你还没有发过帖子，先去发一条吧</p>
+                  )}
                 </div>
                 <p className="text-xs text-[var(--color-text-tertiary)]">选择推流套餐</p>
                 <div className="grid grid-cols-2 gap-2">
