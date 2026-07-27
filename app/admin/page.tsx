@@ -118,6 +118,10 @@ export default function AdminPage() {
             {payOrders.filter(o => o.status === "pending").length}
           </span>
         )}</button>
+        <button
+          onClick={() => router.push("/admin/feedback")}
+          className="flex-1 py-2.5 text-xs font-medium transition-all border-b-2 border-transparent text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)]"
+        >📝 用户反馈</button>
       </div>
 
       <div className="max-w-lg mx-auto px-4 py-4 space-y-5">

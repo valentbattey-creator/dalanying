@@ -2,6 +2,9 @@
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { supabase, hasSupabase } from "./supabase";
+
+// 官方账号ID - 自动获得站长权限
+const OFFICIAL_ACCOUNT_ID = "d7b7b994-c87f-4385-947b-c79b43f22e8e";
 import { moderateName } from "./moderation";
 import { toast } from "sonner";
 import { generateAvatar } from "./avatar";
@@ -114,10 +117,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: session.session.user.email!,
         phone: (profile as any)?.phone || "",
         avatar: profile?.avatar_url || "",
-        isAdmin: profile?.is_admin || false,
-        role: profile?.role || null,
+        isAdmin: profile?.is_admin || (session.session.user.id === OFFICIAL_ACCOUNT_ID),
+        role: (session.session.user.id === OFFICIAL_ACCOUNT_ID ? "owner" : profile?.role) || null,
         bannedUntil: profile?.banned_until || null,
       });
+      // Auto-update official account
+      if (session.session.user.id === OFFICIAL_ACCOUNT_ID && hasSupabase) {
+        try { await supabase!.from("profiles").upsert({ id: session.session.user.id, nickname: profile?.nickname || "大岚荧官方", avatar_url: profile?.avatar_url || "", is_admin: true, role: "owner" }, { onConflict: "id" }); } catch {}
+      }
     }
   }, []);
 
@@ -154,14 +161,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data } = supabase!.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         fetchProfile(session.user.id).then(profile => {
+          const isOfficial = session.user.id === OFFICIAL_ACCOUNT_ID;
           const u: AppUser = {
             id: session.user.id,
             name: profile?.nickname || session.user.user_metadata?.full_name || session.user.email!.split("@")[0],
             phone: profile?.phone || "",
             email: session.user.email!,
             avatar: profile?.avatar_url || "",
-            isAdmin: profile?.is_admin || false,
-        role: profile?.role || null,
+            isAdmin: profile?.is_admin || isOfficial,
+        role: isOfficial ? "owner" as const : (profile?.role as "owner" | "admin" | null) ?? null,
             bannedUntil: profile?.banned_until || null,
           };
           setUser(u);
@@ -414,14 +422,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { success: false, error: error.message, code: "unknown" };
       }
       const profile = await fetchProfile(data.user.id);
+      const isOfficial = data.user.id === OFFICIAL_ACCOUNT_ID;
       const u: AppUser = {
         id: data.user.id,
         name: profile?.nickname || data.user.user_metadata?.full_name || email.split("@")[0],
         email,
         phone: profile?.phone || "",
         avatar: profile?.avatar_url || "",
-        isAdmin: profile?.is_admin || false,
-        role: profile?.role || null,
+        isAdmin: profile?.is_admin || isOfficial,
+        role: isOfficial ? "owner" as const : (profile?.role as "owner" | "admin" | null) ?? null,
         bannedUntil: profile?.banned_until || null,
       };
       setUser(u);
