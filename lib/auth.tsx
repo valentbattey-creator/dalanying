@@ -21,6 +21,7 @@ export interface AppUser {
   isAdmin: boolean;
   role: "owner" | "admin" | null;
   bannedUntil: string | null;
+  isGuest?: boolean;
 }
 
 interface AuthState {
@@ -380,6 +381,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       isAdmin: false,
       role: null,
       bannedUntil: null,
+      isGuest: true,
     };
 
     // Store in profiles (Supabase)

@@ -170,6 +170,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const addPost = useCallback(async (p: Omit<Post, "id" | "likes" | "comments" | "createdAt" | "authorId" | "authorAvatar">) => {
     if (!user) return;
+    if (user.isGuest) { toast?.error?.("请先注册邮箱账号再发帖"); return; }
     if (isBanned(user)) return;
     // Content moderation
     const modResult = moderateContent((p.title || "") + " " + (p.content || ""));

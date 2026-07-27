@@ -69,6 +69,20 @@ export default function CreatePage() {
     if (!user && !authLoading) router.replace("/");
   }, [user, authLoading, router]);
 
+  // 游客不能发帖
+  if (!authLoading && user?.isGuest) {
+    return (
+      <main className="min-h-screen bg-[var(--color-bg-primary)] flex items-center justify-center">
+        <div className="text-center px-6">
+          <div className="text-5xl mb-4">🔒</div>
+          <h2 className="text-lg font-bold text-[var(--color-text-primary)] mb-2">需要注册才能发帖</h2>
+          <p className="text-sm text-[var(--color-text-tertiary)] mb-4">用邮箱注册一个账号就可以发布内容了</p>
+          <button onClick={() => router.push("/")} className="btn-primary px-6 py-2.5 rounded-xl text-sm">去登录</button>
+        </div>
+      </main>
+    );
+  }
+
   if (authLoading || !user) {
     return <div className="min-h-screen bg-[var(--color-bg-primary)]" />;
   }

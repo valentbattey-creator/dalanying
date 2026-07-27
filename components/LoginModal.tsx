@@ -6,7 +6,7 @@ import { toast } from "sonner";
 
 export default function LoginModal() {
   const { showLoginModal, setShowLoginModal, login, register, quickLogin, checkNameAvailable, registrationCount, sendPhoneOTP, verifyPhoneOTP, sendEmailOTP, verifyEmailOTP } = useAuth();
-  const [mode, setMode] = useState<"phone" | "email" | "login" | "register" | "quick">("phone");
+  const [mode, setMode] = useState<"phone" | "email" | "login" | "register" | "quick">("email");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -190,7 +190,7 @@ export default function LoginModal() {
         {/* Title */}
         <div className="text-center mb-6">
           <h2 className="text-lg font-bold text-[var(--color-text-primary)]">
-            {mode === "phone" ? "手机登录/注册" : mode === "email" ? "邮箱验证码登录" : mode === "login" ? "邮箱密码登录" : mode === "register" ? "注册账号" : "快速开始"}
+            {mode === "phone" ? "手机登录" : mode === "email" ? "邮箱验证码登录" : mode === "login" ? "邮箱密码登录" : mode === "register" ? "注册账号" : "快速开始"}
           </h2>
           <p className="text-xs text-[var(--color-text-tertiary)] mt-1">
             {mode === "phone" ? "手机号 + 验证码，一步到位" : mode === "email" ? "邮箱 + 验证码，安全便捷" : mode === "quick" ? "起个名字就能玩" : ""}
@@ -377,63 +377,25 @@ export default function LoginModal() {
           </form>
         )}
 
-        {/* Footer links - 固定顺序：手机 → 邮箱 → 游客 */}
+        {/* Footer links */}
         <div className="mt-5 pt-4 border-t border-[var(--color-border-subtle)] space-y-2.5 text-center">
-          {mode === "phone" ? (
-            <>
-              <button type="button" onClick={() => switchMode("email")}
-                className="block w-full text-[12px] text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] transition-all py-1.5">
-                📧 邮箱验证码登录
-              </button>
-              <button type="button" onClick={() => switchMode("quick")}
-                className="block w-full text-[11px] text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] transition-all py-1">
-                🚶 游客模式，先看看
-              </button>
-            </>
-          ) : mode === "email" ? (
-            <>
-              <button type="button" onClick={() => switchMode("phone")}
-                className="block w-full text-[12px] text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] transition-all py-1.5">
-                📱 手机验证码登录
-              </button>
-              <button type="button" onClick={() => switchMode("quick")}
-                className="block w-full text-[11px] text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] transition-all py-1">
-                🚶 游客模式，先看看
-              </button>
-            </>
-          ) : mode === "quick" ? (
-            <>
-              <button type="button" onClick={() => switchMode("phone")}
-                className="block w-full text-[12px] text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] transition-all py-1.5">
-                📱 手机验证码登录
-              </button>
-              <button type="button" onClick={() => switchMode("email")}
-                className="block w-full text-[12px] text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] transition-all py-1.5">
-                📧 邮箱验证码登录
-              </button>
-            </>
-          ) : mode === "login" ? (
-            <>
-              <button type="button" onClick={() => switchMode("register")}
-                className="block w-full text-[12px] text-[var(--color-accent)] font-medium hover:underline transition-all py-1.5">
-                还没有账号？去注册
-              </button>
-              <button type="button" onClick={() => switchMode("phone")}
-                className="block w-full text-[11px] text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] transition-all py-1">
-                ← 返回其他登录方式
-              </button>
-            </>
-          ) : (
-            <>
-              <button type="button" onClick={() => switchMode("login")}
-                className="block w-full text-[12px] text-[var(--color-accent)] font-medium hover:underline transition-all py-1.5">
-                已有账号？去登录
-              </button>
-              <button type="button" onClick={() => switchMode("phone")}
-                className="block w-full text-[11px] text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] transition-all py-1">
-                ← 返回其他登录方式
-              </button>
-            </>
+          {mode === "email" && (
+            <button type="button" onClick={() => switchMode("quick")}
+              className="block w-full text-[11px] text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] transition-all py-1">
+              🚶 先看看再说
+            </button>
+          )}
+          {mode === "quick" && (
+            <button type="button" onClick={() => switchMode("email")}
+              className="block w-full text-[12px] text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] transition-all py-1.5">
+              📧 邮箱验证码登录/注册
+            </button>
+          )}
+          {(mode === "login" || mode === "register") && (
+            <button type="button" onClick={() => switchMode("email")}
+              className="block w-full text-[11px] text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] transition-all py-1">
+              ← 返回邮箱验证码登录
+            </button>
           )}
         </div>
       </div>
