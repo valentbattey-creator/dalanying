@@ -166,6 +166,31 @@ export default function AdminPage() {
               </div>
             </div>
 
+            {/* 同步数据 */}
+            <button
+              onClick={async () => {
+                setSyncing(true);
+                try {
+                  const localPosts = JSON.parse(localStorage.getItem("dalanying_posts") || "[]");
+                  if (localPosts.length === 0) { toast.info("本地没有待同步的帖子"); setSyncing(false); return; }
+                  const res = await fetch("/api/sync", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ posts: localPosts }),
+                  });
+                  const data = await res.json();
+                  toast.success(`同步完成！上传了 ${data.synced} 条帖子`);
+                  // Refresh stats
+                  window.location.reload();
+                } catch (e: any) { toast.error("同步失败: " + e.message); }
+                setSyncing(false);
+              }}
+              disabled={syncing}
+              className="w-full p-3 rounded-xl bg-[var(--color-accent)]/10 border-[0.5px] border-[var(--color-accent)]/30 text-sm font-medium text-[var(--color-accent)] hover:bg-[var(--color-accent)]/20 transition-all disabled:opacity-40"
+            >
+              {syncing ? "同步中..." : "🔄 同步本地数据到云端"}
+            </button>
+
             {/* Announcement - owner only */}
             <div className="bg-[var(--color-bg-card)] border-[0.5px] border-[var(--color-border-subtle)] rounded-xl overflow-hidden">
               {showAnnounce ? (

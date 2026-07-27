@@ -6,56 +6,62 @@ const supabaseAdmin = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || ""
 );
 
-// Sync a batch of posts from localStorage to Supabase
+function isValidUUID(id: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { posts } = await req.json();
     if (!Array.isArray(posts) || posts.length === 0) {
-      return NextResponse.json({ synced: 0 });
+      return NextResponse.json({ synced: 0, message: "没有帖子需要同步" });
     }
 
-    const results = [];
-    for (const post of posts.slice(0, 20)) { // Max 20 at a time
-      // Check if post already exists
-      const { data: existing } = await supabaseAdmin
-        .from("posts")
-        .select("id")
-        .eq("id", post.id)
-        .single();
-      
-      if (existing) {
-        results.push({ id: post.id, status: "exists" });
-        continue;
-      }
+    let synced = 0;
+    let errors: string[] = [];
 
-      // Ensure profile exists
-      if (post.authorId) {
-        await supabaseAdmin.from("profiles").upsert(
-          { id: post.authorId, nickname: post.author || "", avatar_url: post.authorAvatar || "" },
-          { onConflict: "id" }
-        );
-      }
+    for (const post of posts.slice(0, 50)) {
+      try {
+        // Check if already exists
+        const { data: existing } = await supabaseAdmin
+          .from("posts").select("id").eq("title", post.title).limit(1);
+        
+        if (existing && existing.length > 0) {
+          continue; // Skip duplicates
+        }
 
-      // Insert post
-      const { data, error } = await supabaseAdmin.from("posts").insert({
-        title: post.title,
-        content: post.content || "",
-        image_urls: post.images || [],
-        category: post.category || "推荐",
-        tags: post.tags || [],
-        user_id: post.authorId || null,
-        is_pinned: post.isPinned || false,
-        is_announcement: post.isAnnouncement || false,
-      }).select("id").single();
+        // Ensure profile exists if user_id is valid UUID
+        const userId = isValidUUID(post.authorId) ? post.authorId : null;
+        if (userId) {
+          await supabaseAdmin.from("profiles").upsert(
+            { id: userId, nickname: post.author || "", avatar_url: post.authorAvatar || "" },
+            { onConflict: "id" }
+          );
+        }
 
-      if (error) {
-        results.push({ id: post.id, status: "error", error: error.message });
-      } else {
-        results.push({ id: post.id, status: "synced", newId: data?.id });
+        // Insert post
+        const { error } = await supabaseAdmin.from("posts").insert({
+          title: post.title,
+          content: post.content || "",
+          image_urls: post.images || [],
+          category: post.category || "推荐",
+          tags: post.tags || [],
+          user_id: userId,
+          is_pinned: post.isPinned || false,
+          is_announcement: post.isAnnouncement || false,
+        });
+
+        if (error) {
+          errors.push(`${post.title}: ${error.message}`);
+        } else {
+          synced++;
+        }
+      } catch (e: any) {
+        errors.push(`${post.title}: ${e.message}`);
       }
     }
 
-    return NextResponse.json({ synced: results.filter(r => r.status === "synced").length, results });
+    return NextResponse.json({ synced, errors: errors.length > 0 ? errors : undefined });
   } catch (e: any) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }

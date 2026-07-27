@@ -581,7 +581,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Try Supabase email OTP first
     if (hasSupabase) {
       try {
-        const { error } = await supabase!.auth.signInWithOtp({ email });
+        const { error } = await supabase!.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
         if (!error) return { success: true };
         console.log("Supabase email OTP failed, using local fallback:", error.message);
       } catch {}
