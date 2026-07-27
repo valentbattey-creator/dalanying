@@ -25,6 +25,10 @@ export default function AdminPage() {
   const [stats, setStats] = useState({ users: 0, posts: 0, feedbacks: 0 });
   const [syncing, setSyncing] = useState(false);
 
+  // User search and filter
+  const [userSearch, setUserSearch] = useState("");
+  const [userFilter, setUserFilter] = useState<"all" | "active" | "banned" | "admin">("all");
+
   // Load stats
   useEffect(() => {
     (async () => {
@@ -111,6 +115,19 @@ export default function AdminPage() {
   if (!user?.isAdmin && user?.role !== "admin") return null;
 
   const now = Date.now();
+
+  // Filter and search users
+  const filteredUsers = users.filter(u => {
+    if (userSearch.trim()) {
+      const q = userSearch.trim().toLowerCase();
+      if (!u.nickname.toLowerCase().includes(q) && !u.id.toLowerCase().includes(q)) return false;
+    }
+    const isBanned = u.banned_until && new Date(u.banned_until).getTime() > now;
+    if (userFilter === "banned" && !isBanned) return false;
+    if (userFilter === "active" && isBanned) return false;
+    if (userFilter === "admin" && !u.is_admin && u.role !== "admin" && u.role !== "owner") return false;
+    return true;
+  });
 
   return (
     <main className="min-h-screen pb-24 bg-[var(--color-bg-primary)]">
@@ -232,11 +249,32 @@ export default function AdminPage() {
                   用户管理 ({users.length}人)
                 </p>
               </div>
+              {/* 搜索和筛选 */}
+              <div className="px-4 py-3 space-y-2 border-b-[0.5px] border-[var(--color-border-subtle)]">
+                <input type="text" placeholder="搜索昵称或ID..." value={userSearch}
+                  onChange={(e) => setUserSearch(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] outline-none focus:border-[var(--color-accent)] transition-all" />
+                <div className="flex gap-1.5">
+                  {[
+                    { key: "all", label: "全部" },
+                    { key: "active", label: "正常" },
+                    { key: "banned", label: "禁言" },
+                    { key: "admin", label: "管理员" },
+                  ].map(f => (
+                    <button key={f.key} onClick={() => setUserFilter(f.key as any)}
+                      className={`text-[11px] px-2.5 py-1 rounded-full transition-all ${userFilter === f.key ? "bg-[var(--color-accent)] text-white" : "bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"}`}>
+                      {f.label}
+                    </button>
+                  ))}
+                  <span className="text-[11px] text-[var(--color-text-tertiary)] ml-auto self-center">{filteredUsers.length} 人</span>
+                </div>
+              </div>
+
               {loading ? (
                 <div className="p-6 text-center text-sm text-[var(--color-text-tertiary)]">加载中...</div>
               ) : (
                 <div className="divide-y-[0.5px] divide-[var(--color-border-subtle)] max-h-[60vh] overflow-y-auto">
-                  {users.map(u => {
+                  {filteredUsers.map(u => {
                     const isBanned = u.banned_until && new Date(u.banned_until).getTime() > now;
                     return (
                       <div key={u.id} className="px-4 py-3 flex items-center justify-between">
@@ -268,8 +306,8 @@ export default function AdminPage() {
                       </div>
                     );
                   })}
-                  {users.length === 0 && (
-                    <div className="p-6 text-center text-sm text-[var(--color-text-tertiary)]">暂无用户</div>
+                  {filteredUsers.length === 0 && (
+                    <div className="p-6 text-center text-sm text-[var(--color-text-tertiary)]">暂无匹配用户</div>
                   )}
                 </div>
               )}

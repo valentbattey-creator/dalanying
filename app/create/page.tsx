@@ -149,6 +149,13 @@ export default function CreatePage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(""); setUploadProgress("");
+    
+    // 检查是否被禁言
+    if (user?.bannedUntil && new Date(user.bannedUntil).getTime() > Date.now()) {
+      setError("你已被禁言，暂时无法发布内容");
+      return;
+    }
+    
     if (!title.trim()) { setError("请输入标题"); return; }
     if (!content.trim()) { setError("请输入正文内容"); return; }
     const finalCat = category || detectedCategory || "数码";
