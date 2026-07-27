@@ -3,8 +3,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { supabase, hasSupabase } from "./supabase";
 
-// 官方账号ID - 自动获得站长权限
-const OFFICIAL_ACCOUNT_ID = "d7b7b994-c87f-4385-947b-c79b43f22e8e";
+// 站长通过设置页面认领（密码 050309）
 import { moderateName } from "./moderation";
 import { toast } from "sonner";
 import { generateAvatar } from "./avatar";
@@ -122,14 +121,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: session.session.user.email!,
         phone: (profile as any)?.phone || "",
         avatar: profile?.avatar_url || "",
-        isAdmin: profile?.is_admin || (session.session.user.id === OFFICIAL_ACCOUNT_ID),
-        role: (session.session.user.id === OFFICIAL_ACCOUNT_ID ? "owner" : profile?.role) || null,
+        isAdmin: profile?.is_admin || false,
+        role: (profile?.role as "owner" | "admin" | null) ?? null,
         bannedUntil: profile?.banned_until || null,
       });
-      // Auto-update official account
-      if (session.session.user.id === OFFICIAL_ACCOUNT_ID && hasSupabase) {
-        try { await supabase!.from("profiles").upsert({ id: session.session.user.id, nickname: profile?.nickname || "大岚荧官方", avatar_url: profile?.avatar_url || "", is_admin: true, role: "owner" }, { onConflict: "id" }); } catch {}
-      }
     }
   }, []);
 
@@ -166,15 +161,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data } = supabase!.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         fetchProfile(session.user.id).then(profile => {
-          const isOfficial = session.user.id === OFFICIAL_ACCOUNT_ID;
           const u: AppUser = {
             id: session.user.id,
             name: profile?.nickname || session.user.user_metadata?.full_name || session.user.email!.split("@")[0],
             phone: profile?.phone || "",
             email: session.user.email!,
             avatar: profile?.avatar_url || "",
-            isAdmin: profile?.is_admin || isOfficial,
-        role: isOfficial ? "owner" as const : (profile?.role as "owner" | "admin" | null) ?? null,
+            isAdmin: profile?.is_admin || false,
+            role: (profile?.role as "owner" | "admin" | null) ?? null,
             bannedUntil: profile?.banned_until || null,
           };
           setUser(u);
@@ -427,15 +421,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { success: false, error: error.message, code: "unknown" };
       }
       const profile = await fetchProfile(data.user.id);
-      const isOfficial = data.user.id === OFFICIAL_ACCOUNT_ID;
       const u: AppUser = {
         id: data.user.id,
         name: profile?.nickname || data.user.user_metadata?.full_name || email.split("@")[0],
         email,
         phone: profile?.phone || "",
         avatar: profile?.avatar_url || "",
-        isAdmin: profile?.is_admin || isOfficial,
-        role: isOfficial ? "owner" as const : (profile?.role as "owner" | "admin" | null) ?? null,
+        isAdmin: profile?.is_admin || false,
+            role: (profile?.role as "owner" | "admin" | null) ?? null,
         bannedUntil: profile?.banned_until || null,
       };
       setUser(u);
@@ -585,20 +578,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // ===== Email OTP Auth =====
   const sendEmailOTP = useCallback(async (email: string): Promise<{ success: boolean; error?: string }> => {
-    if (!hasSupabase) return { success: false, error: "未配置 Supabase" };
-    try {
-      const { error } = await supabase!.auth.signInWithOtp({ email });
-      if (error) {
-        if (error.message.includes("rate limit")) return { success: false, error: "发送太频繁，请稍后再试" };
-        return { success: false, error: error.message };
-      }
-      return { success: true };
-    } catch (e: any) {
-      return { success: false, error: e.message || "发送失败" };
+    // Try Supabase email OTP first
+    if (hasSupabase) {
+      try {
+        const { error } = await supabase!.auth.signInWithOtp({ email });
+        if (!error) return { success: true };
+        console.log("Supabase email OTP failed, using local fallback:", error.message);
+      } catch {}
     }
+    // Local fallback: generate 6-digit code
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    setLocalOTP({ phone: "email_" + email, code, expires: Date.now() + 300000 });
+    toast.info("邮箱验证码: " + code, { duration: 30000, description: "（开发模式：邮件服务未配置，验证码显示在页面上）" });
+    return { success: true };
   }, []);
 
   const verifyEmailOTP = useCallback(async (email: string, token: string, name?: string): Promise<{ success: boolean; error?: string }> => {
+    // Try local OTP first (fallback mode)
+    if (localOTP && localOTP.phone === "email_" + email) {
+      if (Date.now() > localOTP.expires) { setLocalOTP(null); return { success: false, error: "验证码已过期，请重新发送" }; }
+      if (token !== localOTP.code) return { success: false, error: "验证码错误" };
+      setLocalOTP(null);
+      // Create or restore user
+      const uid = "email_" + email.replace(/[^a-zA-Z0-9]/g, "_");
+      const existingProfile = localStorage.getItem("dalanying_profile_" + uid);
+      const nick = name || "用户" + Date.now().toString(36).slice(-4);
+      let userNick = nick;
+      if (existingProfile) { try { userNick = JSON.parse(existingProfile).nickname || nick; } catch {} }
+      const autoAvatar = generateAvatar(userNick);
+      const newUser: AppUser = { id: uid, name: userNick, email, phone: "", avatar: autoAvatar, isAdmin: false, role: null, bannedUntil: null };
+      // Save to Supabase
+      if (hasSupabase) {
+        try { await supabase!.from("profiles").upsert({ id: uid, nickname: userNick, avatar_url: autoAvatar }, { onConflict: "id" }); } catch {}
+        try { const { count } = await supabase!.from("profiles").select("*", { count: "exact", head: true }); setRegistrationCount(count || null); } catch {}
+      }
+      localStorage.setItem("dalanying_profile_" + uid, JSON.stringify({ nickname: userNick }));
+      setUser(newUser);
+      localStorage.setItem("dalanying_user", JSON.stringify(newUser));
+      return { success: true };
+    }
     if (!hasSupabase) return { success: false, error: "未配置 Supabase" };
     try {
       const { data, error } = await supabase!.auth.verifyOtp({ email, token, type: "email" });

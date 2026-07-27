@@ -221,38 +221,21 @@ export default function HomePage() {
             </motion.div>
           ) : (
             <>
-              {/* Pinned - 只渲染当前这一条，彻底避免重叠 */}
-              {sortedPinned.length > 0 && (() => {
-                const p = sortedPinned[pinnedIndex] || sortedPinned[0];
-                return (
-                  <div className="px-2 pt-2">
-                    <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-[var(--color-bg-card)] via-[var(--color-bg-elevated)] to-[var(--color-bg-card)] border-[0.5px] border-amber-500/20">
-                      <div className="absolute top-3 left-3 z-10 flex items-center gap-1 px-2 py-1 rounded-full bg-amber-500/90 text-white text-[10px] font-medium">
-                        <span>📌</span> 置顶
-                      </div>
-                      <div onClick={() => router.push(`/post/${p.id}`)} className="flex cursor-pointer">
-                        {p.images?.[0] && <div className="w-[100px] h-[100px] shrink-0"><img src={p.images[0]} alt="" className="w-full h-full object-cover" loading="lazy" /></div>}
-                        <div className="flex-1 p-3 pl-3 pt-5 flex flex-col justify-center min-w-0">
-                          <h3 className="text-[14px] font-bold text-[var(--color-text-primary)] line-clamp-1 leading-snug">{p.title}</h3>
-                          <p className="text-[11px] text-[var(--color-text-tertiary)] mt-1 line-clamp-2">{p.content}</p>
-                          <div className="flex items-center gap-3 mt-2 text-[10px] text-[var(--color-text-tertiary)]">
-                            <span>👁 {p.views || 0}</span>
-                            <span>❤️ {p.likes || 0}</span>
-                            <span>💬 {p.comments || 0}</span>
-                          </div>
-                        </div>
-                      </div>
-                      {sortedPinned.length > 1 && (
-                        <div className="flex justify-center gap-1.5 pb-2">
-                          {sortedPinned.map((_, i) => (
-                            <button key={i} onClick={(e) => { e.stopPropagation(); setPinnedIndex(i); }} className={`w-1.5 h-1.5 rounded-full transition-all ${i === pinnedIndex ? "bg-amber-400 w-4" : "bg-[var(--color-bg-hover)]"}`} />
-                          ))}
-                        </div>
-                      )}
+              {/* Pinned posts - 每条单独显示，不会重叠 */}
+              {sortedPinned.map((p) => (
+                <div key={p.id} className="px-2 pt-2">
+                  <div onClick={() => router.push(`/post/${p.id}`)} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border-[0.5px] border-amber-500/20 cursor-pointer active:scale-[0.98] transition-all">
+                    <span className="text-base shrink-0">📌</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-semibold text-[var(--color-text-primary)] line-clamp-1">{p.title}</p>
+                      <p className="text-[11px] text-[var(--color-text-tertiary)] line-clamp-1 mt-0.5">{p.content}</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0 text-[10px] text-[var(--color-text-tertiary)]">
+                      <span>❤️{p.likes || 0}</span>
                     </div>
                   </div>
-                );
-              })()}
+                </div>
+              ))}
 
               {/* Announcements */}
               {announcements.map((p) => (
