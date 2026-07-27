@@ -2,7 +2,13 @@
 
 import { useState, useRef } from "react";
 import { useAuth, updateProfile } from "@/lib/auth"; import { uploadAvatar } from "@/lib/data";
+import { createClient } from "@supabase/supabase-js";
 import { toast } from "sonner";
+
+const supabase = typeof window !== "undefined" ? createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
+) : null;
 
 export default function ProfileSetup() {
   const { user, showProfileSetup, setShowProfileSetup, updateUserProfile } = useAuth();
@@ -10,6 +16,9 @@ export default function ProfileSetup() {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState(user?.avatar || "");
   const [saving, setSaving] = useState(false);
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [settingPassword, setSettingPassword] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   if (!showProfileSetup || !user) return null;
@@ -20,6 +29,26 @@ export default function ProfileSetup() {
     if (file.size > 5 * 1024 * 1024) { toast.error("头像不能超过5MB"); return; }
     setAvatarFile(file);
     setAvatarPreview(URL.createObjectURL(file));
+  }
+
+  async function handleSetPassword() {
+    if (!password.trim()) { toast.error("请输入密码"); return; }
+    if (password.length < 6) { toast.error("密码至少6位"); return; }
+    if (password !== confirmPassword) { toast.error("两次密码不一致"); return; }
+    setSettingPassword(true);
+    try {
+      const { error } = await supabase!.auth.updateUser({ password });
+      if (error) {
+        toast.error("设置密码失败: " + error.message);
+      } else {
+        toast.success("密码设置成功！下次可以用邮箱+密码登录");
+        setPassword("");
+        setConfirmPassword("");
+      }
+    } catch (e: any) {
+      toast.error(e.message || "设置密码失败");
+    }
+    setSettingPassword(false);
   }
 
   async function handleSave() {
@@ -88,6 +117,38 @@ export default function ProfileSetup() {
               className="w-full mt-1 px-3 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] focus:border-[var(--color-accent)] outline-none transition-all duration-300"
             />
           </div>
+
+          {/* 设置密码（可选） */}
+          {user?.email && (
+            <div className="space-y-2 pt-2 border-t border-[var(--color-border-subtle)]">
+              <label className="text-[11px] font-medium text-[var(--color-text-secondary)] ml-1">设置密码（可选，方便下次登录）</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="至少6位"
+                className="w-full px-3 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] focus:border-[var(--color-accent)] outline-none transition-all duration-300"
+              />
+              {password.length >= 6 && (
+                <div className="flex gap-2">
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="确认密码"
+                    className="flex-1 px-3 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] focus:border-[var(--color-accent)] outline-none transition-all duration-300"
+                  />
+                  <button
+                    onClick={handleSetPassword}
+                    disabled={settingPassword || password !== confirmPassword}
+                    className="shrink-0 px-4 py-2.5 rounded-xl bg-[var(--color-accent)] text-white text-sm disabled:opacity-40 transition-all"
+                  >
+                    {settingPassword ? "设置中..." : "设置"}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="flex gap-2 pt-1">
             <button
