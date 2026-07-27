@@ -580,19 +580,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // ===== Email OTP Auth =====
   const sendEmailOTP = useCallback(async (email: string): Promise<{ success: boolean; error?: string }> => {
-    // Try Supabase email OTP first
-    if (hasSupabase) {
-      try {
-        const { error } = await supabase!.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
-        if (!error) return { success: true };
-        console.log("Supabase email OTP failed, using local fallback:", error.message);
-      } catch {}
+    if (!hasSupabase) return { success: false, error: "系统未配置" };
+    try {
+      const { error } = await supabase!.auth.signInWithOtp({
+        email,
+        options: { shouldCreateUser: true, emailRedirectTo: undefined },
+      });
+      if (error) {
+        if (error.message.includes("rate limit")) return { success: false, error: "发送太频繁，请稍后再试" };
+        return { success: false, error: "发送失败: " + error.message };
+      }
+      return { success: true };
+    } catch (e: any) {
+      return { success: false, error: e.message || "发送失败" };
     }
-    // Local fallback: generate 6-digit code
-    const code = String(Math.floor(100000 + Math.random() * 900000));
-    setLocalOTP({ phone: "email_" + email, code, expires: Date.now() + 300000 });
-    toast.info("邮箱验证码: " + code, { duration: 30000, description: "（开发模式：邮件服务未配置，验证码显示在页面上）" });
-    return { success: true };
   }, []);
 
   const verifyEmailOTP = useCallback(async (email: string, token: string, name?: string): Promise<{ success: boolean; error?: string }> => {
