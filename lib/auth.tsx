@@ -632,7 +632,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         // 检查并创建用户资料
         const profile = await fetchProfile(data.user.id);
-        if (!profile || !profile.nickname) {
+        const isNewUser = !profile || !profile.nickname;
+        if (isNewUser) {
           const nick = name || "用户" + Date.now().toString(36).slice(-4);
           await supabase!.from("profiles").upsert({
             id: data.user.id, 
@@ -645,11 +646,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const { count } = await supabase!.from("profiles").select("*", { count: "exact", head: true });
             setRegistrationCount(count || null);
           } catch {}
-          
-          setShowProfileSetup(true);
         }
         
         await refreshUser();
+        
+        if (isNewUser) {
+          setShowProfileSetup(true);
+        }
       }
       
       return { success: true };
