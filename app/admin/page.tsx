@@ -22,6 +22,28 @@ export default function AdminPage() {
   // Payment orders
   const [payOrders, setPayOrders] = useState<PaymentOrder[]>([]);
   const [payTab, setPayTab] = useState<"users" | "payments">("users");
+  const [stats, setStats] = useState({ users: 0, posts: 0, feedbacks: 0 });
+  const [syncing, setSyncing] = useState(false);
+
+  // Load stats
+  useEffect(() => {
+    (async () => {
+      try {
+        const SB_URL = "https://aawoajhmhvysedabncoz.supabase.co";
+        const SB_KEY = "sb_publishable_jpAnsNOd1-v5ftyOhjO09A_cnQBXjvh";
+        const headers = { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}`, "Prefer": "count=exact" };
+        const [ur, pr, fr] = await Promise.all([
+          fetch(`${SB_URL}/rest/v1/profiles?select=id`, { headers, method: "HEAD" }),
+          fetch(`${SB_URL}/rest/v1/posts?select=id`, { headers, method: "HEAD" }),
+          fetch(`${SB_URL}/rest/v1/feedbacks?select=id`, { headers, method: "HEAD" }).catch(() => null),
+        ]);
+        const uc = parseInt(ur.headers.get("content-range")?.split("/")[1] || "0");
+        const pc = parseInt(pr.headers.get("content-range")?.split("/")[1] || "0");
+        const fc = fr?.ok ? parseInt(fr.headers.get("content-range")?.split("/")[1] || "0") : 0;
+        setStats({ users: uc, posts: pc, feedbacks: fc });
+      } catch {}
+    })();
+  }, []);
 
   useEffect(() => {
     if (!user?.isAdmin && user?.role !== "admin") { router.replace("/"); return; }
@@ -128,6 +150,22 @@ export default function AdminPage() {
         {/* ===== Users Tab ===== */}
         {payTab === "users" && (
           <>
+            {/* 数据概览 */}
+            <div className="grid grid-cols-3 gap-2">
+              <div className="bg-[var(--color-bg-card)] border-[0.5px] border-[var(--color-border-subtle)] rounded-xl p-3 text-center">
+                <p className="text-2xl font-bold text-[var(--color-accent)]">{stats.users}</p>
+                <p className="text-[10px] text-[var(--color-text-tertiary)] mt-1">注册用户</p>
+              </div>
+              <div className="bg-[var(--color-bg-card)] border-[0.5px] border-[var(--color-border-subtle)] rounded-xl p-3 text-center">
+                <p className="text-2xl font-bold text-amber-400">{stats.posts}</p>
+                <p className="text-[10px] text-[var(--color-text-tertiary)] mt-1">帖子总数</p>
+              </div>
+              <div className="bg-[var(--color-bg-card)] border-[0.5px] border-[var(--color-border-subtle)] rounded-xl p-3 text-center">
+                <p className="text-2xl font-bold text-green-400">{stats.feedbacks}</p>
+                <p className="text-[10px] text-[var(--color-text-tertiary)] mt-1">用户反馈</p>
+              </div>
+            </div>
+
             {/* Announcement - owner only */}
             <div className="bg-[var(--color-bg-card)] border-[0.5px] border-[var(--color-border-subtle)] rounded-xl overflow-hidden">
               {showAnnounce ? (

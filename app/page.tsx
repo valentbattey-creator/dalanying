@@ -10,6 +10,8 @@ import { FeedSkeleton } from "@/components/Skeleton";
 import AdCard from "@/components/AdCard";
 import { useAuth } from "@/lib/auth";
 import { useData } from "@/lib/store";
+import { searchUsers } from "@/lib/data";
+import { TinyAvatar } from "@/components/UserAvatar";
 
 const ALL_CATEGORIES = [
   "推荐", "谈婚论嫁", "思维探讨", "数码", "科技", "汽车", "运动", "游戏", "健身",
@@ -43,6 +45,7 @@ export default function HomePage() {
   const FIXED_CATS = ["推荐", "思维探讨", "数码"];
   const [customCats, setCustomCats] = useState<string[]>([...FIXED_CATS]);
   const [activeCat, setActiveCat] = useState("推荐");
+  const [searchUsers_, setSearchUsers] = useState<any[]>([]);
   const [showCatPicker, setShowCatPicker] = useState(false);
 
   // Split and sort posts
@@ -183,6 +186,24 @@ export default function HomePage() {
               >
                 清除 ✕
               </button>
+            </div>
+          )}
+
+          {/* User search results */}
+          {searchQuery && searchUsers_.length > 0 && (
+            <div className="px-3 py-2">
+              <p className="text-[10px] text-[var(--color-text-tertiary)] mb-2 uppercase tracking-wider">相关用户</p>
+              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                {searchUsers_.map((u: any) => (
+                  <button key={u.id} onClick={() => router.push(`/user/${u.id}`)}
+                    className="flex flex-col items-center gap-1.5 min-w-[64px] py-2 px-1 rounded-xl hover:bg-[var(--color-bg-hover)] transition-all">
+                    <TinyAvatar name={u.nickname || "?"} avatarUrl={u.avatar_url} size={40} />
+                    <span className="text-[10px] text-[var(--color-text-secondary)] truncate max-w-[60px]">{u.nickname || "匿名"}</span>
+                    {u.role === "owner" && <span className="text-[8px]">👑</span>}
+                    {u.is_admin && u.role !== "owner" && <span className="text-[8px]">🛡️</span>}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 

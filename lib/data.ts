@@ -776,6 +776,27 @@ export async function banUser(userId: string, until: string) { return dataServic
 export async function unbanUser(userId: string) { return dataService.unbanUser(userId); }
 export async function fetchAllProfiles() { return dataService.fetchAllProfiles(); }
 export async function fetchProfile(userId: string) { return dataService.fetchProfile(userId); }
+
+// Search users by nickname
+export async function searchUsers(query: string): Promise<Profile[]> {
+  if (!query.trim()) return [];
+  try {
+    const SB_URL = "https://aawoajhmhvysedabncoz.supabase.co";
+    const SB_KEY = "sb_publishable_jpAnsNOd1-v5ftyOhjO09A_cnQBXjvh";
+    const res = await fetch(`${SB_URL}/rest/v1/profiles?nickname=ilike.%${encodeURIComponent(query.trim())}%&limit=20`, {
+      headers: { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}` },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return (data || []).map((d: any) => ({
+        id: d.id, nickname: d.nickname || "", avatar_url: d.avatar_url || "",
+        bio: d.bio || "", phone: d.phone || "",
+        is_admin: Boolean(d.is_admin), role: d.role || null, banned_until: d.banned_until || null,
+      }));
+    }
+  } catch {}
+  return [];
+}
 export async function updateProfile(userId: string, updates: any) { return dataService.updateProfile(userId, updates); }
 export async function uploadAvatar(file: File, userId: string) { return dataService.uploadImage(file, "avatars") || ""; }
 
