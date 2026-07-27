@@ -130,6 +130,25 @@ async function apiPut<T>(path: string, body: unknown): Promise<T | null> {
   } catch { return null; }
 }
 
+// ===== Direct Supabase Fallback (bypasses Vercel API when unavailable) =====
+async function directSupabaseGet<T>(path: string, params?: Record<string, string>): Promise<T | null> {
+  try {
+    if (!supabase) return null;
+    const url = new URL(path, "https://aawoajhmhvysedabncoz.supabase.co");
+    if (params) Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+    const res = await fetch(url.toString(), {
+      headers: {
+        "apikey": "sb_publishable_jpAnsNOd1-v5ftyOhjO09A_cnQBXjvh",
+        "Authorization": "Bearer sb_publishable_jpAnsNOd1-v5ftyOhjO09A_cnQBXjvh",
+      },
+    });
+    if (!res.ok) return null;
+    return await res.json() as T;
+  } catch { return null; }
+}
+
+
+
 async function apiDelete(path: string): Promise<boolean> {
   try {
     const res = await fetch(getApiBase() + path, { method: "DELETE" });
@@ -152,6 +171,9 @@ export const dataService = {
     const apiResult = await apiGet<{ posts: Post[]; total: number; error?: string }>(`/api/posts?${params.toString()}`);
 
     if (apiResult && apiResult.posts && !apiResult.error) {
+      // Auto-sync localStorage posts to Supabase in background
+      this.syncLocalPosts().catch(() => {});
+      
       // Merge with localStorage posts
       const localPosts = lsGet<Post[]>("posts", []);
       const serverIds = new Set(apiResult.posts.map(p => p.id));
@@ -180,7 +202,79 @@ export const dataService = {
       };
     }
 
-    // Fallback: localStorage only
+    // Fallback 2: Try direct Supabase (bypasses Vercel API)
+    try {
+      const sbUrl = "https://aawoajhmhvysedabncoz.supabase.co/rest/v1/posts";
+      const sbParams = new URLSearchParams({
+        select: "*,profiles!posts_user_id_fkey(nickname,avatar_url)",
+        order: "is_pinned.desc,created_at.desc",
+        offset: String(from),
+        limit: String(from + this.PAGE_SIZE),
+      });
+      if (search) sbParams.set("or", `(title.ilike.%${search}%,content.ilike.%${search}%)`);
+      const sbRes = await fetch(`${sbUrl}?${sbParams.toString()}`, {
+        headers: {
+          "apikey": "sb_publishable_jpAnsNOd1-v5ftyOhjO09A_cnQBXjvh",
+          "Authorization": "Bearer sb_publishable_jpAnsNOd1-v5ftyOhjO09A_cnQBXjvh",
+        },
+      });
+      if (sbRes.ok) {
+        const sbData = await sbRes.json();
+        if (Array.isArray(sbData) && sbData.length > 0) {
+          // Get likes & comments counts
+          const postIds = sbData.map((i: any) => i.id);
+          let likesMap = new Map<string, number>();
+          let commentsMap = new Map<string, number>();
+          try {
+            const [lr, cr] = await Promise.all([
+              fetch(`https://aawoajhmhvysedabncoz.supabase.co/rest/v1/likes?select=post_id&post_id=in.(${postIds.join(",")})`, {
+                headers: { "apikey": "sb_publishable_jpAnsNOd1-v5ftyOhjO09A_cnQBXjvh" },
+              }),
+              fetch(`https://aawoajhmhvysedabncoz.supabase.co/rest/v1/comments?select=post_id&post_id=in.(${postIds.join(",")})`, {
+                headers: { "apikey": "sb_publishable_jpAnsNOd1-v5ftyOhjO09A_cnQBXjvh" },
+              }),
+            ]);
+            if (lr.ok) { (await lr.json()).forEach((r: any) => { const k = String(r.post_id); likesMap.set(k, (likesMap.get(k)||0)+1); }); }
+            if (cr.ok) { (await cr.json()).forEach((r: any) => { const k = String(r.post_id); commentsMap.set(k, (commentsMap.get(k)||0)+1); }); }
+          } catch {}
+          
+          const REVERSE_CAT: Record<string,string> = { "tech": "推荐", "fitness": "运动" };
+          let posts = sbData.map((item: any) => {
+            const tags = (item.tags || []).filter((t: string) => !t.startsWith("__cat:"));
+            const catTag = (item.tags || []).find((t: string) => t.startsWith("__cat:"));
+            const displayCategory = catTag ? catTag.replace("__cat:", "") : (REVERSE_CAT[item.category] || item.category || "推荐");
+            if (category && category !== "推荐" && displayCategory !== category) return null;
+            return {
+              id: item.id, title: item.title, content: item.content || "",
+              images: item.image_urls || [], category: displayCategory, tags,
+              author: item.profiles?.nickname || "", authorId: item.user_id || "",
+              authorAvatar: item.profiles?.avatar_url || "",
+              createdAt: item.created_at, isPinned: item.is_pinned || false,
+              isAnnouncement: item.is_announcement || false,
+              likes: likesMap.get(String(item.id)) || 0,
+              comments: commentsMap.get(String(item.id)) || 0,
+              views: item.views || 0,
+            };
+          }).filter(Boolean) as Post[];
+          
+          // Sync localStorage posts in background
+          this.syncLocalPosts().catch(() => {});
+          
+          const localPosts = lsGet<Post[]>("posts", []);
+          const serverIds = new Set(posts.map(p => p.id));
+          const missing = localPosts.filter(p => !serverIds.has(p.id));
+          posts = [...posts, ...missing];
+          posts.sort((a, b) => {
+            if (a.isPinned && !b.isPinned) return -1;
+            if (!a.isPinned && b.isPinned) return 1;
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+          });
+          return { posts: posts.slice(from, from + this.PAGE_SIZE), total: posts.length };
+        }
+      }
+    } catch {}
+
+    // Fallback 3: localStorage only
     let all = [...SEED_POSTS, ...lsGet<Post[]>("posts", [])];
     if (category && category !== "推荐") all = all.filter(p => p.category === category);
     if (search && search.trim()) {
@@ -193,6 +287,25 @@ export const dataService = {
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
     return { posts: all.slice(from, from + this.PAGE_SIZE), total: all.length };
+  },
+
+
+  // Sync localStorage-only posts to Supabase via dedicated sync API
+  async syncLocalPosts(): Promise<void> {
+    try {
+      const localPosts = lsGet<Post[]>("posts", []);
+      if (localPosts.length === 0) return;
+      
+      // Get unsynced posts (not seed posts, not system posts)
+      const unsynced = localPosts.filter(p => p.authorId && p.authorId !== "system" && !p.id.startsWith("seed"));
+      if (unsynced.length === 0) return;
+      
+      // Try sync API
+      const result = await apiPost<{ synced: number }>("/api/sync", { posts: unsynced });
+      if (result && result.synced > 0) {
+        lsSet("hasUnsyncedPosts", false);
+      }
+    } catch {}
   },
 
   async fetchPostById(postId: string): Promise<Post | null> {
@@ -260,7 +373,50 @@ export const dataService = {
       return apiResult;
     }
 
-    // Fallback: localStorage only
+    // Fallback 2: Direct Supabase insert (bypasses Vercel API)
+    try {
+      const sbRes = await fetch("https://aawoajhmhvysedabncoz.supabase.co/rest/v1/posts", {
+        method: "POST",
+        headers: {
+          "apikey": "sb_publishable_jpAnsNOd1-v5ftyOhjO09A_cnQBXjvh",
+          "Authorization": "Bearer sb_publishable_jpAnsNOd1-v5ftyOhjO09A_cnQBXjvh",
+          "Content-Type": "application/json",
+          "Prefer": "return=representation",
+        },
+        body: JSON.stringify({
+          title: post.title,
+          content: post.content || "",
+          image_urls: post.images || [],
+          category: post.category || "推荐",
+          tags: post.tags || [],
+          user_id: post.authorId || null,
+          is_pinned: post.isPinned || false,
+          is_announcement: post.isAnnouncement || false,
+        }),
+      });
+      if (sbRes.ok) {
+        const sbData = await sbRes.json();
+        const d = Array.isArray(sbData) ? sbData[0] : sbData;
+        if (d && d.id) {
+          const result: Post = {
+            id: d.id, title: d.title, content: d.content || "",
+            images: d.image_urls || [], category: post.category || "推荐",
+            tags: post.tags || [], author: post.author || "",
+            authorId: d.user_id || post.authorId || "",
+            authorAvatar: post.authorAvatar || "",
+            createdAt: d.created_at || new Date().toISOString(),
+            isPinned: d.is_pinned || false, isAnnouncement: d.is_announcement || false,
+            likes: 0, comments: 0, views: 0,
+          };
+          const posts = lsGet<Post[]>("posts", []);
+          posts.unshift(result);
+          lsSet("posts", posts);
+          return result;
+        }
+      }
+    } catch {}
+
+    // Fallback 3: localStorage only (will be synced later)
     const newPost: Post = {
       ...post as any,
       id: gid(),
@@ -271,6 +427,7 @@ export const dataService = {
     posts.unshift(newPost);
     if (posts.length > 500) posts.length = 500;
     lsSet("posts", posts);
+    lsSet("hasUnsyncedPosts", true);
     return newPost;
   },
 
@@ -294,13 +451,38 @@ export const dataService = {
   },
 
   async fetchComments(postId?: string): Promise<Comment[]> {
-    if (!postId) return [...SEED_COMMENTS, ...lsGet<Comment[]>("comments", [])];
-    const apiResult = await apiGet<{ comments: Comment[] }>(`/api/comments?postId=${encodeURIComponent(postId)}`);
-    if (apiResult && apiResult.comments) return apiResult.comments;
-    return [...SEED_COMMENTS, ...lsGet<Comment[]>("comments", [])].filter(c => c.postId === postId);
+    // Try direct Supabase first (works without VPN)
+    try {
+      const SB_URL = "https://aawoajhmhvysedabncoz.supabase.co";
+      const SB_KEY = "sb_publishable_jpAnsNOd1-v5ftyOhjO09A_cnQBXjvh";
+      let url = `${SB_URL}/rest/v1/comments?select=*&order=created_at.asc&limit=500`;
+      if (postId) url += `&post_id=eq.${encodeURIComponent(postId)}`;
+      const sbRes = await fetch(url, {
+        headers: { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}` },
+      });
+      if (sbRes.ok) {
+        const data = await sbRes.json();
+        if (Array.isArray(data) && data.length > 0) {
+          return data.map((d: any) => ({
+            id: d.id, postId: d.post_id, parentId: d.parent_id,
+            author: d.author_name || "", authorId: d.user_id || "",
+            authorAvatar: d.author_avatar || "",
+            content: d.content, image: d.image_url || "", createdAt: d.created_at,
+          }));
+        }
+      }
+    } catch {}
+
+    // Fallback: API route
+    if (postId) {
+      const apiResult = await apiGet<{ comments: Comment[] }>(`/api/comments?postId=${encodeURIComponent(postId)}`);
+      if (apiResult && apiResult.comments) return apiResult.comments;
+    }
+    return [...SEED_COMMENTS, ...lsGet<Comment[]>("comments", [])].filter(c => !postId || c.postId === postId);
   },
 
   async createComment(data: { postId: string; parentId: string | null; author: string; authorId: string; authorAvatar: string; content: string; image?: string }): Promise<Comment | null> {
+    // Try API first
     const apiResult = await apiPost<any>("/api/comments", data);
     if (apiResult && !apiResult.error) {
       const comments = lsGet<Comment[]>("comments", []);
@@ -308,7 +490,39 @@ export const dataService = {
       lsSet("comments", comments);
       return apiResult;
     }
-    // Fallback
+
+    // Fallback: Direct Supabase insert
+    try {
+      const SB_URL = "https://aawoajhmhvysedabncoz.supabase.co";
+      const SB_KEY = "sb_publishable_jpAnsNOd1-v5ftyOhjO09A_cnQBXjvh";
+      const headers = { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}`, "Content-Type": "application/json", "Prefer": "return=representation" };
+      const sbRes = await fetch(`${SB_URL}/rest/v1/comments`, {
+        method: "POST", headers,
+        body: JSON.stringify({
+          post_id: data.postId, parent_id: data.parentId || null,
+          user_id: data.authorId, author_name: data.author, author_avatar: data.authorAvatar || "",
+          content: data.content, image_url: data.image || "",
+        }),
+      });
+      if (sbRes.ok) {
+        const sbData = await sbRes.json();
+        const d = Array.isArray(sbData) ? sbData[0] : sbData;
+        if (d && d.id) {
+          const comment: Comment = {
+            id: d.id, postId: d.post_id, parentId: d.parent_id,
+            author: d.author_name || data.author, authorId: d.user_id || data.authorId,
+            authorAvatar: d.author_avatar || data.authorAvatar,
+            content: d.content, image: d.image_url || "", createdAt: d.created_at || new Date().toISOString(),
+          };
+          const comments = lsGet<Comment[]>("comments", []);
+          comments.push(comment);
+          lsSet("comments", comments);
+          return comment;
+        }
+      }
+    } catch {}
+
+    // Fallback: localStorage only
     const comment: Comment = {
       id: gid(), postId: data.postId, parentId: data.parentId,
       author: data.author, authorId: data.authorId, authorAvatar: data.authorAvatar,
@@ -328,13 +542,41 @@ export const dataService = {
   },
 
   async toggleLike(postId: string, userId: string, currentlyLiked: boolean): Promise<number> {
+    // Try API first
     const apiResult = await apiPost<{ count: number; error?: string }>("/api/likes", {
       postId, userId, toggle: currentlyLiked,
     });
     if (apiResult && !apiResult.error && typeof apiResult.count === "number") {
       return apiResult.count;
     }
-    // Fallback: estimate
+
+    // Fallback: Direct Supabase
+    try {
+      const SB_URL = "https://aawoajhmhvysedabncoz.supabase.co";
+      const SB_KEY = "sb_publishable_jpAnsNOd1-v5ftyOhjO09A_cnQBXjvh";
+      const headers = { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}`, "Content-Type": "application/json" };
+      
+      if (currentlyLiked) {
+        // Unlike
+        await fetch(`${SB_URL}/rest/v1/likes?post_id=eq.${postId}&user_id=eq.${userId}`, {
+          method: "DELETE", headers,
+        });
+      } else {
+        // Like
+        await fetch(`${SB_URL}/rest/v1/likes`, {
+          method: "POST", headers,
+          body: JSON.stringify({ post_id: postId, user_id: userId }),
+        });
+      }
+      // Get updated count
+      const countRes = await fetch(`${SB_URL}/rest/v1/likes?select=id&post_id=eq.${postId}`, { headers });
+      if (countRes.ok) {
+        const data = await countRes.json();
+        return data.length;
+      }
+    } catch {}
+
+    // Fallback: localStorage estimate
     const key = postId + "_" + userId;
     const liked = lsGet<string[]>("likedPosts", []);
     const newLiked = currentlyLiked ? liked.filter(k => k !== key) : [...liked, key];
@@ -446,10 +688,30 @@ export const dataService = {
   },
 
   async fetchLikes(userId: string): Promise<{ userLikes: Set<string> }> {
-    // Try API first for cross-device persistence
+    // Try direct Supabase first
+    try {
+      const SB_URL = "https://aawoajhmhvysedabncoz.supabase.co";
+      const SB_KEY = "sb_publishable_jpAnsNOd1-v5ftyOhjO09A_cnQBXjvh";
+      const sbRes = await fetch(`${SB_URL}/rest/v1/likes?select=post_id&user_id=eq.${encodeURIComponent(userId)}`, {
+        headers: { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}` },
+      });
+      if (sbRes.ok) {
+        const data = await sbRes.json();
+        if (Array.isArray(data)) {
+          const postIds = data.map((r: any) => r.post_id);
+          // Sync to localStorage
+          const existing = lsGet<string[]>("likedPosts", []);
+          const keys = postIds.map((pid: string) => pid + "_" + userId);
+          const merged = [...new Set([...existing, ...keys])];
+          lsSet("likedPosts", merged);
+          return { userLikes: new Set(postIds) };
+        }
+      }
+    } catch {}
+
+    // Fallback: API route
     const apiResult = await apiGet<{ likes: string[] }>(`/api/likes?userId=${userId}`);
     if (apiResult && apiResult.likes && apiResult.likes.length > 0) {
-      // Also sync to localStorage
       const existing = lsGet<string[]>("likedPosts", []);
       const keys = apiResult.likes.map(pid => pid + "_" + userId);
       const merged = [...new Set([...existing, ...keys])];
