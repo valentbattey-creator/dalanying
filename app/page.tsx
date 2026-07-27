@@ -106,9 +106,9 @@ export default function HomePage() {
   return (
     <>
       <Navbar onSearch={handleSearch} />
-      <main className="min-h-screen pt-11 bg-[var(--color-bg-primary)]">
+      <main className="min-h-screen pt-12 bg-[var(--color-bg-primary)]">
         {/* Category pills */}
-        <div className="sticky top-11 z-40 bg-[var(--color-bg-primary)]/92 backdrop-blur-md border-b-[0.5px] border-white/[0.04]">
+        <div className="sticky top-12 z-40 bg-[var(--color-bg-primary)]/92 backdrop-blur-md border-b-[0.5px] border-white/[0.04]">
           <div className="px-2 py-2 flex items-center gap-1 overflow-x-auto scrollbar-hide">
             {customCats.map(cat => (
               <button
@@ -255,7 +255,7 @@ export default function HomePage() {
 
               {/* Post grid */}
               <AnimatePresence mode="wait">
-                <motion.div key={activeCat + searchQuery} variants={container} initial="hidden" animate="show" className="columns-2 gap-2.5 pt-3 px-2 [column-fill:balance]" style={{ columnFill: "balance" } as React.CSSProperties}>
+                <motion.div key={activeCat + searchQuery} variants={container} initial="hidden" animate="show" className="columns-2 sm:columns-3 lg:columns-4 gap-3 pt-3 px-3 sm:px-4 lg:px-0 [column-fill:balance]" style={{ columnFill: "balance" } as React.CSSProperties}>
                   {sorted.map((p, i) => (
                     <React.Fragment key={p.id}>
                       <motion.div variants={item} className="break-inside-avoid mb-2.5"><PostCard post={p} isLiked={likedPosts.has(p.id) || guestLikes.has(p.id)} onLike={(id) => { toggleLike(id); }} onCardClick={(id) => router.push(`/post/${id}`)} isSaved={savedPosts.has(p.id)} onSave={(id) => { if (!user) { requireLogin(); return; } toggleSave(id); }} /></motion.div>

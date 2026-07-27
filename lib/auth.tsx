@@ -90,6 +90,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return new Set();
   });
   const [hydrated, setHydrated] = useState(false);
+  const [localOTP, setLocalOTP] = useState<{ phone: string; code: string; expires: number } | null>(null);
 
   const toggleGuestLike = useCallback((postId: string) => {
     setGuestLikes(prev => {
@@ -468,9 +469,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 
   // ===== Phone OTP Auth =====
-  // Store local OTP for fallback
-  const [localOTP, setLocalOTP] = useState<{ phone: string; code: string; expires: number } | null>(null);
-
   const sendPhoneOTP = useCallback(async (phone: string): Promise<{ success: boolean; error?: string }> => {
     const formatted = phone.startsWith("+") ? phone : "+86" + phone;
     // Try Supabase phone OTP first
