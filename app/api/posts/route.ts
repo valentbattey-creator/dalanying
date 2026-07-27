@@ -117,10 +117,10 @@ export async function POST(req: NextRequest) {
     // Try Chinese category first; if constraint fails, use mapped value
     let supabaseCategory = category || "推荐";
 
-    // Ensure profile exists
+    // Ensure profile exists (外键约束要求)
     if (authorId) {
       await supabaseAdmin.from("profiles").upsert(
-        { id: authorId, nickname: author || "", avatar_url: authorAvatar || "", is_admin: false },
+        { id: authorId, nickname: author || "", avatar_url: authorAvatar || "" },
         { onConflict: "id" }
       );
     }

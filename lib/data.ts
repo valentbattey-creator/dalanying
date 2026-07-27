@@ -220,6 +220,7 @@ export const dataService = {
           "Authorization": "Bearer sb_publishable_jpAnsNOd1-v5ftyOhjO09A_cnQBXjvh",
         },
       });
+      console.log("[createPost] Supabase响应:", sbRes.status, sbRes.ok);
       if (sbRes.ok) {
         const sbData = await sbRes.json();
         if (Array.isArray(sbData) && sbData.length > 0) {
@@ -353,6 +354,7 @@ export const dataService = {
   },
 
   async createPost(post: Omit<Post, "id" | "createdAt" | "likes" | "comments" | "views">): Promise<Post> {
+    console.log("[createPost] 开始发帖, authorId:", post.authorId, "isValidUUID:", isValidUUID(post.authorId || ""));
     // Try API first
     const apiResult = await apiPost<any>("/api/posts", {
       title: post.title,
@@ -367,6 +369,7 @@ export const dataService = {
       isAnnouncement: post.isAnnouncement || false,
     });
 
+    console.log("[createPost] API result:", apiResult ? "success" : "failed", apiResult?.error || "");
     if (apiResult && !apiResult.error) {
       // Sync to localStorage as backup
       const posts = lsGet<Post[]>("posts", []);
@@ -376,15 +379,25 @@ export const dataService = {
     }
 
     // Fallback 2: Direct Supabase insert (bypasses Vercel API)
+    console.log("[createPost] API失败，尝试直连Supabase...");
     try {
-      const sbRes = await fetch("https://aawoajhmhvysedabncoz.supabase.co/rest/v1/posts", {
+      const SB_URL = "https://aawoajhmhvysedabncoz.supabase.co";
+      const SB_KEY = "sb_publishable_jpAnsNOd1-v5ftyOhjO09A_cnQBXjvh";
+      const sbHeaders = { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}`, "Content-Type": "application/json" };
+      
+      // 先确保 profile 存在（外键约束要求）
+      const uid = safeUUID(post.authorId);
+      if (uid) {
+        await fetch(`${SB_URL}/rest/v1/profiles`, {
+          method: "POST",
+          headers: { ...sbHeaders, "Prefer": "resolution=merge-duplicates" },
+          body: JSON.stringify({ id: uid, nickname: post.author || "", avatar_url: post.authorAvatar || "" }),
+        });
+      }
+      
+      const sbRes = await fetch(`${SB_URL}/rest/v1/posts`, {
         method: "POST",
-        headers: {
-          "apikey": "sb_publishable_jpAnsNOd1-v5ftyOhjO09A_cnQBXjvh",
-          "Authorization": "Bearer sb_publishable_jpAnsNOd1-v5ftyOhjO09A_cnQBXjvh",
-          "Content-Type": "application/json",
-          "Prefer": "return=representation",
-        },
+        headers: { ...sbHeaders, "Prefer": "return=representation" },
         body: JSON.stringify({
           title: post.title,
           content: post.content || "",
@@ -396,6 +409,7 @@ export const dataService = {
           is_announcement: post.isAnnouncement || false,
         }),
       });
+      console.log("[createPost] Supabase响应:", sbRes.status, sbRes.ok);
       if (sbRes.ok) {
         const sbData = await sbRes.json();
         const d = Array.isArray(sbData) ? sbData[0] : sbData;
@@ -462,6 +476,7 @@ export const dataService = {
       const sbRes = await fetch(url, {
         headers: { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}` },
       });
+      console.log("[createPost] Supabase响应:", sbRes.status, sbRes.ok);
       if (sbRes.ok) {
         const data = await sbRes.json();
         if (Array.isArray(data) && data.length > 0) {
@@ -506,6 +521,7 @@ export const dataService = {
           content: data.content, image_url: data.image || "",
         }),
       });
+      console.log("[createPost] Supabase响应:", sbRes.status, sbRes.ok);
       if (sbRes.ok) {
         const sbData = await sbRes.json();
         const d = Array.isArray(sbData) ? sbData[0] : sbData;
@@ -697,6 +713,7 @@ export const dataService = {
       const sbRes = await fetch(`${SB_URL}/rest/v1/likes?select=post_id&user_id=eq.${encodeURIComponent(userId)}`, {
         headers: { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}` },
       });
+      console.log("[createPost] Supabase响应:", sbRes.status, sbRes.ok);
       if (sbRes.ok) {
         const data = await sbRes.json();
         if (Array.isArray(data)) {
