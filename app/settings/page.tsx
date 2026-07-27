@@ -12,7 +12,7 @@ import AdminBadge from "@/components/AdminBadge";
 import { getPaymentConfig, savePaymentConfig, uploadPaymentQR, type PaymentConfig } from "@/lib/payment";
 
 export default function SettingsPage() {
-  const { user, logout, updateUserProfile, checkNameAvailable, claimOwner, abdicateOwner, hasOwner } = useAuth();
+  const { user, logout, updateUserProfile, checkNameAvailable, claimOwner, abdicateOwner, hasOwner, bindEmail, sendEmailOTP, deleteAccount } = useAuth();
   const { theme, toggle } = useTheme();
   const router = useRouter();
 
@@ -35,6 +35,17 @@ export default function SettingsPage() {
   const [adminKey, setAdminKey] = useState("");
   const [activating, setActivating] = useState(false);
 
+  // Email binding
+  const [bindEmailAddr, setBindEmailAddr] = useState("");
+  const [bindEmailOtp, setBindEmailOtp] = useState("");
+  const [bindEmailSent, setBindEmailSent] = useState(false);
+  const [bindEmailCountdown, setBindEmailCountdown] = useState(0);
+  const [bindingEmail, setBindingEmail] = useState(false);
+
+  // Delete account
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
   // Owner
   const [ownerPassword, setOwnerPassword] = useState("");
   const [claimingOwner, setClaimingOwner] = useState(false);
@@ -47,7 +58,7 @@ export default function SettingsPage() {
   const [uploadingWechat, setUploadingWechat] = useState(false);
 
   // Collapsible sections
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({ profile: true, appearance: false, admin: false, payment: false, danger: false });
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({ profile: true, appearance: false, admin: false, payment: false, danger: false, bindEmail: false });
 
   useEffect(() => {
     if (!user) return;
@@ -64,6 +75,13 @@ export default function SettingsPage() {
   useEffect(() => {
     getPaymentConfig().then(setPayConfig);
   }, []);
+
+  // Email binding countdown
+  useEffect(() => {
+    if (bindEmailCountdown <= 0) return;
+    const t = setInterval(() => setBindEmailCountdown(prev => prev - 1), 1000);
+    return () => clearInterval(t);
+  }, [bindEmailCountdown]);
 
   useEffect(() => {
     if (!user || nickname.trim() === user.name || nickname.trim().length < 2) { setNameStatus("idle"); return; }
@@ -106,6 +124,52 @@ export default function SettingsPage() {
     setBgPreview("");
     document.documentElement.style.setProperty("--user-bg-image", "none");
     localStorage.removeItem("dalanying_bg_image");
+  }
+
+  // Email binding handlers
+  async function handleSendBindOtp() {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(bindEmailAddr)) {
+      toast.error("请输入正确的邮箱");
+      return;
+    }
+    setBindingEmail(true);
+    const result = await sendEmailOTP(bindEmailAddr.trim());
+    if (result.success) {
+      setBindEmailSent(true);
+      setBindEmailCountdown(120);
+      toast.success("验证码已发送到邮箱");
+    } else {
+      toast.error(result.error || "发送失败");
+    }
+    setBindingEmail(false);
+  }
+
+  async function handleBindEmail() {
+    if (!bindEmailAddr.trim() || !bindEmailOtp.trim()) return;
+    setBindingEmail(true);
+    const result = await bindEmail(bindEmailAddr.trim(), bindEmailOtp.trim());
+    if (result.success) {
+      toast.success("🎉 邮箱绑定成功！你已升级为正式用户");
+      setBindEmailAddr("");
+      setBindEmailOtp("");
+      setBindEmailSent(false);
+    } else {
+      toast.error(result.error || "绑定失败");
+    }
+    setBindingEmail(false);
+  }
+
+  // Delete account handler
+  async function handleDeleteAccount() {
+    setDeleting(true);
+    const result = await deleteAccount();
+    if (result.success) {
+      toast.success("账户已注销");
+      router.push("/");
+    } else {
+      toast.error(result.error || "注销失败");
+    }
+    setDeleting(false);
   }
 
   async function handleSave() {
@@ -456,6 +520,67 @@ export default function SettingsPage() {
           </div>
         )}
 
+        {/* ============ 邮箱绑定（仅游客） ============ */}
+        {user?.isGuest && !user.email && (
+          <div className="bg-[var(--color-bg-card)] border-[0.5px] border-[var(--color-border-subtle)] rounded-xl overflow-hidden">
+            <button onClick={() => toggleSection("bindEmail")} className="w-full px-4 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">📧</span>
+                <span className="text-sm font-medium text-[var(--color-text-primary)]">绑定邮箱</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-400">升级正式用户</span>
+              </div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`text-[var(--color-text-tertiary)] transition-transform ${expanded.bindEmail ? "rotate-180" : ""}`}><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            {expanded.bindEmail && (
+              <div className="px-4 pb-4 space-y-3 border-t-[0.5px] border-[var(--color-border-subtle)] pt-3">
+                <p className="text-xs text-[var(--color-text-secondary)]">绑定邮箱后，你的账号将升级为正式用户，可以通过邮箱登录。</p>
+                <div>
+                  <label className="text-[11px] font-medium text-[var(--color-text-secondary)] ml-1">邮箱地址</label>
+                  <input type="email" placeholder="your@email.com" value={bindEmailAddr}
+                    onChange={(e) => { setBindEmailAddr(e.target.value); if (bindEmailSent) { setBindEmailSent(false); setBindEmailOtp(""); } }}
+                    className="w-full mt-1 px-3 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] outline-none focus:border-[var(--color-accent)] transition-all" />
+                </div>
+                {bindEmailSent && (
+                  <div>
+                    <label className="text-[11px] font-medium text-[var(--color-text-secondary)] ml-1">验证码</label>
+                    <div className="flex gap-2 mt-1">
+                      <input type="text" placeholder="8位验证码" value={bindEmailOtp} maxLength={8}
+                        onChange={(e) => setBindEmailOtp(e.target.value.replace(/\D/g, ""))}
+                        className="flex-1 px-3 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] outline-none focus:border-[var(--color-accent)] transition-all tracking-widest" />
+                      <button type="button" onClick={handleSendBindOtp} disabled={bindEmailCountdown > 0 || bindingEmail}
+                        className="shrink-0 px-3 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] disabled:opacity-40 transition-all">
+                        {bindEmailCountdown > 0 ? `${bindEmailCountdown}s` : "重发"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {!bindEmailSent ? (
+                  <button onClick={handleSendBindOtp} disabled={!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(bindEmailAddr) || bindingEmail}
+                    className="btn-primary w-full py-2.5 rounded-xl text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+                    {bindingEmail ? "发送中..." : "发送验证码"}
+                  </button>
+                ) : (
+                  <button onClick={handleBindEmail} disabled={bindEmailOtp.length < 6 || bindingEmail}
+                    className="btn-primary w-full py-2.5 rounded-xl text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+                    {bindingEmail ? "绑定中..." : "确认绑定"}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ============ 已绑定邮箱显示 ============ */}
+        {user?.email && (
+          <div className="bg-[var(--color-bg-card)] border-[0.5px] border-[var(--color-border-subtle)] rounded-xl px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">📧</span>
+              <span className="text-sm text-[var(--color-text-primary)]">邮箱</span>
+            </div>
+            <span className="text-xs text-[var(--color-text-secondary)]">{user.email}</span>
+          </div>
+        )}
+
         {/* ============ 其他 ============ */}
         <div className="space-y-2">
           <button onClick={() => router.push("/feedback")}
@@ -466,6 +591,29 @@ export default function SettingsPage() {
             className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500/10 to-orange-400/5 border-[0.5px] border-amber-500/20 text-sm text-amber-400 hover:text-amber-300 hover:border-amber-400/30 transition-all">
             ☕ 支持站长 · 推流帖子
           </button>
+          {/* 注销账户 */}
+          {!showDeleteConfirm ? (
+            <button onClick={() => setShowDeleteConfirm(true)}
+              className="w-full py-3 rounded-xl bg-[var(--color-bg-card)] border-[0.5px] border-[var(--color-border-subtle)] text-sm text-red-400/70 hover:text-red-400 hover:bg-red-400/5 transition-all">
+              注销账户
+            </button>
+          ) : (
+            <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-4 space-y-3">
+              <p className="text-sm text-red-400 font-medium">⚠️ 确认注销账户？</p>
+              <p className="text-xs text-[var(--color-text-secondary)]">注销后你的昵称将变为"已注销用户"，但你发布的内容会保留。此操作不可逆。</p>
+              <div className="flex gap-2">
+                <button onClick={() => setShowDeleteConfirm(false)}
+                  className="flex-1 py-2 rounded-lg bg-[var(--color-bg-secondary)] text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-all">
+                  取消
+                </button>
+                <button onClick={handleDeleteAccount} disabled={deleting}
+                  className="flex-1 py-2 rounded-lg bg-red-500/20 text-sm text-red-400 hover:bg-red-500/30 disabled:opacity-40 transition-all">
+                  {deleting ? "注销中..." : "确认注销"}
+                </button>
+              </div>
+            </div>
+          )}
+
           <button onClick={async () => { await logout(); toast.success("已退出"); router.push("/"); }}
             className="w-full py-3 rounded-xl bg-[var(--color-bg-card)] border-[0.5px] border-[var(--color-border-subtle)] text-sm text-red-400 hover:bg-red-400/5 transition-all">
             退出登录

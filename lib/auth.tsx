@@ -49,6 +49,8 @@ interface AuthState {
   sendEmailOTP: (email: string) => Promise<{ success: boolean; error?: string }>;
   verifyEmailOTP: (email: string, token: string, name?: string) => Promise<{ success: boolean; error?: string }>;
   verifyPhoneOTP: (phone: string, token: string, name?: string) => Promise<{ success: boolean; error?: string }>;
+  bindEmail: (email: string, token: string) => Promise<{ success: boolean; error?: string }>;
+  deleteAccount: () => Promise<{ success: boolean; error?: string }>;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -507,7 +509,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch {}
     }
     // Local OTP fallback: generate 6-digit code
-    const code = String(Math.floor(100000 + Math.random() * 900000));
+    const code = String(Math.floor(10000000 + Math.random() * 90000000));
     setLocalOTP({ phone: formatted, code, expires: Date.now() + 300000 }); // 5 min
     // Show toast with the code (in production this would be sent via SMS)
     toast.info("验证码: " + code, { duration: 30000, description: "（开发模式：短信服务未配置，验证码显示在页面上）" });
@@ -580,73 +582,207 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // ===== Email OTP Auth =====
   const sendEmailOTP = useCallback(async (email: string): Promise<{ success: boolean; error?: string }> => {
-    if (!hasSupabase) return { success: false, error: "系统未配置" };
+    if (!hasSupabase) return { success: false, error: "系统未配置 Supabase" };
+    
     try {
       const { error } = await supabase!.auth.signInWithOtp({
         email,
-        options: { shouldCreateUser: true, emailRedirectTo: undefined },
+        options: { shouldCreateUser: true },
       });
+      
       if (error) {
-        if (error.message.includes("rate limit")) return { success: false, error: "发送太频繁，请稍后再试" };
+        console.error("发送验证码失败:", error.message);
+        if (error.message.includes("rate limit")) {
+          return { success: false, error: "发送太频繁，请稍后再试" };
+        }
         return { success: false, error: "发送失败: " + error.message };
       }
+      
+      console.log("验证码已发送到邮箱:", email);
       return { success: true };
     } catch (e: any) {
+      console.error("发送验证码异常:", e);
       return { success: false, error: e.message || "发送失败" };
     }
   }, []);
 
   const verifyEmailOTP = useCallback(async (email: string, token: string, name?: string): Promise<{ success: boolean; error?: string }> => {
-    // Try local OTP first (fallback mode)
-    if (localOTP && localOTP.phone === "email_" + email) {
-      if (Date.now() > localOTP.expires) { setLocalOTP(null); return { success: false, error: "验证码已过期，请重新发送" }; }
-      if (token !== localOTP.code) return { success: false, error: "验证码错误" };
-      setLocalOTP(null);
-      // Create or restore user
-      const uid = "email_" + email.replace(/[^a-zA-Z0-9]/g, "_");
-      const existingProfile = localStorage.getItem("dalanying_profile_" + uid);
-      const nick = name || "用户" + Date.now().toString(36).slice(-4);
-      let userNick = nick;
-      if (existingProfile) { try { userNick = JSON.parse(existingProfile).nickname || nick; } catch {} }
-      const autoAvatar = generateAvatar(userNick);
-      const newUser: AppUser = { id: uid, name: userNick, email, phone: "", avatar: autoAvatar, isAdmin: false, role: null, bannedUntil: null };
-      // Save to Supabase
-      if (hasSupabase) {
-        try { await supabase!.from("profiles").upsert({ id: uid, nickname: userNick, avatar_url: autoAvatar }, { onConflict: "id" }); } catch {}
-        try { const { count } = await supabase!.from("profiles").select("*", { count: "exact", head: true }); setRegistrationCount(count || null); } catch {}
-      }
-      localStorage.setItem("dalanying_profile_" + uid, JSON.stringify({ nickname: userNick }));
-      setUser(newUser);
-      localStorage.setItem("dalanying_user", JSON.stringify(newUser));
-      return { success: true };
-    }
     if (!hasSupabase) return { success: false, error: "未配置 Supabase" };
+    
     try {
-      const { data, error } = await supabase!.auth.verifyOtp({ email, token, type: "email" });
+      const { data, error } = await supabase!.auth.verifyOtp({ 
+        email, 
+        token, 
+        type: "email" 
+      });
+      
       if (error) {
-        if (error.message.includes("invalid") || error.message.includes("expired")) return { success: false, error: "验证码错误或已过期" };
+        console.error("验证码验证失败:", error.message);
+        if (error.message.includes("invalid") || error.message.includes("expired")) {
+          return { success: false, error: "验证码错误或已过期" };
+        }
+        if (error.message.includes("Token has expired")) {
+          return { success: false, error: "验证码已过期，请重新发送" };
+        }
         return { success: false, error: error.message };
       }
+      
       if (data.user) {
+        console.log("验证码验证成功，用户:", data.user.id);
+        
+        // 检查并创建用户资料
         const profile = await fetchProfile(data.user.id);
         if (!profile || !profile.nickname) {
           const nick = name || "用户" + Date.now().toString(36).slice(-4);
           await supabase!.from("profiles").upsert({
-            id: data.user.id, nickname: nick, avatar_url: "", phone: "",
+            id: data.user.id, 
+            nickname: nick, 
+            avatar_url: "", 
+            phone: "",
           }, { onConflict: "id" });
+          
           try {
             const { count } = await supabase!.from("profiles").select("*", { count: "exact", head: true });
             setRegistrationCount(count || null);
           } catch {}
+          
           setShowProfileSetup(true);
         }
+        
         await refreshUser();
       }
+      
       return { success: true };
     } catch (e: any) {
+      console.error("验证码验证异常:", e);
       return { success: false, error: e.message || "验证失败" };
     }
   }, [refreshUser]);
+
+  // ===== Bind Email (for guest users) =====
+  const bindEmail = useCallback(async (email: string, token: string): Promise<{ success: boolean; error?: string }> => {
+    if (!hasSupabase) return { success: false, error: "未配置 Supabase" };
+    if (!user) return { success: false, error: "未登录" };
+
+    try {
+      // Verify the OTP
+      const { data, error } = await supabase!.auth.verifyOtp({
+        email,
+        token,
+        type: "email",
+      });
+      if (error) {
+        if (error.message.includes("invalid") || error.message.includes("expired")) {
+          return { success: false, error: "验证码错误或已过期" };
+        }
+        return { success: false, error: error.message };
+      }
+
+      if (data.user) {
+        // Update profile with the new email and supabase user id
+        // Migrate: copy old profile data to new supabase user id
+        const oldId = user.id;
+        const newId = data.user.id;
+        const oldProfile = await fetchProfile(oldId);
+
+        // Create/update profile under new supabase user id
+        await supabase!.from("profiles").upsert({
+          id: newId,
+          nickname: user.name,
+          avatar_url: user.avatar,
+          bio: oldProfile?.bio || "",
+          phone: user.phone || "",
+        }, { onConflict: "id" });
+
+        // Migrate posts: update author_id from old to new
+        try {
+          await supabase!.from("posts").update({ user_id: newId }).eq("user_id", oldId);
+        } catch {}
+
+        // Migrate comments
+        try {
+          await supabase!.from("comments").update({ user_id: newId }).eq("user_id", oldId);
+        } catch {}
+
+        // Migrate likes
+        try {
+          await supabase!.from("likes").update({ user_id: newId }).eq("user_id", oldId);
+        } catch {}
+
+        // Delete old anonymous profile
+        try {
+          if (oldId.startsWith("anon_") || oldId.startsWith("phone_") || oldId.startsWith("email_")) {
+            await supabase!.from("profiles").delete().eq("id", oldId);
+          }
+        } catch {}
+
+        // Update local user state
+        const updatedUser: AppUser = {
+          ...user,
+          id: newId,
+          email,
+          isGuest: false,
+        };
+        setUser(updatedUser);
+        localStorage.setItem("dalanying_user", JSON.stringify(updatedUser));
+
+        // Update name map
+        try {
+          const nameMap = JSON.parse(localStorage.getItem("dalanying_name_map") || "{}");
+          delete nameMap[user.name];
+          localStorage.setItem("dalanying_name_map", JSON.stringify(nameMap));
+        } catch {}
+
+        console.log("邮箱绑定成功:", email, "新ID:", newId);
+      }
+
+      return { success: true };
+    } catch (e: any) {
+      console.error("绑定邮箱异常:", e);
+      return { success: false, error: e.message || "绑定失败" };
+    }
+  }, [user]);
+
+  // ===== Delete Account =====
+  const deleteAccount = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
+    if (!user) return { success: false, error: "未登录" };
+
+    try {
+      if (hasSupabase) {
+        // Mark profile as deleted (soft delete) - posts stay visible
+        await supabase!.from("profiles").update({
+          nickname: "已注销用户",
+          avatar_url: "",
+          bio: "",
+          deleted: true,
+        }).eq("id", user.id);
+      }
+
+      // Clear local state
+      setUser(null);
+      localStorage.removeItem("dalanying_user");
+
+      // Clear name map entry
+      try {
+        const nameMap = JSON.parse(localStorage.getItem("dalanying_name_map") || "{}");
+        delete nameMap[user.name];
+        localStorage.setItem("dalanying_name_map", JSON.stringify(nameMap));
+      } catch {}
+
+      // Clear from anon users list
+      try {
+        const anonUsers = JSON.parse(localStorage.getItem("dalanying_anon_users") || "[]");
+        const filtered = anonUsers.filter((u: { id: string }) => u.id !== user.id);
+        localStorage.setItem("dalanying_anon_users", JSON.stringify(filtered));
+      } catch {}
+
+      console.log("账户已注销:", user.id);
+      return { success: true };
+    } catch (e: any) {
+      console.error("注销账户异常:", e);
+      return { success: false, error: e.message || "注销失败" };
+    }
+  }, [user]);
 
   const logout = useCallback(async () => {
     if (hasSupabase) {
@@ -670,6 +806,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       registrationCount,
       guestLikes, toggleGuestLike,
       sendPhoneOTP, verifyPhoneOTP, sendEmailOTP, verifyEmailOTP,
+      bindEmail, deleteAccount,
     }}>
       {children}
     </AuthContext.Provider>

@@ -714,6 +714,38 @@ export const dataService = {
   },
 
   async banUser(userId: string, until: string): Promise<boolean> {
+    // Ban user and delete all their content
+    try {
+      const SB_URL = "https://aawoajhmhvysedabncoz.supabase.co";
+      const SB_KEY = "sb_publishable_jpAnsNOd1-v5ftyOhjO09A_cnQBXjvh";
+      
+      // Delete all posts by this user
+      await fetch(`${SB_URL}/rest/v1/posts?user_id=eq.${encodeURIComponent(userId)}`, {
+        method: "DELETE",
+        headers: { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}` },
+      });
+      
+      // Delete all comments by this user
+      await fetch(`${SB_URL}/rest/v1/comments?user_id=eq.${encodeURIComponent(userId)}`, {
+        method: "DELETE",
+        headers: { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}` },
+      });
+      
+      // Delete all likes by this user
+      await fetch(`${SB_URL}/rest/v1/likes?user_id=eq.${encodeURIComponent(userId)}`, {
+        method: "DELETE",
+        headers: { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}` },
+      });
+      
+      // Delete all saves by this user
+      await fetch(`${SB_URL}/rest/v1/saves?user_id=eq.${encodeURIComponent(userId)}`, {
+        method: "DELETE",
+        headers: { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}` },
+      });
+    } catch (e) {
+      console.error("删除用户内容失败:", e);
+    }
+    
     return this.updateProfile(userId, { banned_until: until });
   },
 
