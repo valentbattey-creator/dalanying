@@ -6,7 +6,13 @@ import { useRouter } from "next/navigation";
 import type { AppUser } from "@/lib/auth";
 import { uploadAvatar } from "@/lib/data";
 import { useTheme } from "@/lib/theme";
+import { createClient } from "@supabase/supabase-js";
 import { toast } from "sonner";
+
+const supabase = typeof window !== "undefined" ? createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || "",
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
+) : null;
 import UserAvatar from "@/components/UserAvatar";
 import AdminBadge from "@/components/AdminBadge";
 import { getPaymentConfig, savePaymentConfig, uploadPaymentQR, type PaymentConfig } from "@/lib/payment";
@@ -35,6 +41,11 @@ export default function SettingsPage() {
   const [adminKey, setAdminKey] = useState("");
   const [activating, setActivating] = useState(false);
 
+  // Password
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [settingPassword, setSettingPassword] = useState(false);
+
   // Email binding
   const [bindEmailAddr, setBindEmailAddr] = useState("");
   const [bindEmailOtp, setBindEmailOtp] = useState("");
@@ -58,7 +69,7 @@ export default function SettingsPage() {
   const [uploadingWechat, setUploadingWechat] = useState(false);
 
   // Collapsible sections
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({ profile: true, appearance: false, admin: false, payment: false, danger: false, bindEmail: false });
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({ profile: true, appearance: false, admin: false, payment: false, danger: false, bindEmail: false, password: false });
 
   useEffect(() => {
     if (!user) return;
@@ -515,6 +526,50 @@ export default function SettingsPage() {
                     )}
                   </div>
                 </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ============ 设置密码（有邮箱的用户） ============ */}
+        {user?.email && (
+          <div className="bg-[var(--color-bg-card)] border-[0.5px] border-[var(--color-border-subtle)] rounded-xl overflow-hidden">
+            <button onClick={() => toggleSection("password")} className="w-full px-4 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">🔑</span>
+                <span className="text-sm font-medium text-[var(--color-text-primary)]">设置密码</span>
+              </div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`text-[var(--color-text-tertiary)] transition-transform ${expanded.password ? "rotate-180" : ""}`}><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            {expanded.password && (
+              <div className="px-4 pb-4 space-y-3 border-t-[0.5px] border-[var(--color-border-subtle)] pt-3">
+                <p className="text-xs text-[var(--color-text-secondary)]">设置密码后，下次可以用邮箱+密码直接登录，不用再收验证码。</p>
+                <div>
+                  <label className="text-[11px] font-medium text-[var(--color-text-secondary)] ml-1">新密码</label>
+                  <input type="password" placeholder="至少6位" value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    className="w-full mt-1 px-3 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] outline-none focus:border-[var(--color-accent)] transition-all" />
+                </div>
+                {newPassword.length >= 6 && (
+                  <div>
+                    <label className="text-[11px] font-medium text-[var(--color-text-secondary)] ml-1">确认密码</label>
+                    <input type="password" placeholder="再输入一次" value={confirmNewPassword}
+                      onChange={(e) => setConfirmNewPassword(e.target.value)}
+                      className="w-full mt-1 px-3 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] outline-none focus:border-[var(--color-accent)] transition-all" />
+                  </div>
+                )}
+                <button onClick={async () => {
+                  if (!newPassword || newPassword.length < 6) { toast.error("密码至少6位"); return; }
+                  if (newPassword !== confirmNewPassword) { toast.error("两次密码不一致"); return; }
+                  setSettingPassword(true);
+                  const { error } = await supabase!.auth.updateUser({ password: newPassword });
+                  if (error) { toast.error("设置失败: " + error.message); }
+                  else { toast.success("密码设置成功！"); setNewPassword(""); setConfirmNewPassword(""); }
+                  setSettingPassword(false);
+                }} disabled={!newPassword || newPassword.length < 6 || newPassword !== confirmNewPassword || settingPassword}
+                  className="btn-primary w-full py-2.5 rounded-xl text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+                  {settingPassword ? "设置中..." : "保存密码"}
+                </button>
               </div>
             )}
           </div>
