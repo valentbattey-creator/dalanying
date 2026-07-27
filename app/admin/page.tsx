@@ -33,7 +33,7 @@ export default function AdminPage() {
   useEffect(() => {
     (async () => {
       try {
-        const SB_URL = "https://aawoajhmhvysedabncoz.supabase.co";
+        const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_PROXY_URL || "https://aawoajhmhvysedabncoz.supabase.co";
         const SB_KEY = "sb_publishable_jpAnsNOd1-v5ftyOhjO09A_cnQBXjvh";
         const headers = { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}`, "Prefer": "count=exact" };
         const [ur, pr, fr] = await Promise.all([

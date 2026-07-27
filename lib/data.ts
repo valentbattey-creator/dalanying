@@ -3,6 +3,10 @@
 import { supabase, hasSupabase } from "./supabase";
 import { expandSearchQuery, fuzzyMatch } from "./search";
 
+// Supabase URL - 优先使用代理
+const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_PROXY_URL || "https://aawoajhmhvysedabncoz.supabase.co";
+const SB_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "sb_publishable_jpAnsNOd1-v5ftyOhjO09A_cnQBXjvh";
+
 // ===== Category & Tag System =====
 export const CATEGORIES = [
   "推荐", "数码", "科技", "汽车", "运动", "游戏", "健身", "户外", "财经",
@@ -158,7 +162,7 @@ async function apiPut<T>(path: string, body: unknown): Promise<T | null> {
 async function directSupabaseGet<T>(path: string, params?: Record<string, string>): Promise<T | null> {
   try {
     if (!supabase) return null;
-    const url = new URL(path, "https://aawoajhmhvysedabncoz.supabase.co");
+    const url = new URL(path, SB_URL);
     if (params) Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
     const res = await fetch(url.toString(), {
       headers: {
@@ -228,7 +232,7 @@ export const dataService = {
 
     // Fallback 2: Try direct Supabase (bypasses Vercel API)
     try {
-      const sbUrl = "https://aawoajhmhvysedabncoz.supabase.co/rest/v1/posts";
+      const sbUrl = "${SB_URL}/rest/v1/posts";
       const sbParams = new URLSearchParams({
         select: "*,profiles!posts_user_id_fkey(nickname,avatar_url)",
         order: "is_pinned.desc,created_at.desc",
@@ -252,10 +256,10 @@ export const dataService = {
           let commentsMap = new Map<string, number>();
           try {
             const [lr, cr] = await Promise.all([
-              fetch(`https://aawoajhmhvysedabncoz.supabase.co/rest/v1/likes?select=post_id&post_id=in.(${postIds.join(",")})`, {
+              fetch(`${SB_URL}/rest/v1/likes?select=post_id&post_id=in.(${postIds.join(",")})`, {
                 headers: { "apikey": "sb_publishable_jpAnsNOd1-v5ftyOhjO09A_cnQBXjvh" },
               }),
-              fetch(`https://aawoajhmhvysedabncoz.supabase.co/rest/v1/comments?select=post_id&post_id=in.(${postIds.join(",")})`, {
+              fetch(`${SB_URL}/rest/v1/comments?select=post_id&post_id=in.(${postIds.join(",")})`, {
                 headers: { "apikey": "sb_publishable_jpAnsNOd1-v5ftyOhjO09A_cnQBXjvh" },
               }),
             ]);
@@ -403,7 +407,7 @@ export const dataService = {
     // Fallback 2: Direct Supabase insert (bypasses Vercel API)
     console.log("[createPost] API失败，尝试直连Supabase...");
     try {
-      const SB_URL = "https://aawoajhmhvysedabncoz.supabase.co";
+      // SB_URL already defined at top
       const SB_KEY = "sb_publishable_jpAnsNOd1-v5ftyOhjO09A_cnQBXjvh";
       const sbHeaders = { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}`, "Content-Type": "application/json" };
       
@@ -491,7 +495,7 @@ export const dataService = {
   async fetchComments(postId?: string): Promise<Comment[]> {
     // Try direct Supabase first (works without VPN)
     try {
-      const SB_URL = "https://aawoajhmhvysedabncoz.supabase.co";
+      // SB_URL already defined at top
       const SB_KEY = "sb_publishable_jpAnsNOd1-v5ftyOhjO09A_cnQBXjvh";
       let url = `${SB_URL}/rest/v1/comments?select=*&order=created_at.asc&limit=500`;
       if (postId) url += `&post_id=eq.${encodeURIComponent(postId)}`;
@@ -532,7 +536,7 @@ export const dataService = {
 
     // Fallback: Direct Supabase insert
     try {
-      const SB_URL = "https://aawoajhmhvysedabncoz.supabase.co";
+      // SB_URL already defined at top
       const SB_KEY = "sb_publishable_jpAnsNOd1-v5ftyOhjO09A_cnQBXjvh";
       const headers = { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}`, "Content-Type": "application/json", "Prefer": "return=representation" };
       const sbRes = await fetch(`${SB_URL}/rest/v1/comments`, {
@@ -592,7 +596,7 @@ export const dataService = {
 
     // Fallback: Direct Supabase
     try {
-      const SB_URL = "https://aawoajhmhvysedabncoz.supabase.co";
+      // SB_URL already defined at top
       const SB_KEY = "sb_publishable_jpAnsNOd1-v5ftyOhjO09A_cnQBXjvh";
       const headers = { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}`, "Content-Type": "application/json" };
       
@@ -723,7 +727,7 @@ export const dataService = {
   async banUser(userId: string, until: string): Promise<boolean> {
     // Ban user and delete all their content
     try {
-      const SB_URL = "https://aawoajhmhvysedabncoz.supabase.co";
+      // SB_URL already defined at top
       const SB_KEY = "sb_publishable_jpAnsNOd1-v5ftyOhjO09A_cnQBXjvh";
       
       // Delete all posts by this user
@@ -763,7 +767,7 @@ export const dataService = {
   async fetchLikes(userId: string): Promise<{ userLikes: Set<string> }> {
     // Try direct Supabase first
     try {
-      const SB_URL = "https://aawoajhmhvysedabncoz.supabase.co";
+      // SB_URL already defined at top
       const SB_KEY = "sb_publishable_jpAnsNOd1-v5ftyOhjO09A_cnQBXjvh";
       const sbRes = await fetch(`${SB_URL}/rest/v1/likes?select=post_id&user_id=eq.${encodeURIComponent(userId)}`, {
         headers: { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}` },
@@ -836,7 +840,7 @@ export async function fetchProfile(userId: string) { return dataService.fetchPro
 export async function searchUsers(query: string): Promise<Profile[]> {
   if (!query.trim()) return [];
   try {
-    const SB_URL = "https://aawoajhmhvysedabncoz.supabase.co";
+    // SB_URL already defined at top
     const SB_KEY = "sb_publishable_jpAnsNOd1-v5ftyOhjO09A_cnQBXjvh";
     const res = await fetch(`${SB_URL}/rest/v1/profiles?nickname=ilike.%${encodeURIComponent(query.trim())}%&limit=20`, {
       headers: { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}` },

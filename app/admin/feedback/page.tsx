@@ -33,7 +33,7 @@ export default function AdminFeedbackPage() {
   async function loadFeedbacks() {
     setLoading(true);
     try {
-      const SB_URL = "https://aawoajhmhvysedabncoz.supabase.co";
+      const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_PROXY_URL || "https://aawoajhmhvysedabncoz.supabase.co";
       const SB_KEY = "sb_publishable_jpAnsNOd1-v5ftyOhjO09A_cnQBXjvh";
       const res = await fetch(`${SB_URL}/rest/v1/feedbacks?select=*&order=created_at.desc&limit=100`, {
         headers: { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}` },
