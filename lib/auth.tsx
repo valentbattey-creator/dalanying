@@ -36,6 +36,7 @@ interface AuthState {
   updateUserProfile: (updates: { name?: string; avatar?: string; isAdmin?: boolean; role?: "owner" | "admin" | null }) => void;
   claimOwner: (password: string) => Promise<boolean>;
   abdicateOwner: (password: string) => Promise<boolean>;
+  hasOwner: boolean;
   setShowLoginModal: (show: boolean) => void;
   showLoginModal: boolean;
   showProfileSetup: boolean;
@@ -78,6 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [hasOwner, setHasOwner] = useState(false);
   const [showProfileSetup, setShowProfileSetup] = useState(false);
   const [registrationCount, setRegistrationCount] = useState<number | null>(null);
   const [guestLikes, setGuestLikes] = useState<Set<string>>(() => {
@@ -117,6 +119,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         bannedUntil: profile?.banned_until || null,
       });
     }
+  }, []);
+
+  // Check if owner exists in Supabase
+  useEffect(() => {
+    (async () => {
+      try {
+        if (hasSupabase) {
+          const { data } = await supabase!.from("profiles").select("id").eq("role", "owner").limit(1);
+          if (data && data.length > 0) setHasOwner(true);
+        }
+        const all = JSON.parse(localStorage.getItem("dalanying_anon_users") || "[]");
+        if (all.some((u: any) => u.role === "owner")) setHasOwner(true);
+      } catch {}
+    })();
   }, []);
 
   // Hydrate from localStorage on mount
@@ -230,6 +246,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem("dalanying_users", JSON.stringify(users));
       }
       
+      setHasOwner(true);
       toast.success("站长身份已激活！");
       return true;
     } catch (e) { 
@@ -614,7 +631,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       refreshUser, updateUserProfile,
       showLoginModal, setShowLoginModal,
       showProfileSetup, setShowProfileSetup,
-      claimOwner, abdicateOwner,
+      claimOwner, abdicateOwner, hasOwner,
       registrationCount,
       guestLikes, toggleGuestLike,
       sendPhoneOTP, verifyPhoneOTP, sendEmailOTP, verifyEmailOTP,

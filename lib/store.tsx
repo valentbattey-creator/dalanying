@@ -251,10 +251,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   }, [user, savedPosts]);
 
   const deletePost = useCallback(async (postId: string): Promise<boolean> => {
+    const post = posts.find(p => p.id === postId);
+    if (!post) return false;
+    // Permission check: own post, admin, or owner
+    const canDelete = user && (post.authorId === user.id || user.isAdmin || user.role === "owner");
+    if (!canDelete) { toast?.error?.("没有权限删除"); return false; }
     const ok = await dataService.deletePost(postId);
     if (ok) setPosts(prev => prev.filter(p => p.id !== postId));
     return ok;
-  }, []);
+  }, [user, posts]);
 
   const updatePost = useCallback(async (postId: string, updates: any): Promise<boolean> => {
     const ok = await dataService.updatePost(postId, updates);

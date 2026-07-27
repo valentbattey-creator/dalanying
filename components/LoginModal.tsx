@@ -6,7 +6,7 @@ import { toast } from "sonner";
 
 export default function LoginModal() {
   const { showLoginModal, setShowLoginModal, login, register, quickLogin, checkNameAvailable, registrationCount, sendPhoneOTP, verifyPhoneOTP, sendEmailOTP, verifyEmailOTP } = useAuth();
-  const [mode, setMode] = useState<"phone" | "email" | "login" | "register" | "quick">("phone");
+  const [mode, setMode] = useState<"phone" | "email" | "login" | "register" | "quick">("quick");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

@@ -12,7 +12,7 @@ import AdminBadge from "@/components/AdminBadge";
 import { getPaymentConfig, savePaymentConfig, uploadPaymentQR, type PaymentConfig } from "@/lib/payment";
 
 export default function SettingsPage() {
-  const { user, logout, updateUserProfile, checkNameAvailable, claimOwner, abdicateOwner } = useAuth();
+  const { user, logout, updateUserProfile, checkNameAvailable, claimOwner, abdicateOwner, hasOwner } = useAuth();
   const { theme, toggle } = useTheme();
   const router = useRouter();
 
@@ -350,7 +350,7 @@ export default function SettingsPage() {
           {expanded.admin && (
             <div className="px-4 pb-4 space-y-4 border-t-[0.5px] border-[var(--color-border-subtle)] pt-3">
               {/* Claim Owner */}
-              {user?.role !== "owner" && (
+              {user?.role !== "owner" && !hasOwner && (
                 <div className="space-y-2">
                   <p className="text-[11px] font-medium text-[var(--color-text-secondary)]">👑 认领站长</p>
                   <div className="flex gap-2">
@@ -377,6 +377,12 @@ export default function SettingsPage() {
               )}
 
               {/* Apply Admin */}
+              {user?.role !== "owner" && hasOwner && !user?.isAdmin && (
+                <div className="p-3 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)]">
+                  <p className="text-[11px] font-medium text-[var(--color-text-secondary)]">🛡️ 申请管理员</p>
+                  <p className="text-[10px] text-[var(--color-text-tertiary)] mt-1">联系站长申请管理员权限</p>
+                </div>
+              )}
               {!user?.isAdmin && user?.role !== "owner" && (
                 <div className="space-y-2 pt-2 border-t-[0.5px] border-[var(--color-border-subtle)]">
                   <p className="text-[11px] font-medium text-[var(--color-text-secondary)]">🔑 申请管理员</p>

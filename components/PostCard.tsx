@@ -1,6 +1,6 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { type Post } from "@/lib/store";
 import AdminBadge from "@/components/AdminBadge";
@@ -28,10 +28,16 @@ interface PostCardProps {
   onCardClick: (postId: string) => void;
   isSaved?: boolean;
   onSave?: (postId: string) => void;
+  onDelete?: (postId: string) => void;
+  currentUserId?: string;
+  isOwner?: boolean;
+  isAdmin?: boolean;
 }
 
-function PostCardInner({ post, isLiked, onLike, onCardClick, isSaved = false, onSave }: PostCardProps) {
+function PostCardInner({ post, isLiked, onLike, onCardClick, isSaved = false, onSave, onDelete, currentUserId, isOwner, isAdmin }: PostCardProps) {
   const hasImage = post.images && post.images.length > 0;
+  const [showMenu, setShowMenu] = useState(false);
+  const canDelete = currentUserId && (post.authorId === currentUserId || isOwner || isAdmin);
 
   function handleLike(e: React.MouseEvent) {
     e.stopPropagation();
@@ -45,11 +51,37 @@ function PostCardInner({ post, isLiked, onLike, onCardClick, isSaved = false, on
     if (onSave) onSave(post.id);
   }
 
+  function handleDelete(e: React.MouseEvent) {
+    e.stopPropagation();
+    e.preventDefault();
+    if (confirm("确定删除这条帖子吗？")) {
+      onDelete?.(post.id);
+    }
+    setShowMenu(false);
+  }
+
   return (
     <article
       onClick={() => onCardClick(post.id)}
-      className="group bg-[var(--color-bg-card)] border-[0.5px] border-[var(--color-border-subtle)] rounded-[10px] overflow-hidden cursor-pointer transition-all duration-200 hover:border-[var(--color-border-default)] active:scale-[0.98]"
+      className="group bg-[var(--color-bg-card)] border-[0.5px] border-[var(--color-border-subtle)] rounded-[10px] overflow-hidden cursor-pointer transition-all duration-200 hover:border-[var(--color-border-default)] active:scale-[0.98] relative"
     >
+      {/* Delete menu button */}
+      {canDelete && (
+        <button
+          onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
+          className="absolute top-2 right-2 z-10 w-6 h-6 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-sm text-white/70 hover:text-white text-xs transition-all opacity-0 group-hover:opacity-100"
+        >
+          ⋯
+        </button>
+      )}
+      {showMenu && (
+        <div className="absolute top-8 right-2 z-20 bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] rounded-lg shadow-xl overflow-hidden">
+          <button onClick={handleDelete} className="w-full px-4 py-2 text-xs text-red-400 hover:bg-red-500/10 text-left transition-all">
+            删除
+          </button>
+        </div>
+      )}
+
       {hasImage && (
         <div className="relative overflow-hidden">
           <img
@@ -60,7 +92,7 @@ function PostCardInner({ post, isLiked, onLike, onCardClick, isSaved = false, on
             className="w-full aspect-[4/3] object-cover"
           />
           {post.images.length > 1 && (
-            <span className="absolute top-2 right-2 px-1.5 py-0.5 rounded-md bg-black/50 backdrop-blur-sm text-white text-[10px] font-medium">
+            <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded-md bg-black/50 backdrop-blur-sm text-white text-[10px] font-medium">
               {post.images.length}图
             </span>
           )}
