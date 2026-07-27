@@ -114,7 +114,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setTotalCount(result.total);
     setHasMore(offset + result.posts.length < result.total);
     setLoading(false);
-  }, [hasMore, loading, posts.length, currentCategory, searchQuery]);
+    // Fetch accurate like counts from server
+    if (result.posts.length > 0) {
+      fetchLikesForPosts(result.posts.map(p => p.id));
+    }
+  }, [hasMore, loading, posts.length, currentCategory, searchQuery, fetchLikesForPosts]);
 
   const resetAndReload = useCallback(async (category?: string) => {
     const cat = category || "";
@@ -127,7 +131,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setTotalCount(result.total);
     setHasMore(result.posts.length < result.total);
     setLoading(false);
-  }, [searchQuery]);
+    // Fetch accurate like counts from server
+    if (result.posts.length > 0) {
+      fetchLikesForPosts(result.posts.map(p => p.id));
+    }
+  }, [searchQuery, fetchLikesForPosts]);
 
   const refreshAll = useCallback(async () => {
     setLoading(true);
@@ -137,6 +145,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setTotalCount(result.total);
     setHasMore(result.posts.length < result.total);
     setComments(c);
+    // Fetch accurate like counts from server
+    if (result.posts.length > 0) {
+      fetchLikesForPosts(result.posts.map(p => p.id));
+    }
     if (user) {
       const { userLikes } = await dataService.fetchLikes(user.id);
       setLikedPosts(userLikes);

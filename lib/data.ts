@@ -621,7 +621,8 @@ export const dataService = {
     const liked = lsGet<string[]>("likedPosts", []);
     const newLiked = currentlyLiked ? liked.filter(k => k !== key) : [...liked, key];
     lsSet("likedPosts", newLiked);
-    return newLiked.length;
+    // Count likes for this specific post only
+    return newLiked.filter(k => k.startsWith(postId + "_")).length;
   },
 
   toggleSave(postId: string, userId: string, currentlySaved: boolean): void {
