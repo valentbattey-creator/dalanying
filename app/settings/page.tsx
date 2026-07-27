@@ -228,6 +228,12 @@ export default function SettingsPage() {
                     {user?.role === "owner" && <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 font-medium">👑 站长</span>}
                     {user?.isAdmin && user?.role !== "owner" && <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-accent)]/15 text-[var(--color-accent)] font-medium">管理</span>}
                   </div>
+                  {(user?.isAdmin || user?.role === "owner") && (
+                    <button onClick={() => router.push("/admin")}
+                      className="mt-2 w-full py-2 rounded-lg bg-[var(--color-accent)]/10 border border-[var(--color-accent)]/30 text-xs font-medium text-[var(--color-accent)] hover:bg-[var(--color-accent)]/20 transition-all">
+                      🛠️ 进入管理后台
+                    </button>
+                  )}
                 </div>
               </div>
 
