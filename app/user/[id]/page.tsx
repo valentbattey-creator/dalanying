@@ -9,11 +9,21 @@ import PostCard from "@/components/PostCard";
 
 type Tab = "posts" | "liked" | "saved";
 
+function timeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "刚刚";
+  if (mins < 60) return `${mins}分钟前`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}小时前`;
+  return `${Math.floor(hours / 24)}天前`;
+}
+
 export default function UserProfilePage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { user, requireLogin } = useAuth();
-  const { loadUserPosts, loadUserLikedPosts, loadUserSavedPosts, likedPosts, toggleLike, savedPosts, toggleSave } = useData();
+  const { loadUserPosts, loadUserLikedPosts, loadUserSavedPosts, likedPosts, toggleLike, savedPosts, toggleSave, deletePost } = useData();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [tab, setTab] = useState<Tab>("posts");
@@ -69,7 +79,7 @@ export default function UserProfilePage() {
       <div className="relative">
         <div className="h-32 bg-gradient-to-br from-zinc-800 via-zinc-750 to-zinc-900" />
         <button
-          onClick={() => router.push("/") }
+          onClick={() => router.back()}
           className="absolute top-3 left-3 w-8 h-8 flex items-center justify-center rounded-full bg-black/30 text-white hover:bg-black/50 transition-all duration-200"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
@@ -140,7 +150,7 @@ export default function UserProfilePage() {
         ) : (
           <div className="grid grid-cols-2 gap-2.5 px-1">
             {posts.map((p) => (
-              <PostCard key={p.id} post={p} isLiked={likedPosts.has(p.id)} onLike={(id) => { if (!user) { requireLogin(); return; } toggleLike(id); }} onCardClick={(id) => router.push(`/post/${id}`)} isSaved={savedPosts.has(p.id)} onSave={(id) => { if (!user) { requireLogin(); return; } toggleSave(id); }} />
+              <PostCard key={p.id} post={p} isLiked={likedPosts.has(p.id)} onLike={(id) => { if (!user) { requireLogin(); return; } toggleLike(id); }} onCardClick={(id) => router.push(`/post/${id}`)} isSaved={savedPosts.has(p.id)} onSave={(id) => { if (!user) { requireLogin(); return; } toggleSave(id); }} onDelete={async (id) => { const ok = await deletePost(id); if (ok) setPosts(prev => prev.filter(pp => pp.id !== id)); }} currentUserId={user?.id} isOwner={user?.role === "owner"} isAdmin={user?.isAdmin} />
             ))}
           </div>
         )}

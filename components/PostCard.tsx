@@ -37,6 +37,8 @@ interface PostCardProps {
 function PostCardInner({ post, isLiked, onLike, onCardClick, isSaved = false, onSave, onDelete, currentUserId, isOwner, isAdmin }: PostCardProps) {
   const hasImage = post.images && post.images.length > 0;
   const [showMenu, setShowMenu] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const canDelete = currentUserId && (post.authorId === currentUserId || isOwner || isAdmin);
 
   function handleLike(e: React.MouseEvent) {
@@ -51,13 +53,22 @@ function PostCardInner({ post, isLiked, onLike, onCardClick, isSaved = false, on
     if (onSave) onSave(post.id);
   }
 
-  function handleDelete(e: React.MouseEvent) {
+  async function handleDelete(e: React.MouseEvent) {
     e.stopPropagation();
     e.preventDefault();
-    if (confirm("确定删除这条帖子吗？")) {
-      onDelete?.(post.id);
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      setShowMenu(false);
+      return;
     }
-    setShowMenu(false);
+    setDeleting(true);
+    await onDelete?.(post.id);
+  }
+
+  function cancelDelete(e: React.MouseEvent) {
+    e.stopPropagation();
+    e.preventDefault();
+    setConfirmDelete(false);
   }
 
   return (
@@ -65,18 +76,35 @@ function PostCardInner({ post, isLiked, onLike, onCardClick, isSaved = false, on
       onClick={() => onCardClick(post.id)}
       className="group bg-[var(--color-bg-card)] border-[0.5px] border-[var(--color-border-subtle)] rounded-[10px] overflow-hidden cursor-pointer transition-all duration-200 hover:border-[var(--color-border-default)] active:scale-[0.98] relative"
     >
+      {/* Delete overlay - shows when confirming */}
+      {confirmDelete && (
+        <div className="absolute inset-0 z-20 bg-black/60 backdrop-blur-sm rounded-[10px] flex flex-col items-center justify-center gap-3" onClick={(e) => e.stopPropagation()}>
+          <p className="text-white text-sm font-medium">确定删除这条帖子？</p>
+          <div className="flex gap-2">
+            <button onClick={cancelDelete}
+              className="px-5 py-1.5 rounded-lg bg-white/10 text-white text-xs hover:bg-white/20 transition-all">
+              取消
+            </button>
+            <button onClick={handleDelete} disabled={deleting}
+              className="px-5 py-1.5 rounded-lg bg-red-500 text-white text-xs font-medium hover:bg-red-600 disabled:opacity-40 transition-all">
+              {deleting ? "删除中..." : "确认删除"}
+            </button>
+          </div>
+        </div>
+      )}
       {/* Delete menu button */}
-      {canDelete && (
+      {canDelete && !confirmDelete && (
         <button
           onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
-          className="absolute top-2 right-2 z-10 w-6 h-6 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-sm text-white/70 hover:text-white text-xs transition-all opacity-0 group-hover:opacity-100"
+          className="absolute top-2 right-2 z-10 w-7 h-7 flex items-center justify-center rounded-full bg-black/40 backdrop-blur-sm text-white/70 hover:text-white text-sm transition-all"
         >
           ⋯
         </button>
       )}
-      {showMenu && (
-        <div className="absolute top-8 right-2 z-20 bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] rounded-lg shadow-xl overflow-hidden">
-          <button onClick={handleDelete} className="w-full px-4 py-2 text-xs text-red-400 hover:bg-red-500/10 text-left transition-all">
+      {showMenu && !confirmDelete && (
+        <div className="absolute top-9 right-2 z-20 bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] rounded-lg shadow-xl overflow-hidden">
+          <button onClick={handleDelete} className="w-full px-4 py-2.5 text-xs text-red-400 hover:bg-red-500/10 text-left transition-all flex items-center gap-1.5">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
             删除
           </button>
         </div>
