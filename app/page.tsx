@@ -171,7 +171,19 @@ export default function HomePage() {
         )}
       </div>
 
-      <main className="min-h-screen bg-[var(--color-bg-primary)]" style={{ paddingTop: "96px" }}>
+      {/* Sunshine Hero Banner */}
+      <div className="mx-3 mt-3 mb-1 rounded-2xl overflow-hidden relative" style={{ background: "linear-gradient(135deg, #1e40af 0%, #3b82f6 30%, #60a5fa 60%, #93c5fd 100%)", marginTop: "100px" }}>
+        <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(circle at 20% 50%, white 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
+        <div className="relative px-5 py-6 flex flex-col items-center text-center">
+          <div>
+            <p className="text-white/50 text-[9px] font-medium tracking-[0.2em] uppercase mb-2">WELCOME TO DALANYING</p>
+            <h2 className="text-6xl text-white tracking-wide" style={{ fontFamily: "'Dancing Script', 'Pacifico', 'Great Vibes', cursive" }}>Sunshine</h2>
+            <p className="text-white/40 text-xs mt-2">发现生活的每一种可能</p>
+          </div>
+        </div>
+      </div>
+
+      <main className="min-h-screen bg-[var(--color-bg-primary)]" style={{ paddingTop: "20px" }}>
         <div className="max-w-6xl mx-auto flex gap-4 px-3 sm:px-4">
           {/* Main content */}
           <section className="flex-1 min-w-0">
