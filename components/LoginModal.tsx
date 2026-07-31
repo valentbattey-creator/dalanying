@@ -58,8 +58,6 @@ export default function LoginModal() {
   const emailOtpValid = /^\d{8}$/.test(emailOtp.trim());
   const nameValid = name.trim().length >= 2 && name.trim().length <= 12;
 
-  if (!showLoginModal) return null;
-
   // Fetch count when celebration shows
   useEffect(() => {
     if (celebration && !registrationCount && !localRegCount) {
@@ -69,6 +67,8 @@ export default function LoginModal() {
         .catch(() => {});
     }
   }, [celebration, registrationCount, localRegCount]);
+
+  if (!showLoginModal) return null;
 
   // Celebration overlay
   if (celebration) {
@@ -198,7 +198,7 @@ export default function LoginModal() {
   return (
     <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => { setShowLoginModal(false); resetForm(); }} />
-      <div className="relative z-10 w-full max-w-md bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] rounded-t-3xl sm:rounded-2xl p-6 animate-fade-up max-h-[90vh] overflow-y-auto">
+      <div className="relative z-10 w-full max-w-md bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] rounded-t-3xl sm:rounded-2xl px-5 py-5 sm:p-6 animate-fade-up max-h-[85vh] overflow-y-auto" style={{ paddingBottom: "max(1.25rem, env(safe-area-inset-bottom))" }}>
         {/* Close */}
         <button type="button" onClick={() => { setShowLoginModal(false); resetForm(); }}
           className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full hover:bg-[var(--color-bg-hover)] text-[var(--color-text-tertiary)] transition-all">
