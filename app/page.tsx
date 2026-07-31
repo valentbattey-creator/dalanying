@@ -199,23 +199,7 @@ export default function HomePage() {
               </motion.div>
             ) : (
               <>
-                {/* Pinned posts */}
-                {sortedPinned.map((p) => (
-                  <div key={p.id} className="px-1 pt-2">
-                    <div onClick={() => router.push(`/post/${p.id}`)} className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer active:scale-[0.98] transition-all" style={{ background: "linear-gradient(to right, rgba(245,158,11,0.1), rgba(245,158,11,0.05), transparent)", border: "0.5px solid rgba(245,158,11,0.2)" }}>
-                      <span className="text-base shrink-0">📌</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[13px] font-semibold text-[var(--color-text-primary)] line-clamp-1">{p.title}</p>
-                        <p className="text-[11px] text-[var(--color-text-tertiary)] line-clamp-1 mt-0.5">{p.content}</p>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0 text-[10px] text-[var(--color-text-tertiary)]">
-                        <span>❤️{p.likes || 0}</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-
-                {/* Announcements */}
+                {/* Announcements - always first */}
                 {announcements.map((p) => (
                   <div key={p.id} className="px-1 pt-2">
                     <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
@@ -232,6 +216,22 @@ export default function HomePage() {
                         </div>
                       </div>
                     </motion.div>
+                  </div>
+                ))}
+
+                {/* Pinned posts - after announcements */}
+                {sortedPinned.map((p) => (
+                  <div key={p.id} className="px-1 pt-2">
+                    <div onClick={() => router.push(`/post/${p.id}`)} className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer active:scale-[0.98] transition-all" style={{ background: "linear-gradient(to right, rgba(245,158,11,0.1), rgba(245,158,11,0.05), transparent)", border: "0.5px solid rgba(245,158,11,0.2)" }}>
+                      <span className="text-base shrink-0">📌</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-semibold text-[var(--color-text-primary)] line-clamp-1">{p.title}</p>
+                        <p className="text-[11px] text-[var(--color-text-tertiary)] line-clamp-1 mt-0.5">{p.content}</p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0 text-[10px] text-[var(--color-text-tertiary)]">
+                        <span>❤️{p.likes || 0}</span>
+                      </div>
+                    </div>
                   </div>
                 ))}
 
