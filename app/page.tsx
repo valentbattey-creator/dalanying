@@ -112,7 +112,7 @@ export default function HomePage() {
       <Navbar onSearch={handleSearch} />
       <main className="min-h-screen pt-12 bg-[var(--color-bg-primary)]">
         {/* Category pills */}
-        <div className="sticky top-12 z-40 backdrop-blur-md border-b-[0.5px] border-[var(--color-border-subtle)]" style={{ background: "var(--glass-bg)" }}>
+        <div className="sticky top-12 z-40 border-b border-[var(--color-border-subtle)]" style={{ backgroundColor: "var(--color-bg-secondary)" }}>
           <div className="px-2 py-2 flex items-center gap-1 overflow-x-auto scrollbar-hide">
             {customCats.map(cat => (
               <button
@@ -120,8 +120,8 @@ export default function HomePage() {
                 onClick={() => setActiveCat(cat)}
                 className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-medium transition-all duration-200 ${
                   activeCat === cat
-                    ? "bg-[var(--color-text-primary)] text-[var(--color-bg-primary)]"
-                    : "bg-[var(--color-bg-card)] text-[var(--color-text-secondary)] border-[0.5px] border-[var(--color-border-subtle)]"
+                    ? "bg-[var(--color-accent)] text-white"
+                    : "bg-[var(--color-bg-primary)] text-[var(--color-text-secondary)] border border-[var(--color-border-default)]"
                 }`}
               >
                 {cat}
