@@ -119,8 +119,8 @@ export default function HomePage() {
     <>
       <Navbar onSearch={handleSearch} />
       
-      {/* Fixed Category Bar - 明确放在 Navbar 下面 */}
-      <div className="fixed left-0 right-0 z-40" style={{ top: "48px", backgroundColor: "var(--color-bg-secondary, #121214)", borderBottom: "1px solid var(--color-border-subtle, #27272a)", WebkitTransform: "translateZ(0)", transform: "translateZ(0)", zIndex: 40 }}>
+      {/* Category Bar */}
+      <div className="sticky top-12 left-0 right-0 z-40" style={{ backgroundColor: "var(--color-bg-secondary, #121214)", borderBottom: "1px solid var(--color-border-subtle, #27272a)" }}>
         <div className="max-w-6xl mx-auto px-2 py-2 flex items-center gap-1.5" style={{ overflowX: "auto", WebkitOverflowScrolling: "touch", msOverflowStyle: "none", scrollbarWidth: "none" }}>
           {customCats.map(cat => (
             <button
@@ -171,22 +171,22 @@ export default function HomePage() {
         )}
       </div>
 
-      {/* Sunshine Hero Banner */}
-      <div className="mx-3 mt-3 mb-1 rounded-2xl overflow-hidden relative" style={{ background: "linear-gradient(135deg, #1e40af 0%, #3b82f6 30%, #60a5fa 60%, #93c5fd 100%)", marginTop: "100px" }}>
-        <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(circle at 20% 50%, white 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
-        <div className="relative px-5 py-6 flex flex-col items-center text-center">
-          <div>
-            <p className="text-white/50 text-[9px] font-medium tracking-[0.2em] uppercase mb-2">WELCOME TO DALANYING</p>
-            <h2 className="text-6xl text-white tracking-wide" style={{ fontFamily: "'Dancing Script', 'Pacifico', 'Great Vibes', cursive" }}>Sunshine</h2>
-            <p className="text-white/40 text-xs mt-2">发现生活的每一种可能</p>
-          </div>
-        </div>
-      </div>
-
-      <main className="min-h-screen bg-[var(--color-bg-primary)]" style={{ paddingTop: "20px" }}>
+      <main className="min-h-screen bg-[var(--color-bg-primary)]" style={{ paddingTop: "0" }}>
         <div className="max-w-6xl mx-auto flex gap-4 px-3 sm:px-4">
           {/* Main content */}
-          <section className="flex-1 min-w-0">
+          <section className="flex-1 min-w-0 pb-20">
+
+            {/* Sunshine Hero Banner */}
+            <div className="mt-3 mb-3 rounded-2xl overflow-hidden relative" style={{ background: "linear-gradient(135deg, #1e40af 0%, #3b82f6 30%, #60a5fa 60%, #93c5fd 100%)" }}>
+              <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(circle at 20% 50%, white 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
+              <div className="relative px-5 py-6 flex flex-col items-center text-center">
+                <div>
+                  <p className="text-white/50 text-[9px] font-medium tracking-[0.2em] uppercase mb-2">WELCOME TO DALANYING</p>
+                  <h2 className="text-4xl sm:text-6xl text-white tracking-wide" style={{ fontFamily: "'Dancing Script', 'Pacifico', 'Great Vibes', cursive" }}>Sunshine</h2>
+                  <p className="text-white/40 text-xs mt-2">发现生活的每一种可能</p>
+                </div>
+              </div>
+            </div>
             {totalContent === 0 && !loading ? (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-20">
                 <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: "var(--color-bg-card)" }}>
