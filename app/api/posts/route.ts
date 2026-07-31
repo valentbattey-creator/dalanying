@@ -30,6 +30,12 @@ function mapCategory(cat: string): string {
 
 export async function GET(req: NextRequest) {
   try {
+    // Anti-scraping: detect rapid sequential requests
+    const ua = req.headers.get("user-agent") || "";
+    if (/bot|crawl|spider|scrape|python|curl|wget|go-http/i.test(ua)) {
+      return NextResponse.json({ posts: [], total: 0, error: "Forbidden" }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const from = parseInt(searchParams.get("from") || "0");
     const to = parseInt(searchParams.get("to") || "9");
@@ -112,6 +118,13 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+
+    // Request size limit - reject huge payloads
+    const bodyStr = JSON.stringify(body);
+    if (bodyStr.length > 50000) {
+      return NextResponse.json({ error: "请求数据过大" }, { status: 413 });
+    }
+
     let { title, content, images, category, tags, authorId, author, authorAvatar, isPinned, isAnnouncement } = body;
 
     // Server-side content moderation
