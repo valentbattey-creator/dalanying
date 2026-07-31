@@ -11,7 +11,7 @@ import { toast } from "sonner";
 export default function AdminPage() {
   const router = useRouter();
   const { user } = useAuth();
-  const { banUser, unbanUser, fetchAllProfiles, createAnnouncement } = useData();
+  const { banUser, unbanUser, fetchAllProfiles, createAnnouncement, posts: allPosts, updatePost, deletePost } = useData();
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAnnounce, setShowAnnounce] = useState(false);
@@ -314,6 +314,37 @@ export default function AdminPage() {
             </div>
           </>
         )}
+
+        {/* ===== 置顶管理 ===== */}
+        <div className="bg-[var(--color-bg-card)] border-[0.5px] border-[var(--color-border-subtle)] rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b-[0.5px] border-[var(--color-border-subtle)]">
+            <p className="text-xs font-medium text-[var(--color-text-tertiary)] uppercase tracking-wider">
+              📌 置顶帖子管理
+            </p>
+          </div>
+          <div className="divide-y-[0.5px] divide-[var(--color-border-subtle)]">
+            {allPosts.filter(p => p.isPinned).map(p => (
+              <div key={p.id} className="px-4 py-3 flex items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-medium text-[var(--color-text-primary)] truncate">{p.title}</p>
+                  <p className="text-[10px] text-[var(--color-text-tertiary)] mt-0.5">
+                    {p.author} · {p.isAnnouncement ? "公告" : "普通置顶"} · ❤️{p.likes || 0}
+                  </p>
+                </div>
+                <button onClick={async () => {
+                  const ok = await updatePost(p.id, { isPinned: false, isAnnouncement: false });
+                  if (ok) toast.success("已取消置顶");
+                }}
+                  className="shrink-0 px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 text-[11px] hover:bg-red-500/20 transition-all">
+                  取消置顶
+                </button>
+              </div>
+            ))}
+            {allPosts.filter(p => p.isPinned).length === 0 && (
+              <div className="p-6 text-center text-sm text-[var(--color-text-tertiary)]">暂无置顶帖子</div>
+            )}
+          </div>
+        </div>
 
         {/* ===== Payments Tab ===== */}
         {payTab === "payments" && (
