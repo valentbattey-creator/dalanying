@@ -43,7 +43,7 @@ export default function HomePage() {
   const router = useRouter();
   const { posts, loading, hasMore, loadMore, resetAndReload, searchQuery, setSearchQuery, likedPosts, toggleLike, savedPosts, toggleSave, deletePost } = useData();
   const { user, requireLogin, guestLikes } = useAuth();
-  const FIXED_CATS = ["推荐", "思维探讨", "数码"];
+  const FIXED_CATS = ["推荐", "白月光", "浮生情事", "红尘缘", "清谈", "修行"];
   const [customCats, setCustomCats] = useState<string[]>([...FIXED_CATS]);
   const [activeCat, setActiveCat] = useState("推荐");
   const [searchUsers_, setSearchUsers] = useState<any[]>([]);
