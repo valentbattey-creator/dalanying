@@ -465,7 +465,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (password.length < 6) return { success: false, error: "密码至少6位", code: "short_password" };
 
     if (hasSupabase) {
-      const { data, error } = await supabase!.auth.signUp({ email, password, options: { data: { full_name: name, phone: phone || "" } } });
+      const { data, error } = await supabase!.auth.signUp({
+        email, password,
+        options: {
+          data: { full_name: name, phone: phone || "" },
+          emailRedirectTo: typeof window !== "undefined" ? window.location.origin : undefined,
+        },
+      });
       if (error) {
         if (error.message.includes("already registered")) return { success: false, error: "该邮箱已注册", code: "exists" };
         return { success: false, error: error.message, code: "unknown" };
@@ -508,12 +514,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log("Supabase SMS failed, using local OTP fallback:", error.message);
       } catch {}
     }
-    // Local OTP fallback: generate 6-digit code
-    const code = String(Math.floor(10000000 + Math.random() * 90000000));
-    setLocalOTP({ phone: formatted, code, expires: Date.now() + 300000 }); // 5 min
-    // Show toast with the code (in production this would be sent via SMS)
-    toast.info("验证码: " + code, { duration: 30000, description: "（开发模式：短信服务未配置，验证码显示在页面上）" });
-    return { success: true };
+    // Supabase SMS not configured — inform user to use email login instead
+    toast.error("短信服务未配置，请使用邮箱验证码登录");
+    return { success: false, error: "短信服务未配置，请使用邮箱验证码登录" };
   }, []);
 
   const verifyPhoneOTP = useCallback(async (phone: string, token: string, name?: string): Promise<{ success: boolean; error?: string }> => {
@@ -587,7 +590,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const { error } = await supabase!.auth.signInWithOtp({
         email,
-        options: { shouldCreateUser: true },
+        options: {
+          shouldCreateUser: true,
+          emailRedirectTo: typeof window !== "undefined" ? window.location.origin + "/auth/callback" : undefined,
+        },
       });
       
       if (error) {
@@ -618,13 +624,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (error) {
         console.error("验证码验证失败:", error.message);
-        if (error.message.includes("invalid") || error.message.includes("expired")) {
-          return { success: false, error: "验证码错误或已过期" };
-        }
-        if (error.message.includes("Token has expired")) {
+        if (error.message.includes("Token has expired") || error.message.includes("expired")) {
           return { success: false, error: "验证码已过期，请重新发送" };
         }
-        return { success: false, error: error.message };
+        if (error.message.includes("invalid") || error.message.includes("OTP")) {
+          return { success: false, error: "验证码错误，请检查邮箱中的6位数字" };
+        }
+        return { success: false, error: "验证失败，请重新发送验证码" };
       }
       
       if (data.user) {
