@@ -8,7 +8,9 @@ export default {
     // 只允许特定域名调用（改成你自己的）
     const allowedOrigins = [
       'https://ni-six-psi.vercel.app',
-      'http://localhost:3000'
+      'http://localhost:3000',
+      'https://dalanying.work',
+      'https://www.dalanying.work'
     ];
     
     const origin = request.headers.get('Origin');
