@@ -481,8 +481,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Fetch registration count
         try {
           const res = await fetch("/api/profiles?count=true");
-          const data = await res.json();
-          setRegistrationCount(data.count || 0);
+          const countData = await res.json();
+          if (countData.count > 0) setRegistrationCount(countData.count);
         } catch {}
         return { success: true, code: "check_email" };
       }
@@ -658,12 +658,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             avatar_url: "", 
             phone: "",
           }, { onConflict: "id" });
-          
-          try {
-            const { count } = await supabase!.from("profiles").select("*", { count: "exact", head: true });
-            setRegistrationCount(count || null);
-          } catch {}
         }
+        
+        // Always fetch registration count (for both new and returning users)
+        try {
+          const res = await fetch("/api/profiles?count=true");
+          const countData = await res.json();
+          if (countData.count > 0) setRegistrationCount(countData.count);
+        } catch {}
         
         await refreshUser();
         

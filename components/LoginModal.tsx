@@ -60,6 +60,16 @@ export default function LoginModal() {
 
   if (!showLoginModal) return null;
 
+  // Fetch count when celebration shows
+  useEffect(() => {
+    if (celebration && !registrationCount && !localRegCount) {
+      fetch("/api/profiles?count=true")
+        .then(r => r.json())
+        .then(d => { if (d.count > 0) setLocalRegCount(d.count); })
+        .catch(() => {});
+    }
+  }, [celebration, registrationCount, localRegCount]);
+
   // Celebration overlay
   if (celebration) {
     return (
@@ -69,7 +79,7 @@ export default function LoginModal() {
           <div className="text-center mb-6">
             <div className="text-6xl mb-4">🎉</div>
             <h2 className="text-2xl font-bold text-white mb-2">恭喜你！</h2>
-            <p className="text-lg text-[var(--color-accent)] font-semibold mb-1">成为大岚荧第 {registrationCount || localRegCount || "???"} 位居民</p>
+            <p className="text-lg text-[var(--color-accent)] font-semibold mb-1">成为大岚荧第 {registrationCount || localRegCount || "—"} 位居民</p>
             <p className="text-sm text-[var(--color-text-tertiary)] mt-2">欢迎加入这个社区 ✨</p>
           </div>
           <div className="bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] rounded-2xl p-5 mt-4">
