@@ -13,7 +13,7 @@ export const CATEGORIES = [
   "美食", "旅游", "音乐", "电影", "时尚", "宠物", "摄影", "读书",
   "职场", "教育", "房产", "军事", "历史", "哲学", "设计", "动漫",
   "骑行", "钓鱼", "篮球", "足球", "跑步", "格斗", "穿搭", "机车",
-  "思维探讨", "白月光", "爱情真相", "谈婚论嫁", "成长", "健康", "手工", "家居", "天文", "趣闻", "科普",
+  "思维探讨", "月落", "浮生", "缘渡", "清谈", "修行", "成长", "健康", "手工", "家居", "天文", "趣闻", "科普",
 ];
 
 // ===== Types =====
@@ -97,9 +97,12 @@ function lsSet<T>(key: string, value: T) {
 
 // ===== Seed Data =====
 const SEED_POSTS: Post[] = [
-  { id: "seed1", title: "欢迎来到大岚荧", content: "这是一个属于硬汉的社区。分享你的生活、爱好和态度，和志同道合的兄弟一起交流。无论你是喜欢科技、运动、汽车还是游戏，这里都有你的位置。", images: [], category: "推荐", tags: ["公告"], author: "大岚荧官方", authorId: "system", authorAvatar: "", createdAt: "2026-07-09T00:00:00Z", likes: 42, views: 1280, comments: 8, isAnnouncement: true, isPinned: true },
-  { id: "seed2", title: "NBA夏季联赛观赛指南", content: "今年夏季联赛看点颇多，各队新秀表现如何？让我们一起来分析一下。", images: [], category: "篮球", tags: ["NBA", "篮球"], author: "球场老兵", authorId: "seeduser2", authorAvatar: "", createdAt: "2026-07-08T12:00:00Z", likes: 28, views: 560, comments: 5, isAnnouncement: false, isPinned: false },
-  { id: "seed3", title: "我的新车改装日记", content: "终于完成了这台车的改装，从轮毂到排气，一步步记录下这个历程。", images: [], category: "汽车", tags: ["改装", "汽车"], author: "改装达人", authorId: "seeduser3", authorAvatar: "", createdAt: "2026-07-07T08:00:00Z", likes: 35, views: 720, comments: 12, isAnnouncement: false, isPinned: false },
+  { id: "seed1", title: "大岚荧，开门了", content: "兄弟们好，这里是大岚荧。没什么规矩，聊你想聊的，发你想发的。科技、运动、汽车、游戏、生活，什么都可以。唯一的要求：别骂人，别发违法的东西。其他的，随意。", images: [], category: "推荐", tags: ["公告"], author: "大岚荧官方", authorId: "system", authorAvatar: "", createdAt: "2026-07-09T00:00:00Z", likes: 42, views: 1280, comments: 8, isAnnouncement: true, isPinned: true },
+  { id: "seed2", title: "有没有兄弟一起看今年夏季联赛的", content: "今年新秀质量不错，看了几场回放感觉有几个人打得挺有灵性的。有没有懂球的兄弟来分析分析，哪些人值得长期关注？", images: [], category: "篮球", tags: ["NBA", "篮球"], author: "大岚荧官方", authorId: "system", authorAvatar: "", createdAt: "2026-07-08T12:00:00Z", likes: 28, views: 560, comments: 5, isAnnouncement: false, isPinned: false },
+  { id: "seed3", title: "排气改完邻居找上门了", content: "折腾了两个月终于把排气改完了，声音确实好听。但楼下大爷说他每天六点被吵醒......兄弟们有没有遇到这种情况，怎么处理的？", images: [], category: "汽车", tags: ["改装", "排气"], author: "大岚荧官方", authorId: "system", authorAvatar: "", createdAt: "2026-07-07T08:00:00Z", likes: 35, views: 720, comments: 12, isAnnouncement: false, isPinned: false },
+  { id: "seed4", title: "有些名字你记了很久但不会再说出口", content: "不是放不下，是不想再翻出来。有段时间看到相似的背影都会愣一下，现在不会了。时间这东西，确实管用。", images: [], category: "月落", tags: ["月落", "回忆"], author: "大岚荧官方", authorId: "system", authorAvatar: "", createdAt: "2026-07-06T18:00:00Z", likes: 89, views: 1560, comments: 23, isAnnouncement: false, isPinned: false },
+  { id: "seed5", title: "38.8万彩礼，真的是在结婚吗", content: "最近听说老家彩礼又涨了，38.8万起步。我一个发小算了算，彩礼加上房加上车，没个一百万别想结婚。他说他不是不想结婚，是真的结不起。有时候觉得挺魔幻的，到底是嫁女儿还是卖女儿？", images: [], category: "缘渡", tags: ["彩礼", "婚姻"], author: "大岚荧官方", authorId: "system", authorAvatar: "", createdAt: "2026-07-05T09:00:00Z", likes: 156, views: 3200, comments: 67, isAnnouncement: false, isPinned: false },
+  { id: "seed6", title: "分手之后才学会怎么对一个人好", content: "上一段感情谈了三年，分开以后想了很多。那时候觉得自己对她挺好的，现在回头看，很多地方做得不够。不是每段感情都有机会重来，但至少能让自己变好一点。", images: [], category: "浮生", tags: ["感情", "成长"], author: "大岚荧官方", authorId: "system", authorAvatar: "", createdAt: "2026-07-04T22:00:00Z", likes: 73, views: 980, comments: 18, isAnnouncement: false, isPinned: false },
 ];
 const SEED_COMMENTS: Comment[] = [
   { id: "c1", postId: "seed1", parentId: null, author: "新来的", authorId: "u1", authorAvatar: "", content: "来报道！支持一下", image: "", createdAt: "2026-07-09T01:00:00Z" },

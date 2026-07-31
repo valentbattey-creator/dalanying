@@ -14,7 +14,7 @@ import { searchUsers } from "@/lib/data";
 import { TinyAvatar } from "@/components/UserAvatar";
 
 const ALL_CATEGORIES = [
-  "推荐", "白月光", "浮生情事", "红尘缘", "清谈", "修行",
+  "推荐", "月落", "浮生", "缘渡", "清谈", "修行",
   "数码", "科技", "汽车", "运动", "游戏", "健身",
   "户外", "财经", "美食", "旅游", "穿搭", "机车", "摄影",
   "宠物", "篮球", "足球", "音乐", "电影", "动漫", "格斗",
@@ -43,7 +43,7 @@ export default function HomePage() {
   const router = useRouter();
   const { posts, loading, hasMore, loadMore, resetAndReload, searchQuery, setSearchQuery, likedPosts, toggleLike, savedPosts, toggleSave, deletePost } = useData();
   const { user, requireLogin, guestLikes } = useAuth();
-  const FIXED_CATS = ["推荐", "白月光", "浮生情事", "红尘缘", "清谈", "修行"];
+  const FIXED_CATS = ["推荐", "月落", "浮生", "缘渡", "清谈", "修行"];
   const [customCats, setCustomCats] = useState<string[]>([...FIXED_CATS]);
   const [activeCat, setActiveCat] = useState("推荐");
   const [searchUsers_, setSearchUsers] = useState<any[]>([]);
@@ -112,7 +112,7 @@ export default function HomePage() {
       <Navbar onSearch={handleSearch} />
       <main className="min-h-screen pt-12 bg-[var(--color-bg-primary)]">
         {/* Category pills */}
-        <div className="sticky top-12 z-40 bg-[var(--color-bg-primary)]/92 backdrop-blur-md border-b-[0.5px] border-white/[0.04]">
+        <div className="sticky top-12 z-40 backdrop-blur-md border-b-[0.5px] border-[var(--color-border-subtle)]" style={{ background: "var(--glass-bg)" }}>
           <div className="px-2 py-2 flex items-center gap-1 overflow-x-auto scrollbar-hide">
             {customCats.map(cat => (
               <button

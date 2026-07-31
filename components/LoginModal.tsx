@@ -52,8 +52,8 @@ export default function LoginModal() {
   // Validation
   const emailCheck = useMemo(() => { if (!email) return { valid: false, reason: "" }; return isValidEmail(email); }, [email]);
   const phoneValid = /^1[3-9]\d{9}$/.test(phone.trim());
-  const otpValid = /^\d{8}$/.test(otpCode.trim());
-  const emailOtpValid = /^\d{8}$/.test(emailOtp.trim());
+  const otpValid = /^\d{6}$/.test(otpCode.trim());
+  const emailOtpValid = /^\d{6}$/.test(emailOtp.trim());
   const nameValid = name.trim().length >= 2 && name.trim().length <= 12;
 
   if (!showLoginModal) return null;
@@ -218,7 +218,7 @@ export default function LoginModal() {
               <div>
                 <label className="text-[11px] font-medium text-[var(--color-text-secondary)] ml-1">验证码</label>
                 <div className="flex gap-2 mt-1">
-                  <input type="text" placeholder="8位验证码" value={otpCode} maxLength={8}
+                  <input type="text" placeholder="6位验证码" value={otpCode} maxLength={6}
                     onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
                     className="flex-1 px-3 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] outline-none focus:border-[var(--color-accent)] transition-all tracking-widest" />
                   <button type="button" onClick={handleSendOTP} disabled={otpCountdown > 0 || submitting}
@@ -347,7 +347,7 @@ export default function LoginModal() {
               <div>
                 <label className="text-[11px] font-medium text-[var(--color-text-secondary)] ml-1">邮箱验证码</label>
                 <div className="flex gap-2 mt-1">
-                  <input type="text" placeholder="8位验证码" value={emailOtp} maxLength={8}
+                  <input type="text" placeholder="6位验证码" value={emailOtp} maxLength={6}
                     onChange={(e) => setEmailOtp(e.target.value.replace(/\D/g, ""))}
                     className="flex-1 px-3 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] outline-none focus:border-[var(--color-accent)] transition-all tracking-widest" />
                   <button type="button" onClick={handleSendEmailOTP} disabled={emailOtpCountdown > 0 || submitting}

@@ -639,7 +639,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return { success: false, error: "验证码已过期，请重新发送" };
         }
         if (error.message.includes("invalid") || error.message.includes("OTP")) {
-          return { success: false, error: "验证码错误，请检查邮箱中的8位数字" };
+          return { success: false, error: "验证码错误，请检查邮箱中的6位数字" };
         }
         return { success: false, error: "验证失败，请重新发送验证码" };
       }
