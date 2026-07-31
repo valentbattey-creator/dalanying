@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "@/components/Navbar";
@@ -35,7 +35,7 @@ function trafficScore(p: { views?: number; likes?: number; comments?: number; cr
   const likes = p.likes || 0;
   const comments = p.comments || 0;
   const ageHours = (Date.now() - new Date(p.createdAt).getTime()) / 3600000;
-  const recencyBoost = Math.max(0, 1 - ageHours / 72); // decays over 72 hours
+  const recencyBoost = Math.max(0, 1 - ageHours / 72);
   return (views * 1 + likes * 3 + comments * 5) * (1 + recencyBoost);
 }
 
@@ -46,8 +46,8 @@ export default function HomePage() {
   const FIXED_CATS = ["推荐", "月落", "浮生", "缘渡", "清谈", "修行"];
   const [customCats, setCustomCats] = useState<string[]>([...FIXED_CATS]);
   const [activeCat, setActiveCat] = useState("推荐");
-  const [searchUsers_, setSearchUsers] = useState<any[]>([]);
   const [showCatPicker, setShowCatPicker] = useState(false);
+  const [showTrending, setShowTrending] = useState(false);
 
   // Split and sort posts
   const announcements = posts.filter((p: any) => p.isAnnouncement);
@@ -59,7 +59,7 @@ export default function HomePage() {
     ? [...regularPosts]
     : regularPosts.filter((p: any) => p.category === activeCat);
 
-  // Sort by creation date only (posts don't move when liked)
+  // Sort by creation date only
   const sorted = [...filteredRegular].sort((a, b) => 
     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
@@ -67,6 +67,14 @@ export default function HomePage() {
   const sortedPinned = [...pinnedPosts].sort((a, b) => 
     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
+
+  // Trending posts - top 10 by traffic score
+  const trendingPosts = useMemo(() => {
+    return [...regularPosts]
+      .map(p => ({ ...p, score: trafficScore(p) }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 10);
+  }, [regularPosts]);
 
   const sentinelRef = useRef<HTMLDivElement>(null);
   const [pinnedIndex, setPinnedIndex] = useState(0);
@@ -110,180 +118,203 @@ export default function HomePage() {
   return (
     <>
       <Navbar onSearch={handleSearch} />
-      <main className="min-h-screen pt-12 bg-[var(--color-bg-primary)]">
-        {/* Category pills */}
-        <div className="sticky top-12 z-40 border-b border-[var(--color-border-subtle)]" style={{ backgroundColor: "var(--color-bg-secondary)" }}>
-          <div className="px-2 py-2 flex items-center gap-1 overflow-x-auto scrollbar-hide">
-            {customCats.map(cat => (
+      
+      {/* Fixed Category Bar - 明确放在 Navbar 下面 */}
+      <div className="fixed top-12 left-0 right-0 z-40" style={{ backgroundColor: "var(--color-bg-secondary)", borderBottom: "1px solid var(--color-border-subtle)" }}>
+        <div className="max-w-6xl mx-auto px-2 py-2 flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
+          {customCats.map(cat => (
+            <button
+              key={cat}
+              onClick={() => setActiveCat(cat)}
+              className={`shrink-0 px-3.5 py-1.5 rounded-full text-[12px] font-medium transition-all duration-200 ${
+                activeCat === cat
+                  ? "bg-[var(--color-accent)] text-white shadow-sm"
+                  : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+              }`}
+              style={activeCat !== cat ? { backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border-subtle)" } : {}}
+            >
+              {cat}
+            </button>
+          ))}
+          <button
+            onClick={() => setShowCatPicker(!showCatPicker)}
+            className="shrink-0 w-7 h-7 flex items-center justify-center rounded-full text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] transition-all text-sm"
+            style={{ backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border-subtle)" }}
+          >
+            {showCatPicker ? "✕" : "+"}
+          </button>
+        </div>
+
+        {/* Category picker dropdown */}
+        {showCatPicker && (
+          <div className="max-w-6xl mx-auto px-2 pb-2 flex flex-wrap gap-1.5 animate-fade-up">
+            {ALL_CATEGORIES.filter(c => !customCats.includes(c)).map(cat => (
               <button
                 key={cat}
-                onClick={() => setActiveCat(cat)}
-                className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-medium transition-all duration-200 ${
-                  activeCat === cat
-                    ? "bg-[var(--color-accent)] text-white"
-                    : "bg-[var(--color-bg-primary)] text-[var(--color-text-secondary)] border border-[var(--color-border-default)]"
-                }`}
+                onClick={() => toggleCat(cat)}
+                className="px-2.5 py-1 rounded-full text-[11px] text-[var(--color-text-tertiary)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] transition-all"
+                style={{ backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border-subtle)" }}
               >
-                {cat}
+                + {cat}
               </button>
             ))}
-            <button
-              onClick={() => setShowCatPicker(!showCatPicker)}
-              className="shrink-0 w-7 h-7 flex items-center justify-center rounded-full bg-[var(--color-bg-card)] border-[0.5px] border-[var(--color-border-subtle)] text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] transition-all text-sm"
-            >
-              {showCatPicker ? "✕" : "+"}
-            </button>
-          </div>
-
-          {/* Category picker dropdown */}
-          {showCatPicker && (
-            <div className="px-2 pb-2 flex flex-wrap gap-1 animate-fade-up">
-              {ALL_CATEGORIES.filter(c => !customCats.includes(c)).map(cat => (
-                <button
-                  key={cat}
-                  onClick={() => toggleCat(cat)}
-                  className="px-2.5 py-1 rounded-full text-[10px] bg-[var(--color-bg-card)] text-[var(--color-text-tertiary)] border-[0.5px] border-[var(--color-border-subtle)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] transition-all"
-                >
-                  + {cat}
-                </button>
-              ))}
-              {customCats.filter(c => c !== "推荐").length > 0 && (
-                <button
-                  onClick={() => setCustomCats(["推荐"])}
-                  className="px-2.5 py-1 rounded-full text-[10px] text-red-400 hover:bg-red-400/10 transition-all"
-                >
-                  重置
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-
-
-        {/* Sunshine Hero Banner */}
-        <div className="mx-3 mt-3 mb-1 rounded-2xl overflow-hidden relative" style={{ background: "linear-gradient(135deg, #1e40af 0%, #3b82f6 30%, #60a5fa 60%, #93c5fd 100%)" }}>
-          <div className="absolute inset-0 opacity-20" style={{ backgroundImage: "radial-gradient(circle at 20% 50%, white 1px, transparent 1px)", backgroundSize: "40px 40px" }} />
-          <div className="relative px-5 py-6 flex flex-col items-center text-center">
-            <div>
-              <p className="text-white/50 text-[9px] font-medium tracking-[0.2em] uppercase mb-2">WELCOME TO DALANYING</p>
-              <h2 className="text-6xl font-['Dancing_Script',_'Pacifico',_'Great_Vibes',_cursive] text-white tracking-wide" style={{ fontFamily: "'Dancing Script', 'Pacifico', 'Great Vibes', cursive" }}>Sunshine</h2>
-              <p className="text-white/40 text-xs mt-2">发现生活的每一种可能</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Content */}
-        <section className="pb-20">
-          {/* Active search indicator */}
-          {searchQuery && (
-            <div className="px-3 py-2 flex flex-col items-center text-center bg-[var(--color-bg-card)] border-b-[0.5px] border-[var(--color-border-subtle)]">
-              <p className="text-[12px] text-[var(--color-text-secondary)]">
-                搜索：<span className="font-medium text-[var(--color-text-primary)]">"{searchQuery}"</span>
-                <span className="text-[var(--color-text-tertiary)] ml-1">— {totalContent} 条结果</span>
-              </p>
+            {customCats.filter(c => c !== "推荐").length > 0 && (
               <button
-                onClick={() => setSearchQuery("")}
-                className="text-[11px] text-[var(--color-accent)] hover:underline px-2 py-1"
+                onClick={() => { setCustomCats(["推荐"]); setActiveCat("推荐"); setShowCatPicker(false); }}
+                className="px-2.5 py-1 rounded-full text-[11px] text-red-400 hover:bg-red-500/10 transition-all"
+                style={{ border: "1px solid rgba(248,113,113,0.3)" }}
               >
-                清除 ✕
+                重置
               </button>
-            </div>
-          )}
+            )}
+          </div>
+        )}
+      </div>
 
-          {/* User search results */}
-          {searchQuery && searchUsers_.length > 0 && (
-            <div className="px-3 py-2">
-              <p className="text-[10px] text-[var(--color-text-tertiary)] mb-2 uppercase tracking-wider">相关用户</p>
-              <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-                {searchUsers_.map((u: any) => (
-                  <button key={u.id} onClick={() => router.push(`/user/${u.id}`)}
-                    className="flex flex-col items-center gap-1.5 min-w-[64px] py-2 px-1 rounded-xl hover:bg-[var(--color-bg-hover)] transition-all">
-                    <TinyAvatar name={u.nickname || "?"} avatarUrl={u.avatar_url} size={40} />
-                    <span className="text-[10px] text-[var(--color-text-secondary)] truncate max-w-[60px]">{u.nickname || "匿名"}</span>
-                    {u.role === "owner" && <span className="text-[8px]">👑</span>}
-                    {u.is_admin && u.role !== "owner" && <span className="text-[8px]">🛡️</span>}
+      <main className="min-h-screen bg-[var(--color-bg-primary)]" style={{ paddingTop: "96px" }}>
+        <div className="max-w-6xl mx-auto flex gap-4 px-3 sm:px-4">
+          {/* Main content */}
+          <section className="flex-1 min-w-0">
+            {totalContent === 0 && !loading ? (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-20">
+                <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: "var(--color-bg-card)" }}>
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-[var(--color-text-tertiary)]"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                </div>
+                <p className="text-[13px] text-[var(--color-text-tertiary)] mb-0.5">
+                  {searchQuery ? `没有找到"${searchQuery}"相关内容` : activeCat !== "推荐" ? `"${activeCat}"分类暂无内容` : "还没有内容"}
+                </p>
+                <p className="text-[11px] text-[var(--color-text-tertiary)]">成为第一个分享的人</p>
+              </motion.div>
+            ) : (
+              <>
+                {/* Pinned posts */}
+                {sortedPinned.map((p) => (
+                  <div key={p.id} className="px-1 pt-2">
+                    <div onClick={() => router.push(`/post/${p.id}`)} className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer active:scale-[0.98] transition-all" style={{ background: "linear-gradient(to right, rgba(245,158,11,0.1), rgba(245,158,11,0.05), transparent)", border: "0.5px solid rgba(245,158,11,0.2)" }}>
+                      <span className="text-base shrink-0">📌</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-semibold text-[var(--color-text-primary)] line-clamp-1">{p.title}</p>
+                        <p className="text-[11px] text-[var(--color-text-tertiary)] line-clamp-1 mt-0.5">{p.content}</p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0 text-[10px] text-[var(--color-text-tertiary)]">
+                        <span>❤️{p.likes || 0}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Announcements */}
+                {announcements.map((p) => (
+                  <div key={p.id} className="px-1 pt-2">
+                    <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
+                      className="rounded-xl overflow-hidden cursor-pointer"
+                      style={{ background: "linear-gradient(to right, rgba(255,36,66,0.1), rgba(255,36,66,0.05), rgba(255,36,66,0.1))", border: "0.5px solid rgba(255,36,66,0.3)" }}
+                      onClick={() => router.push(`/post/${p.id}`)}>
+                      <div className="px-4 py-3 flex items-center gap-3">
+                        <span className="text-xl shrink-0">📢</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0" style={{ backgroundColor: "rgba(255,36,66,0.2)", color: "var(--color-accent)" }}>公告</span>
+                            <h3 className="text-[13px] font-semibold text-[var(--color-text-primary)] line-clamp-1">{p.title}</h3>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  </div>
+                ))}
+
+                {/* Post grid */}
+                <AnimatePresence mode="wait">
+                  <motion.div key={activeCat + searchQuery} variants={container} initial="hidden" animate="show" className="columns-2 sm:columns-3 gap-3 pt-3 [column-fill:balance]" style={{ columnFill: "balance" } as React.CSSProperties}>
+                    {sorted.map((p, i) => (
+                      <React.Fragment key={p.id}>
+                        <motion.div variants={item} className="break-inside-avoid mb-2.5"><PostCard post={p} isLiked={likedPosts.has(p.id) || guestLikes.has(p.id)} onLike={(id) => { toggleLike(id); }} onCardClick={(id) => router.push(`/post/${id}`)} isSaved={savedPosts.has(p.id)} onSave={(id) => { if (!user) { requireLogin(); return; } toggleSave(id); }} onDelete={(id) => deletePost(id)} currentUserId={user?.id} isOwner={user?.role === "owner"} isAdmin={user?.isAdmin} /></motion.div>
+                        {(i + 1) % 6 === 0 && i < sorted.length - 1 && (
+                          <motion.div variants={item}><AdCard index={Math.floor(i / 6)} /></motion.div>
+                        )}
+                      </React.Fragment>
+                    ))}
+                  </motion.div>
+                </AnimatePresence>
+              </>
+            )}
+
+            <div ref={sentinelRef} className="py-6 flex justify-center">
+              {loading && totalContent > 0 && (
+                <div className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)] animate-bounce" style={{ animationDelay: "0ms" }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)] animate-bounce" style={{ animationDelay: "150ms" }} />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)] animate-bounce" style={{ animationDelay: "300ms" }} />
+                </div>
+              )}
+              {!hasMore && totalContent > 0 && <p className="text-[11px] text-[var(--color-text-tertiary)]">— 到底啦～ —</p>}
+            </div>
+          </section>
+
+          {/* Sidebar - Trending (hidden on mobile) */}
+          <aside className="hidden lg:block w-72 shrink-0 sticky top-24 self-start">
+            {/* Trending section */}
+            <div className="rounded-xl overflow-hidden" style={{ backgroundColor: "var(--color-bg-card)", border: "0.5px solid var(--color-border-subtle)" }}>
+              <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: "0.5px solid var(--color-border-subtle)" }}>
+                <div className="flex items-center gap-2">
+                  <span className="text-base">🔥</span>
+                  <span className="text-sm font-semibold text-[var(--color-text-primary)]">热门榜单</span>
+                </div>
+                <button onClick={() => setShowTrending(!showTrending)} className="text-[10px] text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] transition-all">
+                  {showTrending ? "收起" : "展开"}
+                </button>
+              </div>
+              <div className="py-1">
+                {trendingPosts.slice(0, showTrending ? 10 : 5).map((p, i) => (
+                  <div
+                    key={p.id}
+                    onClick={() => router.push(`/post/${p.id}`)}
+                    className="px-4 py-2.5 flex items-start gap-3 cursor-pointer hover:bg-[var(--color-bg-hover)] transition-all"
+                  >
+                    <span className={`text-[12px] font-bold w-4 text-center shrink-0 mt-0.5 ${i < 3 ? "text-[var(--color-accent)]" : "text-[var(--color-text-tertiary)]"}`}>
+                      {i + 1}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12px] font-medium text-[var(--color-text-primary)] line-clamp-2 leading-relaxed">{p.title}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[10px] text-[var(--color-text-tertiary)]">{p.author}</span>
+                        <span className="text-[10px] text-[var(--color-text-tertiary)]">·</span>
+                        <span className="text-[10px] text-[var(--color-text-tertiary)]">❤️ {p.likes || 0}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                {trendingPosts.length === 0 && (
+                  <div className="px-4 py-6 text-center">
+                    <p className="text-[11px] text-[var(--color-text-tertiary)]">暂无热门内容</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Quick links */}
+            <div className="mt-3 rounded-xl p-3" style={{ backgroundColor: "var(--color-bg-card)", border: "0.5px solid var(--color-border-subtle)" }}>
+              <div className="flex flex-wrap gap-1.5">
+                {["月落", "浮生", "缘渡", "清谈", "修行", "数码", "汽车", "游戏"].map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => { setActiveCat(cat); if (!customCats.includes(cat)) setCustomCats(prev => [...prev, cat]); }}
+                    className="px-2.5 py-1 rounded-full text-[10px] text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] transition-all"
+                    style={{ backgroundColor: "var(--color-bg-secondary)", border: "0.5px solid var(--color-border-subtle)" }}
+                  >
+                    {cat}
                   </button>
                 ))}
               </div>
             </div>
-          )}
 
-          {loading && totalContent === 0 ? (
-            <div className="px-2 pt-3"><FeedSkeleton /></div>
-          ) : totalContent === 0 ? (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-28">
-              <div className="w-14 h-14 rounded-2xl bg-[var(--color-bg-card)] border-[0.5px] border-[var(--color-border-subtle)] flex items-center justify-center mx-auto mb-3">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-[var(--color-text-tertiary)]"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              </div>
-              <p className="text-[13px] text-[var(--color-text-tertiary)] mb-0.5">
-                {searchQuery ? `没有找到"${searchQuery}"相关内容` : activeCat !== "推荐" ? `"${activeCat}"分类暂无内容` : "还没有内容"}
-              </p>
-              <p className="text-[11px] text-[var(--color-text-tertiary)]">成为第一个分享的人</p>
-            </motion.div>
-          ) : (
-            <>
-              {/* Pinned posts - 每条单独显示，不会重叠 */}
-              {sortedPinned.map((p) => (
-                <div key={p.id} className="px-2 pt-2">
-                  <div onClick={() => router.push(`/post/${p.id}`)} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border-[0.5px] border-amber-500/20 cursor-pointer active:scale-[0.98] transition-all">
-                    <span className="text-base shrink-0">📌</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-semibold text-[var(--color-text-primary)] line-clamp-1">{p.title}</p>
-                      <p className="text-[11px] text-[var(--color-text-tertiary)] line-clamp-1 mt-0.5">{p.content}</p>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0 text-[10px] text-[var(--color-text-tertiary)]">
-                      <span>❤️{p.likes || 0}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-
-              {/* Announcements */}
-              {announcements.map((p) => (
-                <div key={p.id} className="px-2 pt-2">
-                  <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
-                    className="bg-gradient-to-r from-[var(--color-accent)]/10 via-[var(--color-accent)]/5 to-[var(--color-accent)]/10 border-[0.5px] border-[var(--color-accent)]/30 rounded-xl overflow-hidden cursor-pointer"
-                    onClick={() => router.push(`/post/${p.id}`)}>
-                    <div className="px-4 py-3 flex items-center gap-3">
-                      <span className="text-xl shrink-0">📢</span>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-accent)]/20 text-[var(--color-accent)] font-medium shrink-0">公告</span>
-                          <h3 className="text-[13px] font-semibold text-[var(--color-text-primary)] line-clamp-1">{p.title}</h3>
-                        </div>
-                      </div>
-                    </div>
-                  </motion.div>
-                </div>
-              ))}
-
-              {/* Post grid */}
-              <AnimatePresence mode="wait">
-                <motion.div key={activeCat + searchQuery} variants={container} initial="hidden" animate="show" className="columns-2 sm:columns-3 lg:columns-4 gap-3 pt-3 px-3 sm:px-4 lg:px-0 [column-fill:balance]" style={{ columnFill: "balance" } as React.CSSProperties}>
-                  {sorted.map((p, i) => (
-                    <React.Fragment key={p.id}>
-                      <motion.div variants={item} className="break-inside-avoid mb-2.5"><PostCard post={p} isLiked={likedPosts.has(p.id) || guestLikes.has(p.id)} onLike={(id) => { toggleLike(id); }} onCardClick={(id) => router.push(`/post/${id}`)} isSaved={savedPosts.has(p.id)} onSave={(id) => { if (!user) { requireLogin(); return; } toggleSave(id); }} onDelete={(id) => deletePost(id)} currentUserId={user?.id} isOwner={user?.role === "owner"} isAdmin={user?.isAdmin} /></motion.div>
-                      {(i + 1) % 6 === 0 && i < sorted.length - 1 && (
-                        <motion.div variants={item}><AdCard index={Math.floor(i / 6)} /></motion.div>
-                      )}
-                    </React.Fragment>
-                  ))}
-                </motion.div>
-              </AnimatePresence>
-            </>
-          )}
-
-          <div ref={sentinelRef} className="py-6 flex justify-center">
-            {loading && totalContent > 0 && (
-              <div className="flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)] animate-bounce" style={{ animationDelay: "0ms" }} />
-                <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)] animate-bounce" style={{ animationDelay: "150ms" }} />
-                <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)] animate-bounce" style={{ animationDelay: "300ms" }} />
-              </div>
-            )}
-            {!hasMore && totalContent > 0 && <p className="text-[11px] text-[var(--color-text-tertiary)]">— 到底啦～ —</p>}
-          </div>
-        </section>
+            {/* Footer */}
+            <div className="mt-3 px-3 py-2 text-center">
+              <p className="text-[10px] text-[var(--color-text-tertiary)]">大岚荧 · 发现你的兴趣世界</p>
+              <p className="text-[9px] text-[var(--color-text-tertiary)] mt-1">© 2026 dalanying.work</p>
+            </div>
+          </aside>
+        </div>
       </main>
     </>
   );
