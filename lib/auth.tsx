@@ -588,24 +588,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!hasSupabase) return { success: false, error: "系统未配置 Supabase" };
     
     try {
-      const { error } = await supabase!.auth.signInWithOtp({
+      // 15秒超时，防止网络问题导致按钮一直卡在"发送中"
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("请求超时，请检查网络")), 15000)
+      );
+      const otpPromise = supabase!.auth.signInWithOtp({
         email,
         options: { shouldCreateUser: true },
       });
+      const { error } = await Promise.race([otpPromise, timeoutPromise]);
       
       if (error) {
         console.error("发送验证码失败:", error.message);
-        if (error.message.includes("rate limit")) {
-          return { success: false, error: "发送太频繁，请稍后再试" };
+        if (error.message.includes("rate limit") || error.message.includes("429") || error.message.includes("after")) {
+          // 提取等待秒数
+          const match = error.message.match(/after (\d+) seconds/);
+          const secs = match ? match[1] : "60";
+          return { success: false, error: `发送太频繁，请${secs}秒后再试` };
         }
-        return { success: false, error: "发送失败: " + error.message };
+        if (error.message.includes("超时")) {
+          return { success: false, error: "网络超时，请检查网络后重试" };
+        }
+        return { success: false, error: "发送失败，请稍后重试" };
       }
       
       console.log("验证码已发送到邮箱:", email);
       return { success: true };
     } catch (e: any) {
       console.error("发送验证码异常:", e);
-      return { success: false, error: e.message || "发送失败" };
+      if (e.message?.includes("超时") || e.message?.includes("timeout")) {
+        return { success: false, error: "网络超时，请检查网络后重试" };
+      }
+      return { success: false, error: "发送失败，请稍后重试" };
     }
   }, []);
 
