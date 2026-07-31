@@ -64,6 +64,13 @@ export default function SettingsPage() {
   const [uploadingAlipay, setUploadingAlipay] = useState(false);
   const [uploadingWechat, setUploadingWechat] = useState(false);
 
+  // Password OTP verification
+  const [passwordOtpSent, setPasswordOtpSent] = useState(false);
+  const [passwordOtp, setPasswordOtp] = useState("");
+  const [passwordOtpCountdown, setPasswordOtpCountdown] = useState(0);
+  const [passwordVerified, setPasswordVerified] = useState(false);
+  const [sendingPasswordOtp, setSendingPasswordOtp] = useState(false);
+
   // Collapsible sections
   const [expanded, setExpanded] = useState<Record<string, boolean>>({ profile: true, appearance: false, admin: false, payment: false, danger: false, bindEmail: false, password: false });
 
@@ -539,34 +546,96 @@ export default function SettingsPage() {
             </button>
             {expanded.password && (
               <div className="px-4 pb-4 space-y-3 border-t-[0.5px] border-[var(--color-border-subtle)] pt-3">
-                <p className="text-xs text-[var(--color-text-secondary)]">设置密码后，下次可以用邮箱+密码直接登录，不用再收验证码。</p>
-                <div>
-                  <label className="text-[11px] font-medium text-[var(--color-text-secondary)] ml-1">新密码</label>
-                  <input type="password" placeholder="至少6位" value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full mt-1 px-3 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] outline-none focus:border-[var(--color-accent)] transition-all" />
-                </div>
-                {newPassword.length >= 6 && (
-                  <div>
-                    <label className="text-[11px] font-medium text-[var(--color-text-secondary)] ml-1">确认密码</label>
-                    <input type="password" placeholder="再输入一次" value={confirmNewPassword}
-                      onChange={(e) => setConfirmNewPassword(e.target.value)}
-                      className="w-full mt-1 px-3 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] outline-none focus:border-[var(--color-accent)] transition-all" />
-                  </div>
+                {!passwordVerified ? (
+                  <>
+                    <p className="text-xs text-[var(--color-text-secondary)]">为保障账户安全，修改密码前需要验证你的邮箱。</p>
+                    <p className="text-xs text-[var(--color-text-tertiary)]">将发送验证码到 {user.email}</p>
+                    {passwordOtpSent && (
+                      <div>
+                        <label className="text-[11px] font-medium text-[var(--color-text-secondary)] ml-1">验证码</label>
+                        <div className="flex gap-2 mt-1">
+                          <input type="text" placeholder="输入8位验证码" value={passwordOtp} maxLength={8}
+                            onChange={(e) => setPasswordOtp(e.target.value.replace(/\D/g, ""))}
+                            className="flex-1 px-3 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] outline-none focus:border-[var(--color-accent)] transition-all tracking-widest" />
+                          <button type="button" onClick={async () => {
+                            setPasswordOtpCountdown(60);
+                            const timer = setInterval(() => {
+                              setPasswordOtpCountdown(prev => { if (prev <= 1) { clearInterval(timer); return 0; } return prev - 1; });
+                            }, 1000);
+                            await sendEmailOTP(user.email);
+                            toast.success("验证码已重新发送");
+                          }} disabled={passwordOtpCountdown > 0}
+                            className="shrink-0 px-3 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] disabled:opacity-40 transition-all">
+                            {passwordOtpCountdown > 0 ? `${passwordOtpCountdown}s` : "重发"}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    <button onClick={async () => {
+                      if (!passwordOtpSent) {
+                        setSendingPasswordOtp(true);
+                        const result = await sendEmailOTP(user.email);
+                        setSendingPasswordOtp(false);
+                        if (result.success) {
+                          setPasswordOtpSent(true);
+                          setPasswordOtpCountdown(60);
+                          const timer = setInterval(() => {
+                            setPasswordOtpCountdown(prev => { if (prev <= 1) { clearInterval(timer); return 0; } return prev - 1; });
+                          }, 1000);
+                          toast.success("验证码已发送到邮箱");
+                        } else {
+                          toast.error(result.error || "发送失败");
+                        }
+                      } else {
+                        // Verify OTP
+                        if (!passwordOtp.trim()) { toast.error("请输入验证码"); return; }
+                        setSendingPasswordOtp(true);
+                        const result = await sharedSupabase?.auth.verifyOtp({ email: user.email, token: passwordOtp.trim(), type: "email" });
+                        setSendingPasswordOtp(false);
+                        if (result?.error) {
+                          toast.error("验证码错误或已过期");
+                        } else {
+                          setPasswordVerified(true);
+                          toast.success("验证成功，请设置新密码");
+                        }
+                      }
+                    }} disabled={sendingPasswordOtp || (passwordOtpSent && passwordOtp.length < 6)}
+                      className="btn-primary w-full py-2.5 rounded-xl text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+                      {sendingPasswordOtp ? "处理中..." : passwordOtpSent ? "验证" : "发送验证码"}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-xs text-green-400">✓ 邮箱已验证</p>
+                    <div>
+                      <label className="text-[11px] font-medium text-[var(--color-text-secondary)] ml-1">新密码</label>
+                      <input type="password" placeholder="至少6位" value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        className="w-full mt-1 px-3 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] outline-none focus:border-[var(--color-accent)] transition-all" />
+                    </div>
+                    {newPassword.length >= 6 && (
+                      <div>
+                        <label className="text-[11px] font-medium text-[var(--color-text-secondary)] ml-1">确认密码</label>
+                        <input type="password" placeholder="再输入一次" value={confirmNewPassword}
+                          onChange={(e) => setConfirmNewPassword(e.target.value)}
+                          className="w-full mt-1 px-3 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] outline-none focus:border-[var(--color-accent)] transition-all" />
+                      </div>
+                    )}
+                    <button onClick={async () => {
+                      if (!newPassword || newPassword.length < 6) { toast.error("密码至少6位"); return; }
+                      if (newPassword !== confirmNewPassword) { toast.error("两次密码不一致"); return; }
+                      setSettingPassword(true);
+                      const res = await sharedSupabase?.auth.updateUser({ password: newPassword });
+                      const error = res?.error;
+                      if (error) { toast.error("设置失败: " + error.message); }
+                      else { toast.success("密码设置成功！"); setNewPassword(""); setConfirmNewPassword(""); setPasswordVerified(false); setPasswordOtpSent(false); setPasswordOtp(""); }
+                      setSettingPassword(false);
+                    }} disabled={!newPassword || newPassword.length < 6 || newPassword !== confirmNewPassword || settingPassword}
+                      className="btn-primary w-full py-2.5 rounded-xl text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+                      {settingPassword ? "设置中..." : "保存密码"}
+                    </button>
+                  </>
                 )}
-                <button onClick={async () => {
-                  if (!newPassword || newPassword.length < 6) { toast.error("密码至少6位"); return; }
-                  if (newPassword !== confirmNewPassword) { toast.error("两次密码不一致"); return; }
-                  setSettingPassword(true);
-                  const res = await sharedSupabase?.auth.updateUser({ password: newPassword });
-                  const error = res?.error;
-                  if (error) { toast.error("设置失败: " + error.message); }
-                  else { toast.success("密码设置成功！"); setNewPassword(""); setConfirmNewPassword(""); }
-                  setSettingPassword(false);
-                }} disabled={!newPassword || newPassword.length < 6 || newPassword !== confirmNewPassword || settingPassword}
-                  className="btn-primary w-full py-2.5 rounded-xl text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all">
-                  {settingPassword ? "设置中..." : "保存密码"}
-                </button>
               </div>
             )}
           </div>
