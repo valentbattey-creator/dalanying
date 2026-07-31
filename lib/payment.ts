@@ -240,27 +240,23 @@ async function boostPost(postId: string, days: number): Promise<void> {
 
 // ===== Upload QR code image =====
 export async function uploadPaymentQR(file: File, type: "alipay" | "wechat"): Promise<string> {
-  if (hasSupabase && supabase) {
-    try {
-      const ext = file.name.split(".").pop() || "png";
-      const path = `payment/${type}_qr_${Date.now()}.${ext}`;
-      const { data, error } = await supabase.storage.from("post-images").upload(path, file, {
-        cacheControl: "3600",
-        upsert: true,
-      });
-      if (error) throw error;
-      const { data: urlData } = supabase.storage.from("post-images").getPublicUrl(path);
-      return urlData.publicUrl;
-    } catch (e) {
-      console.error("Upload QR failed:", e);
-      throw e;
-    }
+  // Use API route (service role key) for reliable upload
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("folder", "payment");
+    const res = await fetch("/api/upload", { method: "POST", body: formData });
+    const data = await res.json();
+    if (data.url) return data.url;
+    throw new Error(data.error || "上传失败");
+  } catch (e) {
+    console.error("Upload QR failed:", e);
+    // Fallback: convert to data URL
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
   }
-  // Fallback: convert to data URL
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
 }

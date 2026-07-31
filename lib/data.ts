@@ -709,16 +709,16 @@ export const dataService = {
 
   // ===== Upload =====
   async uploadImage(file: File, folder?: string): Promise<string | null> {
-    if (!hasSupabase || !supabase) return null;
+    // Use API route with service role key for reliable upload
     try {
-      const bytes = await file.arrayBuffer();
-      const fileName = `${folder || "posts"}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-      const { data, error } = await supabase.storage.from("post-images").upload(fileName, bytes, {
-        contentType: file.type, upsert: true,
-      });
-      if (error) { console.warn("Upload error:", error.message); return null; }
-      const { data: urlData } = supabase.storage.from("post-images").getPublicUrl(fileName);
-      return urlData.publicUrl;
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("folder", folder || "posts");
+      const res = await fetch("/api/upload", { method: "POST", body: formData });
+      const data = await res.json();
+      if (data.url) return data.url;
+      console.warn("Upload API error:", data.error);
+      return null;
     } catch (e) { console.warn("Upload failed:", e); return null; }
   },
 
