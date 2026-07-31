@@ -380,10 +380,16 @@ export default function LoginModal() {
         {/* Footer links */}
         <div className="mt-5 pt-4 border-t border-[var(--color-border-subtle)] space-y-2.5 text-center">
           {mode === "email" && (
-            <button type="button" onClick={() => switchMode("quick")}
-              className="block w-full text-[11px] text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] transition-all py-1">
-              🚶 先看看再说
-            </button>
+            <>
+              <button type="button" onClick={() => switchMode("login")}
+                className="block w-full text-[12px] text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] transition-all py-1.5">
+                🔑 邮箱密码登录
+              </button>
+              <button type="button" onClick={() => switchMode("quick")}
+                className="block w-full text-[11px] text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] transition-all py-1">
+                🚶 先看看再说
+              </button>
+            </>
           )}
           {mode === "quick" && (
             <button type="button" onClick={() => switchMode("email")}
