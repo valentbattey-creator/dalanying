@@ -8,6 +8,7 @@ import { uploadAvatar } from "@/lib/data";
 import { useTheme } from "@/lib/theme";
 import { supabase as sharedSupabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import UserAvatar from "@/components/UserAvatar";
 
 import AdminBadge from "@/components/AdminBadge";
 import { getPaymentConfig, savePaymentConfig, uploadPaymentQR, type PaymentConfig } from "@/lib/payment";
@@ -557,7 +558,8 @@ export default function SettingsPage() {
                   if (!newPassword || newPassword.length < 6) { toast.error("密码至少6位"); return; }
                   if (newPassword !== confirmNewPassword) { toast.error("两次密码不一致"); return; }
                   setSettingPassword(true);
-                  const { error } = await sharedSupabase?.auth.updateUser({ password: newPassword });
+                  const res = await sharedSupabase?.auth.updateUser({ password: newPassword });
+                  const error = res?.error;
                   if (error) { toast.error("设置失败: " + error.message); }
                   else { toast.success("密码设置成功！"); setNewPassword(""); setConfirmNewPassword(""); }
                   setSettingPassword(false);
