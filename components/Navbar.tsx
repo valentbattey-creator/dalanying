@@ -37,8 +37,8 @@ export default function Navbar({ onSearch }: { onSearch?: (q: string) => void })
               <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
             </g>
           </svg>
-          <span className="text-lg font-extrabold tracking-tight text-[var(--color-text-primary)]"
-            style={{ fontFamily: "'Dancing Script', cursive" }}>
+          <span className="font-extrabold tracking-tight"
+            style={{ fontFamily: "'Dancing Script', cursive", fontSize: "18px", color: "#f4f4f5" }}>
             sunshine
           </span>
         </Link>
