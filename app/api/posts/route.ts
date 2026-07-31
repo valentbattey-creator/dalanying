@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { moderateContent } from "@/lib/moderation";
 
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || "https://aawoajhmhvysedabncoz.supabase.co",
@@ -112,6 +113,12 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     let { title, content, images, category, tags, authorId, author, authorAvatar, isPinned, isAnnouncement } = body;
+
+    // Server-side content moderation
+    const modResult = moderateContent((title || "") + " " + (content || ""));
+    if (!modResult.passed) {
+      return NextResponse.json({ error: modResult.reason || "内容包含违规信息" }, { status: 400 });
+    }
 
     // Map category to valid Supabase value
     // Try Chinese category first; if constraint fails, use mapped value

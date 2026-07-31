@@ -3,7 +3,7 @@ import React from "react";
 
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import Navbar from "@/components/Navbar";
 import PostCard from "@/components/PostCard";
 import { FeedSkeleton } from "@/components/Skeleton";
@@ -120,8 +120,8 @@ export default function HomePage() {
       <Navbar onSearch={handleSearch} />
       
       {/* Fixed Category Bar - 明确放在 Navbar 下面 */}
-      <div className="fixed top-12 left-0 right-0 z-40" style={{ backgroundColor: "var(--color-bg-secondary)", borderBottom: "1px solid var(--color-border-subtle)" }}>
-        <div className="max-w-6xl mx-auto px-2 py-2 flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
+      <div className="fixed left-0 right-0 z-40" style={{ top: "48px", backgroundColor: "var(--color-bg-secondary, #121214)", borderBottom: "1px solid var(--color-border-subtle, #27272a)", WebkitTransform: "translateZ(0)", transform: "translateZ(0)", zIndex: 40 }}>
+        <div className="max-w-6xl mx-auto px-2 py-2 flex items-center gap-1.5" style={{ overflowX: "auto", WebkitOverflowScrolling: "touch", msOverflowStyle: "none", scrollbarWidth: "none" }}>
           {customCats.map(cat => (
             <button
               key={cat}
@@ -224,18 +224,16 @@ export default function HomePage() {
                 ))}
 
                 {/* Post grid */}
-                <AnimatePresence mode="wait">
-                  <motion.div key={activeCat + searchQuery} variants={container} initial="hidden" animate="show" className="columns-2 sm:columns-3 gap-3 pt-3 [column-fill:balance]" style={{ columnFill: "balance" } as React.CSSProperties}>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-3">
                     {sorted.map((p, i) => (
                       <React.Fragment key={p.id}>
-                        <motion.div variants={item} className="break-inside-avoid mb-2.5"><PostCard post={p} isLiked={likedPosts.has(p.id) || guestLikes.has(p.id)} onLike={(id) => { toggleLike(id); }} onCardClick={(id) => router.push(`/post/${id}`)} isSaved={savedPosts.has(p.id)} onSave={(id) => { if (!user) { requireLogin(); return; } toggleSave(id); }} onDelete={(id) => deletePost(id)} currentUserId={user?.id} isOwner={user?.role === "owner"} isAdmin={user?.isAdmin} /></motion.div>
+                        <div className="mb-2.5" style={{ animation: "fadeInUp 0.3s ease both", animationDelay: `${(i % 10) * 40}ms` }}><PostCard post={p} isLiked={likedPosts.has(p.id) || guestLikes.has(p.id)} onLike={(id) => { toggleLike(id); }} onCardClick={(id) => router.push(`/post/${id}`)} isSaved={savedPosts.has(p.id)} onSave={(id) => { if (!user) { requireLogin(); return; } toggleSave(id); }} onDelete={(id) => deletePost(id)} currentUserId={user?.id} isOwner={user?.role === "owner"} isAdmin={user?.isAdmin} /></div>
                         {(i + 1) % 6 === 0 && i < sorted.length - 1 && (
-                          <motion.div variants={item}><AdCard index={Math.floor(i / 6)} /></motion.div>
+                          <div><AdCard index={Math.floor(i / 6)} /></div>
                         )}
                       </React.Fragment>
                     ))}
-                  </motion.div>
-                </AnimatePresence>
+                </div>
               </>
             )}
 

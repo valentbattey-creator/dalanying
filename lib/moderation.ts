@@ -22,6 +22,14 @@ const BLOCKED_KEYWORDS: { word: string; category: string }[] = [
   { word: "毒品", category: "违法" }, { word: "吸毒", category: "违法" }, { word: "大麻", category: "违法" },
   { word: "海洛因", category: "违法" }, { word: "冰毒", category: "违法" }, { word: "摇头丸", category: "违法" },
   
+  // 骂人脏话类
+  { word: "傻逼", category: "辱骂" }, { word: "煞笔", category: "辱骂" }, { word: "操你", category: "辱骂" },
+  { word: "你妈", category: "辱骂" }, { word: "他妈的", category: "辱骂" }, { word: "狗日", category: "辱骂" },
+  { word: "王八蛋", category: "辱骂" }, { word: "混蛋", category: "辱骂" }, { word: "废物", category: "辱骂" },
+  { word: "垃圾人", category: "辱骂" }, { word: "去死吧", category: "辱骂" }, { word: "死全家", category: "辱骂" },
+  { word: "cnm", category: "辱骂" }, { word: "nmsl", category: "辱骂" }, { word: "草泥马", category: "辱骂" },
+  { word: "fuck", category: "辱骂" }, { word: "shit", category: "辱骂" }, { word: "bitch", category: "辱骂" },
+  
   // 政治敏感类
   { word: "台独", category: "政治" }, { word: "港独", category: "政治" }, { word: "藏独", category: "政治" },
   { word: "疆独", category: "政治" }, { word: "法轮功", category: "政治" }, { word: "六四", category: "政治" },
@@ -103,6 +111,7 @@ export function getViolationLevel(category: string): number {
     case "色情": return 3;
     case "暴力": return 3;
     case "违法": return 3;
+    case "辱骂": return 2;   // 删帖+警告
     default: return 2;       // 删帖
   }
 }

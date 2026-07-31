@@ -72,7 +72,7 @@ export default function SettingsPage() {
   const [sendingPasswordOtp, setSendingPasswordOtp] = useState(false);
 
   // Collapsible sections
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({ profile: true, appearance: false, admin: false, payment: false, danger: false, bindEmail: false, password: false });
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({ profile: true, appearance: false, admin: false, payment: false, danger: false, bindEmail: false, password: true });
 
   useEffect(() => {
     if (!user) return;

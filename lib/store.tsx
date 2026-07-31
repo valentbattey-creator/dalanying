@@ -235,12 +235,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
     if (isBanned(user)) return;
     const currentlyLiked = likedPosts.has(postId);
-    const newLikes = await dataService.toggleLike(postId, user.id, currentlyLiked);
-    const key = postId + "_" + user.id;
+    // Optimistic update - immediately update UI
     setLikedPosts(prev => {
       const next = new Set(prev);
       currentlyLiked ? next.delete(postId) : next.add(postId);
-      // Persist to localStorage in combined key format
+      const key = postId + "_" + user.id;
       try {
         const liked = JSON.parse(localStorage.getItem("dalanying_likedPosts") || "[]");
         const updated = currentlyLiked ? liked.filter((k: string) => k !== key) : [...liked, key];
@@ -248,7 +247,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       } catch {}
       return next;
     });
-    setPosts(prev => prev.map(p => p.id === postId ? { ...p, likes: newLikes } : p));
+    setPosts(prev => prev.map(p => p.id === postId ? { ...p, likes: Math.max(0, p.likes + (currentlyLiked ? -1 : 1)) } : p));
+    // Sync with server
+    const serverLikes = await dataService.toggleLike(postId, user.id, currentlyLiked);
+    // Reconcile with server count if valid
+    if (typeof serverLikes === "number" && serverLikes >= 0) {
+      setPosts(prev => prev.map(p => p.id === postId ? { ...p, likes: serverLikes } : p));
+    }
   }, [user, likedPosts]);
 
   const toggleSave = useCallback((postId: string) => {

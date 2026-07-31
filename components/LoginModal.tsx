@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useMemo, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth, isValidEmail } from "@/lib/auth";
 import { toast } from "sonner";
 
 export default function LoginModal() {
+  const router = useRouter();
   const { showLoginModal, setShowLoginModal, login, register, quickLogin, checkNameAvailable, registrationCount, sendPhoneOTP, verifyPhoneOTP, sendEmailOTP, verifyEmailOTP } = useAuth();
   const [mode, setMode] = useState<"phone" | "email" | "login" | "register" | "quick">("email");
   const [name, setName] = useState("");
@@ -82,7 +84,13 @@ export default function LoginModal() {
               <p>🔹 违规内容将被删除，严重者封号处理</p>
               <p>🔹 保护个人隐私，谨防诈骗</p>
             </div>
-            <p className="text-[10px] text-[var(--color-text-tertiary)] mt-4 text-center">点击任意处开始你的大岚荧之旅</p>
+            <div className="mt-4 space-y-2">
+              <button onClick={() => { setCelebration(false); setShowLoginModal(false); resetForm(); router.push("/settings"); }}
+                className="btn-primary w-full py-2.5 rounded-xl text-sm transition-all">
+                🔑 设置密码（下次免验证码登录）
+              </button>
+              <p className="text-[10px] text-[var(--color-text-tertiary)] text-center cursor-pointer" onClick={() => { setCelebration(false); setShowLoginModal(false); resetForm(); }}>稍后再说</p>
+            </div>
           </div>
         </div>
       </div>
