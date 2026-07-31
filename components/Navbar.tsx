@@ -24,10 +24,22 @@ export default function Navbar({ onSearch }: { onSearch?: (q: string) => void })
       <div className="max-w-6xl mx-auto h-full px-4 flex items-center gap-4">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-1.5 shrink-0">
-          <span className="text-xl" style={{ filter: "drop-shadow(0 0 6px rgba(255,180,50,0.4))" }}>☀️</span>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style={{ filter: "drop-shadow(0 0 4px rgba(255,180,50,0.5))" }}>
+            <circle cx="12" cy="12" r="5" fill="#ffb432" stroke="#ff9500" strokeWidth="1"/>
+            <g stroke="#ffb432" strokeWidth="2" strokeLinecap="round">
+              <line x1="12" y1="1" x2="12" y2="3"/>
+              <line x1="12" y1="21" x2="12" y2="23"/>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+              <line x1="1" y1="12" x2="3" y2="12"/>
+              <line x1="21" y1="12" x2="23" y2="12"/>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+            </g>
+          </svg>
           <span className="text-lg font-extrabold tracking-tight text-[var(--color-text-primary)]"
             style={{ fontFamily: "'Dancing Script', cursive" }}>
-            dalanying
+            sunshine
           </span>
         </Link>
 
