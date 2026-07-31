@@ -20,32 +20,81 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://www.dalanying.work"),
   title: {
-    default: "dalanying - 发现你的兴趣世界",
-    template: "%s | dalanying",
+    default: "大岚荧 - 发现你的兴趣世界",
+    template: "%s | 大岚荧",
   },
-  description: "dalanying，一个面向新一代的内容社区。发现科技、汽车、运动、游戏、财经、美食、旅游等热门领域，分享你的热爱。",
-  keywords: ["社区", "内容", "分享", "科技", "汽车", "运动", "游戏", "数码", "男性社区"],
+  description: "大岚荧(dalanying)，一个面向新一代年轻人的内容社区。在这里讨论科技数码、汽车运动、游戏健身、美食旅游、谈婚论嫁、思维探讨等热门话题，分享你的热爱与见解。",
+  keywords: [
+    "大岚荧", "dalanying", "社区", "论坛", "内容社区", "年轻人社区",
+    "科技", "数码", "汽车", "运动", "游戏", "健身", "户外", "财经",
+    "美食", "旅游", "穿搭", "摄影", "宠物", "音乐", "电影", "动漫",
+    "谈婚论嫁", "思维探讨", "白月光", "爱情真相", "成长",
+    "男性社区", "兴趣社区", "分享", "讨论",
+  ],
   authors: [{ name: "大岚荧" }],
+  creator: "大岚荧",
+  publisher: "大岚荧",
   openGraph: {
     type: "website",
     locale: "zh_CN",
     siteName: "大岚荧",
-    title: "dalanying - 发现你的兴趣世界",
-    description: "一个面向新一代的内容社区",
+    title: "大岚荧 - 发现你的兴趣世界",
+    description: "一个面向新一代年轻人的内容社区，发现科技、汽车、游戏、美食等热门话题",
+    url: "https://www.dalanying.work",
   },
-  robots: { index: true, follow: true },
+  twitter: {
+    card: "summary",
+    title: "大岚荧 - 发现你的兴趣世界",
+    description: "一个面向新一代年轻人的内容社区",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true },
+  },
+  alternates: {
+    canonical: "https://www.dalanying.work",
+  },
   icons: {
     icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>蓝</text></svg>",
+  },
+  other: {
+    "baidu-site-verification": "codeva-placeholder",
   },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "大岚荧",
+    alternateName: "dalanying",
+    url: "https://www.dalanying.work",
+    description: "一个面向新一代年轻人的内容社区",
+    potentialAction: {
+      "@type": "SearchAction",
+      target: "https://www.dalanying.work/?q={search_term_string}",
+      "query-input": "required name=search_term_string",
+    },
+  };
+
   return (
     <html lang="zh-CN" data-theme="dark" suppressHydrationWarning>
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        {/* 字体：使用国内可访问的镜像源 */}
+        <link rel="preconnect" href="https://fonts.googleapis.cn" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* 搜索引擎收录提示 */}
+        <meta name="applicable-device" content="pc,mobile" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
       </head>
       <body>
         <script
@@ -62,7 +111,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
         <a
           href="#main-content"
-          className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-[var(--color-accent)] focus:text-white focus:rounded-lg focus:text-sm"
+          className="sr-only focus:not:sr-only focus:absolute focus:top-2 focus:left-2 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-[var(--color-accent)] focus:text-white focus:rounded-lg focus:text-sm"
         >
           跳到主内容
         </a>

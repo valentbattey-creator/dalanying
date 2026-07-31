@@ -7,12 +7,13 @@ import { useAuth } from "@/lib/auth";
 import { useData } from "@/lib/store";
 import { uploadImages, validateImageFile, MAX_FILES } from "@/lib/storage";
 
-// All categories
+// All categories (与首页保持一致)
 const ALL_CATEGORIES = [
   "数码", "科技", "汽车", "运动", "游戏", "健身", "户外", "财经",
   "美食", "旅游", "音乐", "电影", "时尚", "宠物", "摄影", "读书",
   "职场", "教育", "房产", "军事", "历史", "哲学", "设计", "动漫",
   "骑行", "钓鱼", "篮球", "足球", "跑步", "格斗", "穿搭", "机车",
+  "思维探讨", "白月光", "爱情真相", "谈婚论嫁", "成长", "健康", "手工", "家居", "天文", "趣闻", "科普",
 ];
 
 // Keyword → category mapping for auto-detection
@@ -40,7 +41,28 @@ const KEYWORD_MAP: Record<string, string> = {
   "哲学": "哲学", "人生": "哲学", "意义": "哲学",
   "买房": "房产", "装修": "房产", "房价": "房产",
   "军事": "军事", "武器": "军事", "战争": "军事",
+  "白月光": "白月光", "初恋": "白月光", "暗恋": "白月光", "遗憾": "白月光",
+  "彩礼": "谈婚论嫁", "结婚": "谈婚论嫁", "相亲": "谈婚论嫁", "婚礼": "谈婚论嫁", "离婚": "谈婚论嫁",
+  "爱情": "爱情真相", "恋爱": "爱情真相", "异地恋": "爱情真相", "分手": "爱情真相", "出轨": "爱情真相",
+  "成长": "成长", "自律": "成长", "独立": "成长",
+  "健康": "健康", "养生": "健康", "睡眠": "健康", "心理": "健康",
+  "手工": "手工", "DIY": "手工", "木工": "手工",
+  "家居": "家居", "装修": "家居", "收纳": "家居",
+  "天文": "天文", "星空": "天文", "宇宙": "天文",
+  "趣闻": "趣闻", "搞笑": "趣闻", "段子": "趣闻",
+  "科普": "科普", "知识": "科普", "冷知识": "科普",
 };
+
+// Draft key for localStorage
+const DRAFT_KEY = "dalanying_draft";
+
+interface Draft {
+  title: string;
+  content: string;
+  category: string;
+  tags: string[];
+  savedAt: number;
+}
 
 export default function CreatePage() {
   const router = useRouter();
@@ -52,7 +74,7 @@ export default function CreatePage() {
   const [content, setContent] = useState("");
   const [category, setCategory] = useState("");
   const [detectedCategory, setDetectedCategory] = useState("");
-  const [tags, setTags] = useState<string[]>([])
+  const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
@@ -60,10 +82,50 @@ export default function CreatePage() {
   const [error, setError] = useState("");
   const [uploadProgress, setUploadProgress] = useState("");
   const [showAllCategories, setShowAllCategories] = useState(false);
+  const [hasDraft, setHasDraft] = useState(false);
 
   // Admin options
   const [isPinned, setIsPinned] = useState(false);
   const [isAnnouncement, setIsAnnouncement] = useState(false);
+
+  // Restore draft on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(DRAFT_KEY);
+      if (saved) {
+        const draft: Draft = JSON.parse(saved);
+        setHasDraft(true);
+        // Auto-restore if saved within 24 hours
+        if (Date.now() - draft.savedAt < 24 * 60 * 60 * 1000) {
+          setTitle(draft.title);
+          setContent(draft.content);
+          setCategory(draft.category);
+          setTags(draft.tags);
+          setHasDraft(false);
+          toast.success("已恢复草稿", { duration: 2000 });
+        }
+      }
+    } catch {}
+  }, []);
+
+  // Auto-save draft
+  useEffect(() => {
+    if (!title && !content) return;
+    const timer = setTimeout(() => {
+      try {
+        localStorage.setItem(DRAFT_KEY, JSON.stringify({
+          title, content, category, tags,
+          savedAt: Date.now(),
+        }));
+      } catch {}
+    }, 2000); // Save after 2 seconds of inactivity
+    return () => clearTimeout(timer);
+  }, [title, content, category, tags]);
+
+  // Clear draft on successful publish
+  function clearDraft() {
+    try { localStorage.removeItem(DRAFT_KEY); } catch {}
+  }
 
   useEffect(() => {
     if (!user && !authLoading) router.replace("/");
@@ -102,6 +164,8 @@ export default function CreatePage() {
     return best ? best[0] : "";
   }, [title, content]);
 
+  useEffect(() => { setDetectedCategory(autoDetect); }, [autoDetect]);
+
   // Auto-suggest tags from content
   const autoTags = useMemo(() => {
     const text = (title + " " + content).toLowerCase();
@@ -116,7 +180,7 @@ export default function CreatePage() {
 
   // Show detected category (but user can override)
   const effectiveCategory = category || detectedCategory;
-  const visibleCategories = showAllCategories ? ALL_CATEGORIES : ALL_CATEGORIES.slice(0, 12);
+  const visibleCategories = showAllCategories ? ALL_CATEGORIES : ALL_CATEGORIES.slice(0, 15);
 
   function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files || []);
@@ -157,8 +221,11 @@ export default function CreatePage() {
     }
     
     if (!title.trim()) { setError("请输入标题"); return; }
+    if (title.trim().length < 2) { setError("标题至少2个字"); return; }
     if (!content.trim()) { setError("请输入正文内容"); return; }
-    const finalCat = category || detectedCategory || "数码";
+    if (content.trim().length < 5) { setError("内容太少了，多写点吧"); return; }
+    
+    const finalCat = category || detectedCategory || "趣闻";
     setPosting(true);
     try {
       let imageUrls: string[] = [];
@@ -175,8 +242,10 @@ export default function CreatePage() {
         tags,
         author: user!.name,
         isPinned: isAdmin ? isPinned : false,
-        isAnnouncement: isAdmin ? isAnnouncement : false, views: 0,
+        isAnnouncement: isAdmin ? isAnnouncement : false,
+        views: 0,
       } as Parameters<typeof addPost>[0]);
+      clearDraft();
       toast.success("发布成功！");
       setTimeout(() => router.replace("/"), 500);
     } catch (err: unknown) {
@@ -200,6 +269,30 @@ export default function CreatePage() {
           </h1>
           <div className="w-[42px]" />
         </div>
+
+        {/* Draft restore banner */}
+        {hasDraft && (
+          <div className="max-w-2xl mx-auto px-4 pt-4">
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span>📝</span>
+                <p className="text-xs text-amber-300">发现未发布的草稿</p>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => { setHasDraft(false); clearDraft(); }} className="px-3 py-1 rounded-lg text-[11px] text-[var(--color-text-tertiary)] hover:text-[var(--color-text-primary)]">丢弃</button>
+                <button onClick={() => {
+                  try {
+                    const draft: Draft = JSON.parse(localStorage.getItem(DRAFT_KEY) || "{}");
+                    setTitle(draft.title || ""); setContent(draft.content || "");
+                    setCategory(draft.category || ""); setTags(draft.tags || []);
+                    setHasDraft(false); toast.success("已恢复草稿");
+                  } catch {}
+                }} className="px-3 py-1 rounded-lg bg-amber-500 text-black text-[11px] font-bold">恢复草稿</button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="max-w-2xl mx-auto px-4 py-6">
           {/* ADMIN: unmissable banner */}
           {isAdmin && (
@@ -243,26 +336,36 @@ export default function CreatePage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Title */}
             <div>
-              <input
-                type="text"
-                value={title}
-                onChange={e => setTitle(e.target.value)}
-                placeholder="输入标题..."
-                maxLength={100}
-                className="w-full px-4 py-3 rounded-xl bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] focus:border-[var(--color-accent)] outline-none transition-all duration-300"
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  value={title}
+                  onChange={e => setTitle(e.target.value)}
+                  placeholder="输入标题..."
+                  maxLength={100}
+                  className="w-full px-4 py-3 pr-16 rounded-xl bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] focus:border-[var(--color-accent)] outline-none transition-all duration-300"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-[var(--color-text-tertiary)]">
+                  {title.length}/100
+                </span>
+              </div>
             </div>
 
             {/* Content */}
             <div>
-              <textarea
-                value={content}
-                onChange={e => setContent(e.target.value)}
-                placeholder="写下你想分享的内容...（系统会根据内容自动推荐分类）"
-                rows={8}
-                maxLength={5000}
-                className="w-full px-4 py-3 rounded-xl bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] focus:border-[var(--color-accent)] outline-none transition-all duration-300 resize-none"
-              />
+              <div className="relative">
+                <textarea
+                  value={content}
+                  onChange={e => setContent(e.target.value)}
+                  placeholder="写下你想分享的内容...（系统会根据内容自动推荐分类）"
+                  rows={8}
+                  maxLength={5000}
+                  className="w-full px-4 py-3 pb-7 rounded-xl bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] focus:border-[var(--color-accent)] outline-none transition-all duration-300 resize-none"
+                />
+                <span className="absolute right-3 bottom-2 text-[10px] text-[var(--color-text-tertiary)]">
+                  {content.length}/5000
+                </span>
+              </div>
             </div>
 
             {/* Auto-detect notice */}
@@ -300,13 +403,13 @@ export default function CreatePage() {
                     {detectedCategory === c && !category && " 🤖"}
                   </button>
                 ))}
-                {!showAllCategories && ALL_CATEGORIES.length > 12 && (
+                {!showAllCategories && ALL_CATEGORIES.length > 15 && (
                   <button
                     type="button"
                     onClick={() => setShowAllCategories(true)}
                     className="px-3 py-1.5 rounded-full text-[11px] font-medium bg-[var(--color-bg-card)] text-[var(--color-text-tertiary)] border border-dashed border-[var(--color-border-subtle)] hover:text-[var(--color-accent)]"
                   >
-                    +{ALL_CATEGORIES.length - 12} 更多
+                    +{ALL_CATEGORIES.length - 15} 更多
                   </button>
                 )}
                 {showAllCategories && (
@@ -344,28 +447,24 @@ export default function CreatePage() {
             <div>
               <div className="flex flex-wrap gap-1.5 mb-1.5">
                 {tags.map((t, i) => (
-                  <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[var(--color-accent)]/15 text-[var(--color-accent)] text-xs font-medium border-[0.5px] border-[var(--color-accent)]/30">
+                  <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[var(--color-accent)]/10 text-[var(--color-accent)] text-[11px] border border-[var(--color-accent)]/20">
                     #{t}
-                    <button type="button" onClick={() => setTags(tags.filter((_, j) => j !== i))} className="hover:text-white">
-                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                    </button>
+                    <button type="button" onClick={() => setTags(tags.filter((_, j) => j !== i))} className="ml-0.5 hover:text-white">✕</button>
                   </span>
                 ))}
               </div>
               {tags.length < 5 && (
                 <input
+                  type="text"
                   value={tagInput}
                   onChange={e => setTagInput(e.target.value)}
                   onKeyDown={e => {
-                    if (e.key === "Enter" && tagInput.trim()) {
-                      e.preventDefault();
-                      const t = tagInput.trim();
-                      if (!tags.includes(t)) setTags([...tags, t]);
-                      setTagInput("");
+                    if ((e.key === "Enter" || e.key === ",") && tagInput.trim() && !tags.includes(tagInput.trim())) {
+                      e.preventDefault(); setTags([...tags, tagInput.trim()]); setTagInput("");
                     }
                   }}
-                  placeholder={tags.length === 0 ? "添加标签，回车确认..." : `还可添加 ${5 - tags.length} 个`}
-                  className="w-full px-3 py-2 rounded-xl bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] text-xs text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] focus:border-[var(--color-accent)] outline-none"
+                  placeholder="添加标签（回车确认，最多5个）"
+                  className="w-full px-3 py-2 rounded-lg bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] text-xs text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] focus:border-[var(--color-accent)] outline-none"
                 />
               )}
             </div>
@@ -395,7 +494,7 @@ export default function CreatePage() {
                   className="w-full py-8 rounded-xl border-2 border-dashed border-[var(--color-border-subtle)] bg-[var(--color-bg-card)] flex flex-col items-center justify-center gap-1 text-[var(--color-text-tertiary)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] transition-all duration-300 group"
                 >
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                  <span className="text-xs">点击上传图片</span>
+                  <span className="text-xs">点击上传图片（最多{MAX_FILES}张）</span>
                 </button>
               )}
               <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleFileSelect} className="hidden" />
@@ -414,7 +513,6 @@ export default function CreatePage() {
                 <p className="text-xs text-red-400">{error}</p>
               </div>
             )}
-
 
             {/* Boost / 推流 */}
             <div className="rounded-xl bg-gradient-to-r from-blue-500/5 to-cyan-400/5 border border-blue-500/15 p-3">

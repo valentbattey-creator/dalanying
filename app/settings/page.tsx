@@ -6,14 +6,9 @@ import { useRouter } from "next/navigation";
 import type { AppUser } from "@/lib/auth";
 import { uploadAvatar } from "@/lib/data";
 import { useTheme } from "@/lib/theme";
-import { createClient } from "@supabase/supabase-js";
+import { supabase as sharedSupabase } from "@/lib/supabase";
 import { toast } from "sonner";
 
-const supabase = typeof window !== "undefined" ? createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || "",
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ""
-) : null;
-import UserAvatar from "@/components/UserAvatar";
 import AdminBadge from "@/components/AdminBadge";
 import { getPaymentConfig, savePaymentConfig, uploadPaymentQR, type PaymentConfig } from "@/lib/payment";
 
@@ -562,7 +557,7 @@ export default function SettingsPage() {
                   if (!newPassword || newPassword.length < 6) { toast.error("密码至少6位"); return; }
                   if (newPassword !== confirmNewPassword) { toast.error("两次密码不一致"); return; }
                   setSettingPassword(true);
-                  const { error } = await supabase!.auth.updateUser({ password: newPassword });
+                  const { error } = await sharedSupabase?.auth.updateUser({ password: newPassword });
                   if (error) { toast.error("设置失败: " + error.message); }
                   else { toast.success("密码设置成功！"); setNewPassword(""); setConfirmNewPassword(""); }
                   setSettingPassword(false);
