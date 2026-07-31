@@ -196,9 +196,9 @@ export default function LoginModal() {
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center">
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center" style={{ top: "env(safe-area-inset-top, 0px)" }}>
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => { setShowLoginModal(false); resetForm(); }} />
-      <div className="relative z-10 w-full max-w-md bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] rounded-t-3xl sm:rounded-2xl px-5 py-5 sm:p-6 animate-fade-up max-h-[85vh] overflow-y-auto" style={{ paddingBottom: "max(1.25rem, env(safe-area-inset-bottom))" }}>
+      <div className="relative z-10 w-full max-w-md bg-[var(--color-bg-card)] border border-[var(--color-border-subtle)] rounded-t-3xl sm:rounded-2xl px-4 py-4 sm:px-6 sm:py-6 animate-fade-up overflow-y-auto" style={{ maxHeight: "min(85vh, 85dvh)", paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}>
         {/* Close */}
         <button type="button" onClick={() => { setShowLoginModal(false); resetForm(); }}
           className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full hover:bg-[var(--color-bg-hover)] text-[var(--color-text-tertiary)] transition-all">

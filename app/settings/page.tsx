@@ -269,7 +269,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <main className="min-h-screen pb-24 bg-[var(--color-bg-primary)]">
+    <main className="min-h-screen bg-[var(--color-bg-primary)]" style={{ paddingBottom: "max(6rem, calc(4rem + env(safe-area-inset-bottom, 0px)))", paddingTop: "env(safe-area-inset-top, 0px)" }}>
       {/* Header */}
       <div className="glass sticky top-0 z-50 h-11 flex items-center px-4">
         <button type="button" onClick={() => router.back()} className="flex items-center gap-1.5 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] cursor-pointer z-10 relative transition-all duration-200">

@@ -120,7 +120,7 @@ export default function HomePage() {
       <Navbar onSearch={handleSearch} />
       
       {/* Category Bar */}
-      <div className="sticky top-12 left-0 right-0 z-40" style={{ backgroundColor: "var(--color-bg-secondary, #121214)", borderBottom: "1px solid var(--color-border-subtle, #27272a)" }}>
+      <div className="sticky left-0 right-0 z-40" style={{ top: "48px", backgroundColor: "var(--color-bg-secondary, #121214)", borderBottom: "1px solid var(--color-border-subtle, #27272a)" }}>
         <div className="max-w-6xl mx-auto px-2 py-2 flex items-center gap-1.5" style={{ overflowX: "auto", WebkitOverflowScrolling: "touch", msOverflowStyle: "none", scrollbarWidth: "none" }}>
           {customCats.map(cat => (
             <button

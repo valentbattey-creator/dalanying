@@ -22,7 +22,7 @@ export default function BottomNav() {
   }
 
   return (
-    <nav style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50, backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", backgroundColor: "var(--color-bg-primary, rgba(255,255,255,0.85))", borderTop: "0.5px solid var(--color-border-subtle, #e5e7eb)", paddingBottom: "env(safe-area-inset-bottom, 0px)" }}>
+    <nav style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50, backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", backgroundColor: "var(--color-bg-primary, rgba(255,255,255,0.85))", borderTop: "0.5px solid var(--color-border-subtle, #e5e7eb)", paddingBottom: "env(safe-area-inset-bottom, 0px)", paddingLeft: "env(safe-area-inset-left, 0px)", paddingRight: "env(safe-area-inset-right, 0px)" }}>
       <div style={{ maxWidth: "64rem", margin: "0 auto", height: "56px", display: "flex", alignItems: "center", justifyContent: "space-around", padding: "0 16px" }}>
         {/* 首页 */}
         <button onClick={() => router.push("/")}
