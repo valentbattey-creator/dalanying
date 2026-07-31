@@ -2,8 +2,6 @@
 import React, { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useData } from "@/lib/store";
-import PostCard from "@/components/PostCard";
-import { useAuth } from "@/lib/auth";
 
 function trafficScore(p: { views?: number; likes?: number; comments?: number; createdAt: string }): number {
   const views = p.views || 0;
@@ -14,64 +12,120 @@ function trafficScore(p: { views?: number; likes?: number; comments?: number; cr
   return (views * 1 + likes * 3 + comments * 5) * (1 + recencyBoost);
 }
 
+function heatLevel(score: number, maxScore: number): "hot" | "warm" | "new" {
+  if (maxScore === 0) return "new";
+  const ratio = score / maxScore;
+  if (ratio > 0.6) return "hot";
+  if (ratio > 0.2) return "warm";
+  return "new";
+}
+
 export default function HotPage() {
   const router = useRouter();
-  const { posts, likedPosts, toggleLike, savedPosts, toggleSave, deletePost } = useData();
-  const { user, requireLogin, guestLikes } = useAuth();
+  const { posts } = useData();
 
-  const trendingPosts = useMemo(() => {
-    return [...posts]
+  const trending = useMemo(() => {
+    const scored = posts
       .filter(p => !p.isAnnouncement)
       .map(p => ({ ...p, score: trafficScore(p) }))
       .sort((a, b) => b.score - a.score)
-      .slice(0, 50);
+      .slice(0, 20);
+    const maxScore = scored.length > 0 ? scored[0].score : 1;
+    return scored.map(p => ({ ...p, heat: heatLevel(p.score, maxScore) }));
+  }, [posts]);
+
+  // Extract trending tags
+  const trendingTags = useMemo(() => {
+    const tagMap = new Map<string, { count: number; score: number }>();
+    posts.filter(p => !p.isAnnouncement).forEach(p => {
+      (p.tags || []).forEach(tag => {
+        const existing = tagMap.get(tag) || { count: 0, score: 0 };
+        tagMap.set(tag, { count: existing.count + 1, score: existing.score + trafficScore(p) });
+      });
+    });
+    return [...tagMap.entries()]
+      .sort((a, b) => b[1].score - a[1].score)
+      .slice(0, 10)
+      .map(([tag, data]) => ({ tag, ...data }));
   }, [posts]);
 
   return (
     <main className="min-h-screen bg-[var(--color-bg-primary)]" style={{ paddingTop: "16px", paddingBottom: "80px" }}>
-      <div className="max-w-2xl mx-auto px-3 sm:px-4">
-        {/* Header */}
-        <div className="flex items-center gap-2 mb-4">
-          <span className="text-xl">🔥</span>
-          <h1 className="text-lg font-bold text-[var(--color-text-primary)]">热门内容</h1>
-          <span className="text-xs text-[var(--color-text-tertiary)] ml-auto">按互动热度排序</span>
-        </div>
+      <div className="max-w-lg mx-auto px-4">
 
-        {/* Posts */}
-        {trendingPosts.length === 0 ? (
-          <div className="text-center py-20">
-            <p className="text-4xl mb-3">📭</p>
-            <p className="text-sm text-[var(--color-text-tertiary)]">暂无热门内容</p>
+        {/* Hot Search Keywords */}
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="text-lg">🔥</span>
+            <h1 className="text-base font-bold text-[var(--color-text-primary)]">热搜榜</h1>
           </div>
-        ) : (
-          <div className="space-y-3">
-            {trendingPosts.map((post, i) => (
-              <div key={post.id} className="relative">
-                {/* Rank badge */}
-                {i < 3 && (
-                  <div className="absolute top-2 left-2 z-10 w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold"
-                    style={{
-                      background: i === 0 ? "linear-gradient(135deg, #ffd700, #ffaa00)" : i === 1 ? "linear-gradient(135deg, #c0c0c0, #a0a0a0)" : "linear-gradient(135deg, #cd7f32, #b8860b)",
-                      color: "#fff",
-                      boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
-                    }}>
-                    {i + 1}
+          <div className="bg-[var(--color-bg-card)] border-[0.5px] border-[var(--color-border-subtle)] rounded-xl overflow-hidden">
+            {trending.map((post, i) => (
+              <div
+                key={post.id}
+                onClick={() => router.push(`/post/${post.id}`)}
+                className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-[var(--color-bg-hover)] transition-all border-b border-[var(--color-border-subtle)]"
+                style={{ borderBottomWidth: i === trending.length - 1 ? 0 : undefined }}
+              >
+                {/* Rank number */}
+                <span className={`text-sm font-bold w-5 text-center shrink-0 ${
+                  i < 3 ? "text-[var(--color-accent)]" : "text-[var(--color-text-tertiary)]"
+                }`}>
+                  {i + 1}
+                </span>
+
+                {/* Title and meta */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-medium text-[var(--color-text-primary)] truncate">
+                    {post.title}
+                  </p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-[10px] text-[var(--color-text-tertiary)]">{post.author}</span>
+                    <span className="text-[10px] text-[var(--color-text-tertiary)]">·</span>
+                    <span className="text-[10px] text-[var(--color-text-tertiary)]">❤️ {post.likes || 0}</span>
+                    <span className="text-[10px] text-[var(--color-text-tertiary)]">👁 {post.views || 0}</span>
                   </div>
+                </div>
+
+                {/* Heat badge */}
+                {post.heat === "hot" && (
+                  <span className="shrink-0 text-[10px] px-2 py-0.5 rounded-full font-medium bg-red-500/15 text-red-400">热</span>
                 )}
-                <PostCard
-                  post={post}
-                  isLiked={likedPosts.has(post.id) || guestLikes.has(post.id)}
-                  isSaved={savedPosts.has(post.id)}
-                  onLike={() => toggleLike(post.id)}
-                  onSave={() => toggleSave(post.id)}
-                  onDelete={() => deletePost(post.id)}
-                  onCardClick={(id) => router.push(`/post/${id}`)}
-                  currentUserId={user?.id}
-                  isAdmin={user?.isAdmin}
-                  isOwner={user?.role === "owner"}
-                />
+                {post.heat === "warm" && (
+                  <span className="shrink-0 text-[10px] px-2 py-0.5 rounded-full font-medium bg-amber-500/15 text-amber-400">温</span>
+                )}
               </div>
             ))}
+            {trending.length === 0 && (
+              <div className="px-4 py-10 text-center">
+                <p className="text-3xl mb-2">📭</p>
+                <p className="text-xs text-[var(--color-text-tertiary)]">暂无热门内容</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Trending Tags */}
+        {trendingTags.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <span className="text-base">🏷</span>
+              <h2 className="text-sm font-semibold text-[var(--color-text-primary)]">热门话题</h2>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {trendingTags.map((t, i) => (
+                <button
+                  key={t.tag}
+                  onClick={() => router.push(`/?q=${encodeURIComponent(t.tag)}`)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] transition-all hover:border-[var(--color-accent)] hover:text-[var(--color-accent)]"
+                  style={{ backgroundColor: "var(--color-bg-card, #18181b)", border: "1px solid var(--color-border-subtle, #27272a)", color: "var(--color-text-secondary, #a1a1aa)" }}
+                >
+                  <span className={`text-[10px] font-bold ${i < 3 ? "text-[var(--color-accent)]" : "text-[var(--color-text-tertiary)]"}`}>#{i + 1}</span>
+                  <span>{t.tag}</span>
+                  <span className="text-[10px] text-[var(--color-text-tertiary)]">{t.count}篇</span>
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </div>

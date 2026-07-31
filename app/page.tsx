@@ -126,12 +126,12 @@ export default function HomePage() {
             <button
               key={cat}
               onClick={() => setActiveCat(cat)}
-              className={`shrink-0 px-3.5 py-1.5 rounded-full text-[12px] font-medium transition-all duration-200 ${
+              className={`shrink-0 px-5 py-1.5 rounded-lg text-[13px] font-medium transition-all duration-200 ${
                 activeCat === cat
                   ? "bg-[var(--color-accent)] text-white shadow-sm"
-                  : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
+                  : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-hover)]"
               }`}
-              style={activeCat !== cat ? { backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border-subtle)" } : {}}
+              style={activeCat !== cat ? { backgroundColor: "var(--color-bg-card, #18181b)", border: "1px solid var(--color-border-subtle, #27272a)" } : {}}
             >
               {cat}
             </button>
@@ -208,13 +208,13 @@ export default function HomePage() {
                   <div key={p.id} className="px-1 pt-2">
                     <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
                       className="rounded-xl overflow-hidden cursor-pointer"
-                      style={{ background: "linear-gradient(to right, rgba(255,36,66,0.1), rgba(255,36,66,0.05), rgba(255,36,66,0.1))", border: "0.5px solid rgba(255,36,66,0.3)" }}
+                      style={{ background: "linear-gradient(to right, rgba(245,158,11,0.1), rgba(245,158,11,0.05), rgba(245,158,11,0.1))", border: "0.5px solid rgba(245,158,11,0.25)" }}
                       onClick={() => router.push(`/post/${p.id}`)}>
                       <div className="px-4 py-3 flex items-center gap-3">
                         <span className="text-xl shrink-0">📢</span>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0" style={{ backgroundColor: "rgba(255,36,66,0.2)", color: "var(--color-accent)" }}>公告</span>
+                            <span className="text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0" style={{ backgroundColor: "rgba(245,158,11,0.2)", color: "#f59e0b" }}>公告</span>
                             <h3 className="text-[13px] font-semibold text-[var(--color-text-primary)] line-clamp-1">{p.title}</h3>
                           </div>
                         </div>

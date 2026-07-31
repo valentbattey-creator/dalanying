@@ -23,7 +23,8 @@ export default function Navbar({ onSearch }: { onSearch?: (q: string) => void })
     <header className="fixed top-0 left-0 right-0 z-50 h-12" style={{ backgroundColor: "var(--color-bg-primary)", borderBottom: "0.5px solid var(--color-border-subtle)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)" }}>
       <div className="max-w-6xl mx-auto h-full px-4 flex items-center gap-4">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 shrink-0">
+        <Link href="/" className="flex items-center gap-1.5 shrink-0">
+          <span className="text-xl" style={{ filter: "drop-shadow(0 0 6px rgba(255,180,50,0.4))" }}>☀️</span>
           <span className="text-lg font-extrabold tracking-tight text-[var(--color-text-primary)]"
             style={{ fontFamily: "'Dancing Script', cursive" }}>
             dalanying
