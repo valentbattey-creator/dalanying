@@ -16,29 +16,14 @@ export interface UploadResult {
  * Returns the public URL on success.
  */
 async function uploadFile(file: File): Promise<UploadResult> {
-  if (!hasSupabase || !supabase) {
-    // Fallback: create a local object URL (won't persist but works for preview)
-    return { url: URL.createObjectURL(file), path: file.name };
-  }
-
-  const ext = file.name.split(".").pop() || "jpg";
-  const fileName = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}.${ext}`;
-  const filePath = `${fileName}`;
-
-  const { error } = await supabase.storage
-    .from(BUCKET_NAME)
-    .upload(filePath, file, {
-      cacheControl: "3600",
-      upsert: false,
-    });
-
-  if (error) throw new Error(`上传失败: ${error.message}`);
-
-  const { data: urlData } = supabase.storage
-    .from(BUCKET_NAME)
-    .getPublicUrl(filePath);
-
-  return { url: urlData.publicUrl, path: filePath };
+  // Use API route with service role key for reliable upload
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("folder", "posts");
+  const res = await fetch("/api/upload", { method: "POST", body: formData });
+  const data = await res.json();
+  if (data.url) return { url: data.url, path: data.path || file.name };
+  throw new Error(data.error || "上传失败");
 }
 
 /**
