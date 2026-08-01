@@ -201,7 +201,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // ===== Claim owner with password =====
   const claimOwner = useCallback(async (password: string): Promise<boolean> => {
     if (!user) return false;
-    if (password !== "050309") return false;
+    if (password !== "dalanying2026owner") return false;
     try {
       // Check if another owner already exists (try Supabase, fallback to localStorage)
       let ownerExists = false;
@@ -268,7 +268,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // ===== Abdicate owner =====
   const abdicateOwner = useCallback(async (password: string): Promise<boolean> => {
     if (!user || user.role !== "owner") return false;
-    if (password !== "050309") return false;
+    if (password !== "dalanying2026owner") return false;
     try {
       if (hasSupabase) {
         await supabase!.from("profiles").update({
