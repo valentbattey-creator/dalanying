@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useState } from "react";
+import { memo, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { type Post } from "@/lib/store";
 import { dataService } from "@/lib/data";
@@ -72,9 +72,15 @@ function PostCardInner({ post, isLiked, onLike, onCardClick, isSaved = false, on
     setConfirmDelete(false);
   }
 
+  const lastViewTime = useRef<number>(0);
+  
   function handleCardClick() {
-    // Increment views when post is clicked
-    dataService.incrementViews(post.id).catch(() => {});
+    // Increment views when post is clicked (debounce: only once per 5 seconds)
+    const now = Date.now();
+    if (now - lastViewTime.current > 5000) {
+      lastViewTime.current = now;
+      dataService.incrementViews(post.id).catch(() => {});
+    }
     onCardClick(post.id);
   }
 
