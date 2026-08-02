@@ -639,6 +639,35 @@ export const dataService = {
     lsSet("savedPosts", newSaved);
   },
 
+  async incrementViews(postId: string): Promise<void> {
+    // Try API first
+    try {
+      await apiPost("/api/views", { postId });
+      return;
+    } catch {}
+
+    // Fallback: Direct Supabase
+    try {
+      const SB_KEY = "sb_publishable_jpAnsNOd1-v5ftyOhjO09A_cnQBXjvh";
+      const headers = { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}`, "Content-Type": "application/json" };
+      
+      // Get current views
+      const getRes = await fetch(`${SB_URL}/rest/v1/posts?id=eq.${postId}&select=views`, { headers });
+      if (getRes.ok) {
+        const data = await getRes.json();
+        if (data.length > 0) {
+          const currentViews = data[0].views || 0;
+          // Increment views
+          await fetch(`${SB_URL}/rest/v1/posts?id=eq.${postId}`, {
+            method: "PATCH",
+            headers,
+            body: JSON.stringify({ views: currentViews + 1 }),
+          });
+        }
+      }
+    } catch {}
+  },
+
   async fetchProfile(userId: string): Promise<Profile | null> {
     if (hasSupabase && supabase) {
       try {

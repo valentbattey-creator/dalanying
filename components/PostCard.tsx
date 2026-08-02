@@ -3,6 +3,7 @@
 import { memo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { type Post } from "@/lib/store";
+import { dataService } from "@/lib/data";
 import AdminBadge from "@/components/AdminBadge";
 import { TinyAvatar } from "@/components/UserAvatar";
 
@@ -71,9 +72,15 @@ function PostCardInner({ post, isLiked, onLike, onCardClick, isSaved = false, on
     setConfirmDelete(false);
   }
 
+  function handleCardClick() {
+    // Increment views when post is clicked
+    dataService.incrementViews(post.id).catch(() => {});
+    onCardClick(post.id);
+  }
+
   return (
     <article
-      onClick={() => onCardClick(post.id)}
+      onClick={handleCardClick}
       className="group bg-[var(--color-bg-card)] border-[0.5px] border-[var(--color-border-subtle)] rounded-[10px] overflow-hidden cursor-pointer transition-all duration-200 hover:border-[var(--color-border-default)] active:scale-[0.98] relative"
     >
       {/* Delete overlay - shows when confirming */}
