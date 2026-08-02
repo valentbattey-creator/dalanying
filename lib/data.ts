@@ -640,13 +640,6 @@ export const dataService = {
   },
 
   async incrementViews(postId: string): Promise<void> {
-    // Try API first
-    try {
-      await apiPost("/api/views", { postId });
-      return;
-    } catch {}
-
-    // Fallback: Direct Supabase
     try {
       const SB_KEY = "sb_publishable_jpAnsNOd1-v5ftyOhjO09A_cnQBXjvh";
       const headers = { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}`, "Content-Type": "application/json" };
