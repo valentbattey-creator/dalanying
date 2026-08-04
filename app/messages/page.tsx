@@ -41,7 +41,7 @@ export default function MessagesPage() {
   const router = useRouter();
   const { user, requireLogin } = useAuth();
   const { posts, comments } = useData();
-  const [tab, setTab] = useState<"notifications" | "chats">("notifications");
+  const [tab, setTab] = useState<"notifications" | "likes" | "chats">("notifications");
   const [dms, setDms] = useState<DM[]>([]);
   const [selectedChat, setSelectedChat] = useState<string | null>(null);
   const [msgText, setMsgText] = useState("");
@@ -80,6 +80,36 @@ export default function MessagesPage() {
   // Comment notifications: comments on user's posts
   const myPostIds = new Set(posts.filter(p => p.authorId === user.id).map(p => p.id));
   const commentNotifications = comments.filter(c => myPostIds.has(c.postId) && c.authorId !== user.id);
+
+  // Like notifications: likes on user's posts (from Supabase)
+  const [likeNotifications, setLikeNotifications] = useState<Array<{id: string; postId: string; postTitle: string; userId: string; createdAt: string}>>([]);
+  
+  useEffect(() => {
+    if (!user || !hasSupabase || !supabase) return;
+    const myPostIds = posts.filter(p => p.authorId === user.id).map(p => p.id);
+    if (myPostIds.length === 0) return;
+    
+    supabase.from("likes")
+      .select("id, post_id, user_id, created_at")
+      .in("post_id", myPostIds)
+      .neq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(50)
+      .then(({ data }) => {
+        if (!data) return;
+        const likes = data.map(l => {
+          const post = posts.find(p => p.id === l.post_id);
+          return {
+            id: l.id,
+            postId: l.post_id,
+            postTitle: post?.title || "已删除",
+            userId: l.user_id,
+            createdAt: l.created_at,
+          };
+        });
+        setLikeNotifications(likes);
+      });
+  }, [user, posts]);
 
   // DM conversations grouped by partner
   const chatPartners = new Map<string, { name: string; avatar: string; lastMsg: string; time: string; unread: number }>();
@@ -250,7 +280,15 @@ export default function MessagesPage() {
                 tab === "notifications" ? "border-[var(--color-accent)] text-[var(--color-accent)]" : "border-transparent text-[var(--color-text-tertiary)]"
               }`}
             >
-              🔔 评论通知 {commentNotifications.length > 0 && `(${commentNotifications.length})`}
+              🔔 评论 {commentNotifications.length > 0 && `(${commentNotifications.length})`}
+            </button>
+            <button
+              onClick={() => setTab("likes")}
+              className={`flex-1 py-3 text-xs font-medium transition-all border-b-2 ${
+                tab === "likes" ? "border-[var(--color-accent)] text-[var(--color-accent)]" : "border-transparent text-[var(--color-text-tertiary)]"
+              }`}
+            >
+              ❤️ 点赞 {likeNotifications.length > 0 && `(${likeNotifications.length})`}
             </button>
             <button
               onClick={() => setTab("chats")}
@@ -296,6 +334,41 @@ export default function MessagesPage() {
                     </div>
                   );
                 })
+              )}
+            </div>
+          )}
+
+          {/* Like notifications */}
+          {tab === "likes" && (
+            <div className="divide-y-[0.5px] divide-[var(--color-border-subtle)]">
+              {likeNotifications.length === 0 ? (
+                <div className="text-center py-16">
+                  <div className="text-4xl mb-3">❤️</div>
+                  <p className="text-sm text-[var(--color-text-tertiary)]">暂无点赞通知</p>
+                </div>
+              ) : (
+                likeNotifications.map(l => (
+                  <div
+                    key={l.id}
+                    onClick={() => router.push(`/post/${l.postId}`)}
+                    className="px-4 py-4 hover:bg-[var(--color-bg-hover)] cursor-pointer transition-all duration-200"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-pink-500 to-red-500 flex items-center justify-center text-white text-xs shrink-0">
+                        ❤️
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-[13px] font-medium text-[var(--color-text-primary)]">有人点赞了你的帖子</span>
+                          <span className="text-[10px] text-[var(--color-text-tertiary)]">{timeAgo(l.createdAt)}</span>
+                        </div>
+                        <p className="text-xs text-[var(--color-text-secondary)] mt-1 line-clamp-1">
+                          「{l.postTitle}」
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))
               )}
             </div>
           )}
