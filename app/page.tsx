@@ -125,10 +125,10 @@ export default function HomePage() {
         }}>
           <div className="flex items-center h-full px-4 max-w-7xl mx-auto gap-2">
             <span className="shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded" style={{ backgroundColor: "rgba(245,158,11,0.12)", color: "#f59e0b" }}>公告</span>
-            <div className="flex-1 overflow-hidden relative" style={{ maskImage: "linear-gradient(to right, transparent, black 5%, black 95%, transparent)", WebkitMaskImage: "linear-gradient(to right, transparent, black 5%, black 95%, transparent)" }}>
-              <div className="flex whitespace-nowrap animate-ticker" style={{ animation: `ticker ${Math.max(announcements.length * 12, 20)}s linear infinite` }}>
-                <span className="text-[12px] text-[var(--color-text-secondary)] pr-16">{tickerText}</span>
-                <span className="text-[12px] text-[var(--color-text-secondary)] pr-16">{tickerText}</span>
+            <div style={{ flex: 1, overflow: "hidden", position: "relative", maskImage: "linear-gradient(to right, transparent, black 5%, black 95%, transparent)", WebkitMaskImage: "linear-gradient(to right, transparent, black 5%, black 95%, transparent)" }}>
+              <div className="animate-ticker" style={{ display: "flex", whiteSpace: "nowrap", animation: `ticker ${Math.max(announcements.length * 12, 20)}s linear infinite` }}>
+                <span style={{ fontSize: 12, color: "var(--color-text-secondary)", paddingRight: 64 }}>{tickerText}</span>
+                <span style={{ fontSize: 12, color: "var(--color-text-secondary)", paddingRight: 64 }}>{tickerText}</span>
               </div>
             </div>
           </div>
