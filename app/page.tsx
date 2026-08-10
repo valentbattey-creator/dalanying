@@ -21,15 +21,6 @@ const ALL_CATEGORIES = [
   "宠物", "篮球", "足球", "音乐", "电影", "动漫", "格斗",
 ];
 
-const container = {
-  hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { staggerChildren: 0.04, delayChildren: 0.03 } },
-};
-const item = {
-  hidden: { opacity: 0, y: 10 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] as const } },
-};
-
 // Traffic score: views*1 + likes*3 + comments*5, with 24h recency boost
 function trafficScore(p: { views?: number; likes?: number; comments?: number; createdAt: string }): number {
   const views = p.views || 0;
@@ -62,11 +53,11 @@ export default function HomePage() {
     : regularPosts.filter((p: any) => p.category === activeCat);
 
   // Sort by creation date only
-  const sorted = [...filteredRegular].sort((a, b) => 
+  const sorted = [...filteredRegular].sort((a, b) =>
     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 
-  const sortedPinned = [...pinnedPosts].sort((a, b) => 
+  const sortedPinned = [...pinnedPosts].sort((a, b) =>
     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 
@@ -117,31 +108,72 @@ export default function HomePage() {
     }
   }
 
+  // Build ticker text from announcements
+  const tickerText = announcements.map(a => `📢 ${a.title}`).join("　　·　　");
+
   return (
     <>
       <Navbar onSearch={handleSearch} />
-      
-      {/* Category Bar */}
-      <div className="sticky left-0 right-0 z-40" style={{ top: "48px", backgroundColor: "var(--color-bg-secondary, #121214)", borderBottom: "1px solid var(--color-border-subtle, #27272a)" }}>
-        <div className="max-w-6xl mx-auto px-2 py-2 flex items-center gap-1.5" style={{ overflowX: "auto", WebkitOverflowScrolling: "touch", msOverflowStyle: "none", scrollbarWidth: "none" }}>
+
+      {/* ── Announcement Ticker (single-line scrolling) ── */}
+      {announcements.length > 0 && (
+        <div className="fixed left-0 right-0 z-45 overflow-hidden" style={{
+          top: "48px",
+          height: 32,
+          backgroundColor: "var(--color-bg-secondary)",
+          borderBottom: "0.5px solid var(--color-border-subtle)",
+        }}>
+          <div className="flex items-center h-full px-4 max-w-7xl mx-auto gap-2">
+            <span className="shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded" style={{ backgroundColor: "rgba(245,158,11,0.12)", color: "#f59e0b" }}>公告</span>
+            <div className="flex-1 overflow-hidden relative" style={{ maskImage: "linear-gradient(to right, transparent, black 5%, black 95%, transparent)", WebkitMaskImage: "linear-gradient(to right, transparent, black 5%, black 95%, transparent)" }}>
+              <div className="flex whitespace-nowrap animate-ticker" style={{ animation: `ticker ${Math.max(announcements.length * 12, 20)}s linear infinite` }}>
+                <span className="text-[12px] text-[var(--color-text-secondary)] pr-16">{tickerText}</span>
+                <span className="text-[12px] text-[var(--color-text-secondary)] pr-16">{tickerText}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Category Bar: underline tabs ── */}
+      <div className="sticky left-0 right-0 z-40" style={{
+        top: announcements.length > 0 ? "80px" : "48px",
+        backgroundColor: "var(--color-bg-primary)",
+        borderBottom: "0.5px solid var(--color-border-subtle)",
+      }}>
+        <div className="max-w-7xl mx-auto px-3 flex items-center gap-0" style={{ overflowX: "auto", WebkitOverflowScrolling: "touch", msOverflowStyle: "none", scrollbarWidth: "none" }}>
           {customCats.map(cat => (
             <button
               key={cat}
               onClick={() => setActiveCat(cat)}
-              className={`shrink-0 px-5 py-1.5 rounded-lg text-[13px] font-medium transition-all duration-200 ${
-                activeCat === cat
-                  ? "bg-[var(--color-accent)] text-white shadow-sm"
-                  : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-hover)]"
-              }`}
-              style={activeCat !== cat ? { backgroundColor: "var(--color-bg-card, #18181b)", border: "1px solid var(--color-border-subtle, #27272a)" } : {}}
+              className="shrink-0 px-4 py-2.5 text-[13px] font-medium transition-all duration-200 relative"
+              style={{
+                color: activeCat === cat ? "var(--color-accent)" : "var(--color-text-tertiary)",
+                fontWeight: activeCat === cat ? 600 : 400,
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+              }}
             >
               {cat}
+              {activeCat === cat && (
+                <span style={{
+                  position: "absolute",
+                  bottom: 0,
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  width: 20,
+                  height: 2,
+                  borderRadius: 1,
+                  backgroundColor: "var(--color-accent)",
+                }} />
+              )}
             </button>
           ))}
           <button
             onClick={() => setShowCatPicker(!showCatPicker)}
-            className="shrink-0 w-7 h-7 flex items-center justify-center rounded-full text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] transition-all text-sm"
-            style={{ backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border-subtle)" }}
+            className="shrink-0 w-7 h-7 flex items-center justify-center rounded-full text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] transition-all text-sm ml-1"
+            style={{ background: "none", border: "none", cursor: "pointer" }}
           >
             {showCatPicker ? "✕" : "+"}
           </button>
@@ -149,13 +181,13 @@ export default function HomePage() {
 
         {/* Category picker dropdown */}
         {showCatPicker && (
-          <div className="max-w-6xl mx-auto px-2 pb-2 flex flex-wrap gap-1.5 animate-fade-up">
+          <div className="max-w-7xl mx-auto px-3 pb-2 flex flex-wrap gap-1.5 animate-fade-up">
             {ALL_CATEGORIES.filter(c => !customCats.includes(c)).map(cat => (
               <button
                 key={cat}
                 onClick={() => toggleCat(cat)}
-                className="px-2.5 py-1 rounded-full text-[11px] text-[var(--color-text-tertiary)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] transition-all"
-                style={{ backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border-subtle)" }}
+                className="px-2.5 py-1 rounded-full text-[11px] text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] transition-all"
+                style={{ backgroundColor: "var(--color-bg-card)", border: "0.5px solid var(--color-border-subtle)", cursor: "pointer" }}
               >
                 + {cat}
               </button>
@@ -164,7 +196,7 @@ export default function HomePage() {
               <button
                 onClick={() => { setCustomCats(["推荐"]); setActiveCat("推荐"); setShowCatPicker(false); }}
                 className="px-2.5 py-1 rounded-full text-[11px] text-red-400 hover:bg-red-500/10 transition-all"
-                style={{ border: "1px solid rgba(248,113,113,0.3)" }}
+                style={{ border: "1px solid rgba(248,113,113,0.3)", cursor: "pointer", background: "none" }}
               >
                 重置
               </button>
@@ -173,10 +205,15 @@ export default function HomePage() {
         )}
       </div>
 
-      <main className="min-h-screen bg-[var(--color-bg-primary)]" style={{ paddingTop: "calc(48px + env(safe-area-inset-top, 0px))" }}>
-        <div className="max-w-7xl mx-auto flex gap-4 px-3 sm:px-4">
-          {/* Main content */}
-          <section className="flex-1 min-w-0" style={{ paddingBottom: "calc(70px + env(safe-area-inset-bottom, 0px))" }}>
+      {/* ── Main Layout: 7:3 ratio ── */}
+      <main style={{
+        minHeight: "100vh",
+        backgroundColor: "var(--color-bg-primary)",
+        paddingTop: `calc(${announcements.length > 0 ? "80px" : "48px"} + env(safe-area-inset-top, 0px))`,
+      }}>
+        <div className="max-w-7xl mx-auto flex px-3 sm:px-4" style={{ gap: 20 }}>
+          {/* ── Main content: 70% ── */}
+          <section className="min-w-0" style={{ flex: 7, paddingBottom: "calc(70px + env(safe-area-inset-bottom, 0px))" }}>
 
             {/* Sunshine Hero Banner */}
             <div className="mt-3 mb-3 rounded-2xl overflow-hidden relative" style={{ background: "linear-gradient(135deg, #1e40af 0%, #3b82f6 30%, #60a5fa 60%, #93c5fd 100%)" }}>
@@ -189,6 +226,7 @@ export default function HomePage() {
                 </div>
               </div>
             </div>
+
             {totalContent === 0 && !loading ? (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-20">
                 <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: "var(--color-bg-card)" }}>
@@ -201,31 +239,10 @@ export default function HomePage() {
               </motion.div>
             ) : (
               <>
-                {/* Announcements - always first */}
-                {announcements.map((p) => (
-                  <div key={p.id} className="px-1 pt-1.5">
-                    <motion.div initial={{ opacity: 0, y: -3 }} animate={{ opacity: 1, y: 0 }}
-                      className="rounded-lg overflow-hidden cursor-pointer"
-                      style={{ background: "linear-gradient(to right, rgba(245,158,11,0.08), rgba(245,158,11,0.03), rgba(245,158,11,0.08))", border: "0.5px solid rgba(245,158,11,0.2)" }}
-                      onClick={() => router.push(`/post/${p.id}`)}>
-                      <div className="px-3 py-2 flex items-center gap-2.5">
-                        <span className="text-base shrink-0">📢</span>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="text-[9px] px-1.5 py-0.5 rounded font-medium shrink-0" style={{ backgroundColor: "rgba(245,158,11,0.15)", color: "#f59e0b" }}>公告</span>
-                            <h3 className="text-[12px] font-medium text-[var(--color-text-primary)] line-clamp-1">{p.title}</h3>
-                          </div>
-                        </div>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-tertiary)" strokeWidth="2" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
-                      </div>
-                    </motion.div>
-                  </div>
-                ))}
-
-                {/* Pinned posts - after announcements */}
+                {/* Pinned posts */}
                 {sortedPinned.map((p) => (
-                  <div key={p.id} className="px-1 pt-2">
-                    <div onClick={() => router.push(`/post/${p.id}`)} className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer active:scale-[0.98] transition-all" style={{ background: "linear-gradient(to right, rgba(245,158,11,0.1), rgba(245,158,11,0.05), transparent)", border: "0.5px solid rgba(245,158,11,0.2)" }}>
+                  <div key={p.id} className="px-1 pt-2 pb-1">
+                    <div onClick={() => router.push(`/post/${p.id}`)} className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer active:scale-[0.98] transition-all" style={{ background: "linear-gradient(to right, rgba(245,158,11,0.08), rgba(245,158,11,0.03), transparent)", border: "0.5px solid rgba(245,158,11,0.15)" }}>
                       <span className="text-base shrink-0">📌</span>
                       <div className="flex-1 min-w-0">
                         <p className="text-[13px] font-semibold text-[var(--color-text-primary)] line-clamp-1">{p.title}</p>
@@ -239,15 +256,17 @@ export default function HomePage() {
                 ))}
 
                 {/* Post grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 pt-3">
-                    {sorted.map((p, i) => (
-                      <React.Fragment key={p.id}>
-                        <div style={{ animation: "fadeInUp 0.3s ease both", animationDelay: `${(i % 10) * 40}ms` }}><PostCard post={p} isLiked={likedPosts.has(p.id) || guestLikes.has(p.id)} onLike={(id) => { toggleLike(id); }} onCardClick={(id) => setSelectedPostId(id)} isSaved={savedPosts.has(p.id)} onSave={(id) => { if (!user) { requireLogin(); return; } toggleSave(id); }} onDelete={(id) => deletePost(id)} currentUserId={user?.id} isOwner={user?.role === "owner"} isAdmin={user?.isAdmin} /></div>
-                        {(i + 1) % 6 === 0 && i < sorted.length - 1 && (
-                          <div><AdCard index={Math.floor(i / 6)} /></div>
-                        )}
-                      </React.Fragment>
-                    ))}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 pt-2" style={{ gap: 10 }}>
+                  {sorted.map((p, i) => (
+                    <React.Fragment key={p.id}>
+                      <div style={{ animation: "fadeInUp 0.3s ease both", animationDelay: `${(i % 10) * 40}ms` }}>
+                        <PostCard post={p} isLiked={likedPosts.has(p.id) || guestLikes.has(p.id)} onLike={(id) => { toggleLike(id); }} onCardClick={(id) => setSelectedPostId(id)} isSaved={savedPosts.has(p.id)} onSave={(id) => { if (!user) { requireLogin(); return; } toggleSave(id); }} onDelete={(id) => deletePost(id)} currentUserId={user?.id} isOwner={user?.role === "owner"} isAdmin={user?.isAdmin} />
+                      </div>
+                      {(i + 1) % 6 === 0 && i < sorted.length - 1 && (
+                        <div><AdCard index={Math.floor(i / 6)} /></div>
+                      )}
+                    </React.Fragment>
+                  ))}
                 </div>
               </>
             )}
@@ -264,8 +283,8 @@ export default function HomePage() {
             </div>
           </section>
 
-          {/* Sidebar - Trending (hidden on mobile) */}
-          <aside className="hidden lg:block w-72 shrink-0 sticky top-24 self-start">
+          {/* ── Sidebar: 30% (hidden on mobile) ── */}
+          <aside className="hidden lg:block shrink-0 sticky top-24 self-start" style={{ flex: 3, maxWidth: 320 }}>
             {/* Trending section */}
             <div className="rounded-xl overflow-hidden" style={{ backgroundColor: "var(--color-bg-card)", border: "0.5px solid var(--color-border-subtle)" }}>
               <div className="px-4 py-3 flex items-center justify-between" style={{ borderBottom: "0.5px solid var(--color-border-subtle)" }}>
@@ -273,17 +292,14 @@ export default function HomePage() {
                   <span className="text-base">🔥</span>
                   <span className="text-sm font-semibold text-[var(--color-text-primary)]">热门榜单</span>
                 </div>
-                <button onClick={() => setShowTrending(!showTrending)} className="text-[10px] text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] transition-all">
+                <button onClick={() => setShowTrending(!showTrending)} className="text-[10px] text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] transition-all" style={{ background: "none", border: "none", cursor: "pointer" }}>
                   {showTrending ? "收起" : "展开"}
                 </button>
               </div>
               <div className="py-1">
                 {trendingPosts.slice(0, showTrending ? 10 : 5).map((p, i) => (
-                  <div
-                    key={p.id}
-                    onClick={() => router.push(`/post/${p.id}`)}
-                    className="px-4 py-2.5 flex items-start gap-3 cursor-pointer hover:bg-[var(--color-bg-hover)] transition-all"
-                  >
+                  <div key={p.id} onClick={() => router.push(`/post/${p.id}`)}
+                    className="px-4 py-2.5 flex items-start gap-3 cursor-pointer hover:bg-[var(--color-bg-hover)] transition-all">
                     <span className={`text-[12px] font-bold w-4 text-center shrink-0 mt-0.5 ${i < 3 ? "text-[var(--color-accent)]" : "text-[var(--color-text-tertiary)]"}`}>
                       {i + 1}
                     </span>
@@ -309,12 +325,10 @@ export default function HomePage() {
             <div className="mt-3 rounded-xl p-3" style={{ backgroundColor: "var(--color-bg-card)", border: "0.5px solid var(--color-border-subtle)" }}>
               <div className="flex flex-wrap gap-1.5">
                 {["月落", "浮生", "缘渡", "清谈", "修行", "数码", "汽车", "游戏"].map(cat => (
-                  <button
-                    key={cat}
+                  <button key={cat}
                     onClick={() => { setActiveCat(cat); if (!customCats.includes(cat)) setCustomCats(prev => [...prev, cat]); }}
                     className="px-2.5 py-1 rounded-full text-[10px] text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] transition-all"
-                    style={{ backgroundColor: "var(--color-bg-secondary)", border: "0.5px solid var(--color-border-subtle)" }}
-                  >
+                    style={{ backgroundColor: "var(--color-bg-secondary)", border: "0.5px solid var(--color-border-subtle)", cursor: "pointer" }}>
                     {cat}
                   </button>
                 ))}

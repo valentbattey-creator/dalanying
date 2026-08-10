@@ -98,7 +98,8 @@ function PostCardInner({ post, isLiked, onLike, onCardClick, isSaved = false, on
   return (
     <article
       onClick={handleCardClick}
-      className="group bg-[var(--color-bg-card)] border-[0.5px] border-[var(--color-border-subtle)] rounded-[10px] overflow-hidden cursor-pointer transition-all duration-200 hover:border-[var(--color-border-default)] active:scale-[0.98] relative"
+      className="group bg-[var(--color-bg-card)] rounded-[12px] overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-lg active:scale-[0.98] relative"
+      style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)", border: "0.5px solid var(--color-border-subtle)" }}
     >
       {/* Delete overlay - shows when confirming */}
       {confirmDelete && (
