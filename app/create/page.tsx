@@ -230,7 +230,7 @@ export default function CreatePage() {
     try {
       let imageUrls: string[] = [];
       if (selectedFiles.length > 0) {
-        setUploadProgress(`正在上传 ${selectedFiles.length} 张图片...`);
+        setUploadProgress(`正在压缩并上传 ${selectedFiles.length} 张图片...`);
         imageUrls = await uploadImages(selectedFiles);
       }
       setUploadProgress("正在发布...");
