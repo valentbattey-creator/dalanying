@@ -338,13 +338,7 @@ body::before {
   animation-play-state: paused;
 }
 
-/* Card hover shadow - only change box-shadow, not other properties */
-article:hover {
-  box-shadow: 0 8px 24px rgba(0,0,0,0.25), 0 4px 8px rgba(0,0,0,0.15) !important;
-}
-[data-theme="light"] article:hover {
-  box-shadow: 0 8px 24px rgba(0,0,0,0.08), 0 4px 8px rgba(0,0,0,0.04) !important;
-}
+/* Card hover handled in component */
 
 /* z-index layer for ticker bar */
 .z-45 { z-index: 45; }

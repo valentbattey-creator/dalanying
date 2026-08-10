@@ -38,6 +38,7 @@ interface PostCardProps {
 function PostCardInner({ post, isLiked, onLike, onCardClick, isSaved = false, onSave, onDelete, currentUserId, isOwner, isAdmin }: PostCardProps) {
   const hasImage = post.images && post.images.length > 0;
   const [showMenu, setShowMenu] = useState(false);
+  const [hovered, setHovered] = useState(false);
   const [justLiked, setJustLiked] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -103,8 +104,14 @@ function PostCardInner({ post, isLiked, onLike, onCardClick, isSaved = false, on
   return (
     <article
       onClick={handleCardClick}
-      className="group bg-[var(--color-bg-card)] rounded-[12px] overflow-hidden cursor-pointer active:scale-[0.98] relative"
-      style={{ boxShadow: "0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04)", border: "0.5px solid var(--color-border-subtle)", transition: "box-shadow 0.3s ease, transform 0.15s ease" }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className="bg-[var(--color-bg-card)] rounded-[12px] overflow-hidden cursor-pointer relative"
+      style={{
+        boxShadow: hovered ? "0 8px 24px rgba(0,0,0,0.2)" : "0 1px 3px rgba(0,0,0,0.06)",
+        border: "0.5px solid var(--color-border-subtle)",
+        transition: "box-shadow 0.25s ease",
+      }}
     >
       {/* Delete overlay - shows when confirming */}
       {confirmDelete && (
