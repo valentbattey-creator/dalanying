@@ -186,6 +186,10 @@ export default function PostDetailModal({ postId, onClose }: PostDetailModalProp
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                       <span style={{ fontSize: 13, fontWeight: 500, color: "var(--color-text-primary)" }}>{comment.author || "匿名"}</span>
+                      {comment.parentId && (() => {
+                        const parent = postComments.find(c => c.id === comment.parentId);
+                        return parent ? <span style={{ fontSize: 11, color: "var(--color-accent)" }}>回复 @{parent.author}</span> : null;
+                      })()}
                       <span style={{ fontSize: 11, color: "var(--color-text-tertiary)" }}>{timeAgo(comment.createdAt)}</span>
                     </div>
                     <p style={{ fontSize: 13, color: "var(--color-text-secondary)", margin: "4px 0 0", lineHeight: 1.5 }}>{comment.content}</p>
