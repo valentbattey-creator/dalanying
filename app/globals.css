@@ -390,20 +390,19 @@ body::before {
   animation: like-bounce 0.4s ease-out;
 }
 
-/* ===== Masonry waterfall layout ===== */
-.masonry-grid {
-  column-count: 2;
-  column-gap: 10px;
+/* ===== Post grid: compact waterfall ===== */
+.post-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  grid-auto-rows: auto;
 }
-.masonry-grid > * {
-  break-inside: avoid;
-  -webkit-column-break-inside: avoid;
-  margin-bottom: 10px;
-  display: block;
+.post-grid > * {
+  min-width: 0;
 }
 @media (min-width: 1024px) {
-  .masonry-grid { column-count: 3; }
+  .post-grid { grid-template-columns: repeat(3, 1fr); gap: 10px; }
 }
 @media (min-width: 1280px) {
-  .masonry-grid { column-count: 4; }
+  .post-grid { grid-template-columns: repeat(4, 1fr); gap: 10px; }
 }
