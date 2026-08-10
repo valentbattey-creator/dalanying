@@ -274,3 +274,52 @@ body::before {
 @media (min-width: 1280px) {
   .xl\:grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)) !important; }
 }
+
+/* ===== Mobile optimizations ===== */
+
+/* Category bar: ensure visibility on mobile */
+@media (max-width: 768px) {
+  .category-bar-wrapper {
+    position: sticky;
+    top: 48px;
+    z-index: 45;
+    -webkit-position: sticky;
+  }
+  
+  /* Post grid: 2 columns with smaller gap on mobile */
+  .post-grid-mobile {
+    gap: 6px !important;
+  }
+  
+  /* Announcement compact on mobile */
+  .announcement-bar {
+    padding: 6px 10px !important;
+    font-size: 12px !important;
+  }
+}
+
+/* Post detail modal: mobile full-screen class */
+.post-modal-mobile {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  max-height: none !important;
+  border-radius: 0 !important;
+  transform: none !important;
+  top: 0 !important;
+  left: 0 !important;
+}
+
+/* Skeleton shimmer animation */
+@keyframes skeleton-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(90deg, var(--color-bg-secondary) 25%, var(--color-bg-hover) 50%, var(--color-bg-secondary) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
