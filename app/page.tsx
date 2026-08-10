@@ -171,10 +171,10 @@ export default function HomePage() {
         )}
       </div>
 
-      <main className="min-h-screen bg-[var(--color-bg-primary)]" style={{ paddingTop: "0" }}>
+      <main className="min-h-screen bg-[var(--color-bg-primary)]" style={{ paddingTop: "calc(48px + env(safe-area-inset-top, 0px))" }}>
         <div className="max-w-6xl mx-auto flex gap-4 px-3 sm:px-4">
           {/* Main content */}
-          <section className="flex-1 min-w-0 pb-20">
+          <section className="flex-1 min-w-0" style={{ paddingBottom: "calc(70px + env(safe-area-inset-bottom, 0px))" }}>
 
             {/* Sunshine Hero Banner */}
             <div className="mt-3 mb-3 rounded-2xl overflow-hidden relative" style={{ background: "linear-gradient(135deg, #1e40af 0%, #3b82f6 30%, #60a5fa 60%, #93c5fd 100%)" }}>

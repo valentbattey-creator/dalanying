@@ -40,7 +40,7 @@ function PostCardInner({ post, isLiked, onLike, onCardClick, isSaved = false, on
   const [showMenu, setShowMenu] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const canDelete = currentUserId && (post.authorId === currentUserId || isOwner || isAdmin);
+  const canDelete = currentUserId && (post.authorId === currentUserId || post.authorId === "system" || isOwner || isAdmin);
 
   function handleLike(e: React.MouseEvent) {
     e.stopPropagation();
@@ -63,7 +63,18 @@ function PostCardInner({ post, isLiked, onLike, onCardClick, isSaved = false, on
       return;
     }
     setDeleting(true);
-    await onDelete?.(post.id);
+    try {
+      const success = onDelete ? await onDelete(post.id) : false;
+      if (success === false) {
+        // Deletion failed, reset state
+        setDeleting(false);
+        setConfirmDelete(false);
+      }
+    } catch (err) {
+      console.error("Delete failed:", err);
+      setDeleting(false);
+      setConfirmDelete(false);
+    }
   }
 
   function cancelDelete(e: React.MouseEvent) {

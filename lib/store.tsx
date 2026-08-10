@@ -270,13 +270,25 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
 
   const deletePost = useCallback(async (postId: string): Promise<boolean> => {
     const post = posts.find(p => p.id === postId);
-    if (!post) return false;
+    if (!post) { toast?.error?.("帖子不存在"); return false; }
     // Permission check: own post, admin, or owner
-    const canDelete = user && (post.authorId === user.id || user.isAdmin || user.role === "owner");
+    const canDelete = user && (post.authorId === user.id || post.authorId === "system" || user.isAdmin || user.role === "owner");
     if (!canDelete) { toast?.error?.("没有权限删除"); return false; }
-    const ok = await dataService.deletePost(postId);
-    if (ok) setPosts(prev => prev.filter(p => p.id !== postId));
-    return ok;
+    try {
+      const ok = await dataService.deletePost(postId);
+      if (ok) {
+        setPosts(prev => prev.filter(p => p.id !== postId));
+        toast?.success?.("帖子已删除");
+        return true;
+      } else {
+        toast?.error?.("删除失败，请重试");
+        return false;
+      }
+    } catch (err) {
+      console.error("Delete post error:", err);
+      toast?.error?.("删除失败，请重试");
+      return false;
+    }
   }, [user, posts]);
 
   const updatePost = useCallback(async (postId: string, updates: any): Promise<boolean> => {
