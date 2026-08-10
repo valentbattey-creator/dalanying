@@ -358,3 +358,18 @@ body::before {
 
 /* z-index layer for ticker bar */
 .z-45 { z-index: 45; }
+
+/* ===== Missing arbitrary value classes ===== */
+.rounded-\[10px\] { border-radius: 10px !important; }
+.rounded-\[12px\] { border-radius: 12px !important; }
+.rounded-\[16px\] { border-radius: 16px !important; }
+.rounded-2xl { border-radius: 1rem !important; }
+.rounded-3xl { border-radius: 1.5rem !important; }
+
+/* ===== Sunshine Banner responsive ===== */
+.banner-mobile { display: block; }
+.banner-pc { display: none; }
+@media (min-width: 1024px) {
+  .banner-mobile { display: none !important; }
+  .banner-pc { display: block !important; }
+}

@@ -217,8 +217,8 @@ export default function HomePage() {
 
             {/* Sunshine Hero Banner - responsive */}
             {/* Mobile banner (< lg): blue gradient, rounded, side margins, centered text */}
-            <div className="lg:hidden" style={{
-              marginTop: 12, marginBottom: 12, marginLeft: 16, marginRight: 16,
+            <div className="banner-mobile" style={{
+              marginTop: 12, marginBottom: 12,
               borderRadius: 16, overflow: "hidden", position: "relative",
               background: "linear-gradient(135deg, #1e40af 0%, #3b82f6 40%, #60a5fa 70%, #93c5fd 100%)",
             }}>
@@ -229,7 +229,7 @@ export default function HomePage() {
               </div>
             </div>
             {/* PC banner (>= lg): glass-morphism, rounded, centered text */}
-            <div className="hidden lg:!block" style={{
+            <div className="banner-pc" style={{
               marginTop: 16, marginBottom: 16,
               borderRadius: 24, overflow: "hidden", position: "relative", minHeight: 180,
               background: "rgba(59, 130, 246, 0.12)",
