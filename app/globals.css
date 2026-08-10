@@ -338,22 +338,12 @@ body::before {
   animation-play-state: paused;
 }
 
-/* Dark mode card shadow override */
-[data-theme="dark"] article,
-:root article {
-  box-shadow: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2) !important;
-}
-[data-theme="dark"] article:hover,
-:root article:hover {
-  box-shadow: 0 10px 25px rgba(0,0,0,0.4), 0 4px 10px rgba(0,0,0,0.3) !important;
-}
-
-/* Light mode card shadow */
-[data-theme="light"] article {
-  box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04) !important;
+/* Card hover shadow - only change box-shadow, not other properties */
+article:hover {
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25), 0 4px 8px rgba(0,0,0,0.15) !important;
 }
 [data-theme="light"] article:hover {
-  box-shadow: 0 10px 25px rgba(0,0,0,0.1), 0 4px 10px rgba(0,0,0,0.06) !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08), 0 4px 8px rgba(0,0,0,0.04) !important;
 }
 
 /* z-index layer for ticker bar */
