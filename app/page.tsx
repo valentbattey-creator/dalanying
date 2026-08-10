@@ -273,7 +273,7 @@ export default function HomePage() {
                 ))}
 
                 {/* Post grid */}
-                <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 pt-2" style={{ gap: 10 }}>
+                <div className="masonry-grid pt-2">
                   {sorted.map((p, i) => (
                     <React.Fragment key={p.id}>
                       <div style={{ animation: "fadeInUp 0.3s ease both", animationDelay: `${(i % 10) * 40}ms` }}>

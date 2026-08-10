@@ -389,3 +389,21 @@ body::before {
 .like-bounce {
   animation: like-bounce 0.4s ease-out;
 }
+
+/* ===== Masonry waterfall layout ===== */
+.masonry-grid {
+  column-count: 2;
+  column-gap: 10px;
+}
+.masonry-grid > * {
+  break-inside: avoid;
+  -webkit-column-break-inside: avoid;
+  margin-bottom: 10px;
+  display: block;
+}
+@media (min-width: 1024px) {
+  .masonry-grid { column-count: 3; }
+}
+@media (min-width: 1280px) {
+  .masonry-grid { column-count: 4; }
+}
