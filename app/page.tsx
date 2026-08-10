@@ -327,6 +327,11 @@ export default function HomePage() {
             </div>
           </aside>
         </div>
+
+        {/* Post Detail Modal */}
+        {selectedPostId && (
+          <PostDetailModal postId={selectedPostId} onClose={() => setSelectedPostId(null)} />
+        )}
       </main>
     </>
   );
