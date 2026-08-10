@@ -216,31 +216,27 @@ export default function HomePage() {
           <section className="min-w-0" style={{ flex: 7, paddingBottom: "calc(70px + env(safe-area-inset-bottom, 0px))" }}>
 
             {/* Sunshine Hero Banner - PC: glass-morphism floating / Mobile: classic centered */}
-            {/* Mobile banner */}
-            <div className="lg:hidden mt-0 mb-2 overflow-hidden relative" style={{ background: "linear-gradient(135deg, #1e40af 0%, #3b82f6 40%, #60a5fa 70%, #93c5fd 100%)" }}>
-              <div className="relative px-5 py-8 flex flex-col items-center justify-center text-center" style={{ minHeight: 140 }}>
+            {/* Mobile banner - rounded card with side margins */}
+            <div className="lg:hidden mt-3 mb-3 mx-4 rounded-2xl overflow-hidden relative" style={{ background: "linear-gradient(135deg, #1e40af 0%, #3b82f6 40%, #60a5fa 70%, #93c5fd 100%)" }}>
+              <div className="relative px-5 py-10 flex flex-col items-center justify-center text-center" style={{ minHeight: 160 }}>
                 <p className="text-white/50 text-[9px] font-medium tracking-[0.2em] uppercase mb-2">WELCOME TO DALANYING</p>
                 <h2 className="text-4xl text-white tracking-wide" style={{ fontFamily: "'Dancing Script', 'Pacifico', 'Great Vibes', cursive" }}>Sunshine</h2>
                 <p className="text-white/40 text-xs mt-2">发现生活的每一种可能</p>
               </div>
             </div>
-            {/* PC banner - glass-morphism floating */}
-            <div className="hidden lg:block mt-4 mb-4 rounded-3xl overflow-hidden relative" style={{
+            {/* PC banner - glass-morphism floating, fully centered */}
+            <div className="hidden lg:flex mt-4 mb-4 rounded-3xl overflow-hidden relative items-center justify-center" style={{
+              minHeight: 180,
               background: "rgba(59, 130, 246, 0.12)",
               backdropFilter: "blur(20px)",
               WebkitBackdropFilter: "blur(20px)",
               border: "1px solid rgba(255, 255, 255, 0.25)",
               boxShadow: "0 8px 32px rgba(59, 130, 246, 0.08), inset 0 1px 0 rgba(255,255,255,0.2)",
             }}>
-              <div className="relative px-8 py-8 flex items-center gap-8">
-                <div className="flex-1">
-                  <p className="text-[var(--color-text-tertiary)] text-[10px] font-medium tracking-[0.25em] uppercase mb-3">WELCOME TO DALANYING</p>
-                  <h2 className="text-5xl text-[var(--color-text-primary)] tracking-wide mb-2" style={{ fontFamily: "'Dancing Script', 'Pacifico', 'Great Vibes', cursive" }}>Sunshine</h2>
-                  <p className="text-[var(--color-text-tertiary)] text-sm">发现生活的每一种可能</p>
-                </div>
-                <div className="shrink-0 opacity-30" style={{ fontSize: 80, lineHeight: 1 }}>
-                  <span style={{ fontFamily: "'Dancing Script', cursive", color: "var(--color-accent)" }}>✦</span>
-                </div>
+              <div className="relative flex flex-col items-center justify-center text-center py-8">
+                <p className="text-[var(--color-text-tertiary)] text-[10px] font-medium tracking-[0.25em] uppercase mb-3">WELCOME TO DALANYING</p>
+                <h2 className="text-5xl text-[var(--color-text-primary)] tracking-wide mb-2" style={{ fontFamily: "'Dancing Script', 'Pacifico', 'Great Vibes', cursive" }}>Sunshine</h2>
+                <p className="text-[var(--color-text-tertiary)] text-sm">发现生活的每一种可能</p>
               </div>
             </div>
 
