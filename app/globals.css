@@ -256,6 +256,7 @@ body::before {
 
 /* lg: breakpoint (1024px) */
 @media (min-width: 1024px) {
+  .lg:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
   .lg\:flex { display: flex !important; }
   .lg\:block { display: block !important; }
   .lg\:inline-flex { display: inline-flex !important; }
