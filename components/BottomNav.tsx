@@ -22,9 +22,8 @@ export default function BottomNav() {
   }
 
   return (
-    <nav style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50, backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", backgroundColor: "var(--color-bg-primary, rgba(255,255,255,0.85))", borderTop: "0.5px solid var(--color-border-subtle, #e5e7eb)", paddingBottom: "env(safe-area-inset-bottom, 0px)", paddingLeft: "env(safe-area-inset-left, 0px)", paddingRight: "env(safe-area-inset-right, 0px)" }}>
+    <nav className="bottom-nav-mobile" style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 50, backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", backgroundColor: "var(--color-bg-primary, rgba(255,255,255,0.85))", borderTop: "0.5px solid var(--color-border-subtle, #e5e7eb)", paddingBottom: "env(safe-area-inset-bottom, 0px)", paddingLeft: "env(safe-area-inset-left, 0px)", paddingRight: "env(safe-area-inset-right, 0px)" }}>
       <div style={{ maxWidth: "64rem", margin: "0 auto", height: "56px", display: "flex", alignItems: "center", justifyContent: "space-around", padding: "0 16px" }}>
-        {/* 首页 */}
         <button onClick={() => router.push("/")}
           style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px", transition: "all 0.2s", color: isHome ? "var(--color-accent, #ff4757)" : "var(--color-text-tertiary, #9ca3af)", background: "none", border: "none", cursor: "pointer", padding: "4px 8px" }}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill={isHome ? "currentColor" : "none"} stroke="currentColor" strokeWidth={isHome ? 0 : 2} strokeLinecap="round">
@@ -33,7 +32,6 @@ export default function BottomNav() {
           <span style={{ fontSize: "10px", fontWeight: 500 }}>首页</span>
         </button>
 
-        {/* 热门 */}
         <button onClick={() => { if (!user) { requireLogin(); return; } router.push("/hot"); }}
           style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px", transition: "all 0.2s", color: isHot ? "var(--color-accent, #ff4757)" : "var(--color-text-tertiary, #9ca3af)", background: "none", border: "none", cursor: "pointer", padding: "4px 8px" }}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill={isHot ? "currentColor" : "none"} stroke="currentColor" strokeWidth={isHot ? 0 : 2} strokeLinecap="round">
@@ -42,7 +40,6 @@ export default function BottomNav() {
           <span style={{ fontSize: "10px", fontWeight: 500 }}>热门</span>
         </button>
 
-        {/* 发布 (center button) */}
         <button onClick={handleCreate}
           style={{ position: "relative", marginTop: "-16px", display: "flex", flexDirection: "column", alignItems: "center", transition: "all 0.2s", background: "none", border: "none", cursor: "pointer" }}>
           <div style={{ width: "44px", height: "44px", borderRadius: "50%", background: "linear-gradient(135deg, var(--color-accent, #ff4757), #ff6b81)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 12px rgba(255,71,87,0.3)" }}>
@@ -53,7 +50,6 @@ export default function BottomNav() {
           <span style={{ fontSize: "10px", fontWeight: 500, marginTop: "2px", color: "var(--color-text-tertiary, #9ca3af)" }}>发布</span>
         </button>
 
-        {/* 消息 */}
         <button onClick={() => { if (!user) { requireLogin(); return; } router.push("/messages"); }}
           style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px", transition: "all 0.2s", color: isMessages ? "var(--color-accent, #ff4757)" : "var(--color-text-tertiary, #9ca3af)", background: "none", border: "none", cursor: "pointer", padding: "4px 8px" }}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill={isMessages ? "currentColor" : "none"} stroke="currentColor" strokeWidth={isMessages ? 0 : 2} strokeLinecap="round">
@@ -62,7 +58,6 @@ export default function BottomNav() {
           <span style={{ fontSize: "10px", fontWeight: 500 }}>消息</span>
         </button>
 
-        {/* 我的 */}
         <button onClick={() => { if (!user) { requireLogin(); return; } router.push(`/user/${user.id}`); }}
           style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "2px", transition: "all 0.2s", color: isUser ? "var(--color-accent, #ff4757)" : "var(--color-text-tertiary, #9ca3af)", background: "none", border: "none", cursor: "pointer", padding: "4px 8px" }}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill={isUser ? "currentColor" : "none"} stroke="currentColor" strokeWidth={isUser ? 0 : 2} strokeLinecap="round">

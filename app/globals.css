@@ -231,3 +231,10 @@ body::before {
     transform: translateX(100%);
   }
 }
+
+/* Hide bottom nav on desktop */
+@media (min-width: 1024px) {
+  .bottom-nav-mobile {
+    display: none !important;
+  }
+}

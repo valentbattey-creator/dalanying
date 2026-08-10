@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
@@ -21,7 +21,7 @@ export default function Navbar({ onSearch }: { onSearch?: (q: string) => void })
 
   return (
     <header className="fixed left-0 right-0 z-50" style={{ top: 0, height: "48px", paddingTop: "env(safe-area-inset-top, 0px)", backgroundColor: "var(--color-bg-primary)", borderBottom: "0.5px solid var(--color-border-subtle)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)" }}>
-      <div className="max-w-6xl mx-auto h-full px-4 flex items-center gap-4">
+      <div className="max-w-7xl mx-auto h-full px-4 flex items-center gap-4">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 shrink-0">
           <span className="text-lg font-extrabold tracking-tight text-[var(--color-text-primary)]"
@@ -30,8 +30,8 @@ export default function Navbar({ onSearch }: { onSearch?: (q: string) => void })
           </span>
         </Link>
 
-        {/* Search bar - wider on PC */}
-        <div className="flex-1 max-w-md ml-auto">
+        {/* Search bar */}
+        <div className="flex-1 max-w-md ml-auto lg:ml-0 lg:max-w-lg">
           <div className="flex items-center h-8 rounded-lg bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] focus-within:border-[var(--color-accent)] transition-all">
             <span className="pl-3 pr-2 text-[var(--color-text-tertiary)] shrink-0">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -57,6 +57,26 @@ export default function Navbar({ onSearch }: { onSearch?: (q: string) => void })
 
         {/* Right actions */}
         <div className="flex items-center gap-2 shrink-0">
+          {/* Desktop-only: 热门 + 发布 + 消息 */}
+          <div className="hidden lg:flex items-center gap-1">
+            <button onClick={() => router.push("/hot")}
+              className="h-9 px-3 flex items-center gap-1.5 rounded-lg text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-hover)] transition-all">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+              热门
+            </button>
+            <button onClick={() => { if (!user) { requireLogin(); return; } router.push("/messages"); }}
+              className="h-9 px-3 flex items-center gap-1.5 rounded-lg text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-hover)] transition-all">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              消息
+            </button>
+            <button onClick={() => { if (!user) { requireLogin(); return; } router.push("/create"); }}
+              className="h-9 px-4 flex items-center gap-1.5 rounded-lg text-sm font-medium text-white transition-all"
+              style={{ background: "linear-gradient(135deg, var(--color-accent), #ff6b81)" }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              发布
+            </button>
+          </div>
+
           <button onClick={toggle}
             className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-[var(--color-bg-hover)] transition-all"
             title={theme === "dark" ? "切换白天模式" : "切换暗黑模式"}>

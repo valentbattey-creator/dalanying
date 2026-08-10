@@ -174,7 +174,7 @@ export default function HomePage() {
       </div>
 
       <main className="min-h-screen bg-[var(--color-bg-primary)]" style={{ paddingTop: "calc(48px + env(safe-area-inset-top, 0px))" }}>
-        <div className="max-w-6xl mx-auto flex gap-4 px-3 sm:px-4">
+        <div className="max-w-7xl mx-auto flex gap-4 px-3 sm:px-4">
           {/* Main content */}
           <section className="flex-1 min-w-0" style={{ paddingBottom: "calc(70px + env(safe-area-inset-bottom, 0px))" }}>
 
@@ -203,19 +203,20 @@ export default function HomePage() {
               <>
                 {/* Announcements - always first */}
                 {announcements.map((p) => (
-                  <div key={p.id} className="px-1 pt-2">
-                    <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }}
-                      className="rounded-xl overflow-hidden cursor-pointer"
-                      style={{ background: "linear-gradient(to right, rgba(245,158,11,0.1), rgba(245,158,11,0.05), rgba(245,158,11,0.1))", border: "0.5px solid rgba(245,158,11,0.25)" }}
+                  <div key={p.id} className="px-1 pt-1.5">
+                    <motion.div initial={{ opacity: 0, y: -3 }} animate={{ opacity: 1, y: 0 }}
+                      className="rounded-lg overflow-hidden cursor-pointer"
+                      style={{ background: "linear-gradient(to right, rgba(245,158,11,0.08), rgba(245,158,11,0.03), rgba(245,158,11,0.08))", border: "0.5px solid rgba(245,158,11,0.2)" }}
                       onClick={() => router.push(`/post/${p.id}`)}>
-                      <div className="px-4 py-3 flex items-center gap-3">
-                        <span className="text-xl shrink-0">📢</span>
+                      <div className="px-3 py-2 flex items-center gap-2.5">
+                        <span className="text-base shrink-0">📢</span>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
-                            <span className="text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0" style={{ backgroundColor: "rgba(245,158,11,0.2)", color: "#f59e0b" }}>公告</span>
-                            <h3 className="text-[13px] font-semibold text-[var(--color-text-primary)] line-clamp-1">{p.title}</h3>
+                            <span className="text-[9px] px-1.5 py-0.5 rounded font-medium shrink-0" style={{ backgroundColor: "rgba(245,158,11,0.15)", color: "#f59e0b" }}>公告</span>
+                            <h3 className="text-[12px] font-medium text-[var(--color-text-primary)] line-clamp-1">{p.title}</h3>
                           </div>
                         </div>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-tertiary)" strokeWidth="2" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>
                       </div>
                     </motion.div>
                   </div>
@@ -238,7 +239,7 @@ export default function HomePage() {
                 ))}
 
                 {/* Post grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 pt-3">
                     {sorted.map((p, i) => (
                       <React.Fragment key={p.id}>
                         <div style={{ animation: "fadeInUp 0.3s ease both", animationDelay: `${(i % 10) * 40}ms` }}><PostCard post={p} isLiked={likedPosts.has(p.id) || guestLikes.has(p.id)} onLike={(id) => { toggleLike(id); }} onCardClick={(id) => setSelectedPostId(id)} isSaved={savedPosts.has(p.id)} onSave={(id) => { if (!user) { requireLogin(); return; } toggleSave(id); }} onDelete={(id) => deletePost(id)} currentUserId={user?.id} isOwner={user?.role === "owner"} isAdmin={user?.isAdmin} /></div>
