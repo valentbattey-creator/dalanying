@@ -240,29 +240,37 @@ body::before {
 }
 
 /* ===== Responsive utilities (missing from tailwind.css) ===== */
+/* Using !important to override .hidden from tailwind.css */
 
 /* sm: breakpoint (640px) */
 @media (min-width: 640px) {
-  .sm\:inline-flex { display: inline-flex; }
-  .sm\:items-center { align-items: center; }
-  .sm\:rounded-2xl { border-radius: 1rem; }
-  .sm\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .sm\:px-4 { padding-left: 1rem; padding-right: 1rem; }
-  .sm\:px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
-  .sm\:py-6 { padding-top: 1.5rem; padding-bottom: 1.5rem; }
-  .sm\:text-6xl { font-size: 3.75rem; line-height: 1; }
+  .sm\:inline-flex { display: inline-flex !important; }
+  .sm\:items-center { align-items: center !important; }
+  .sm\:rounded-2xl { border-radius: 1rem !important; }
+  .sm\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+  .sm\:px-4 { padding-left: 1rem !important; padding-right: 1rem !important; }
+  .sm\:px-6 { padding-left: 1.5rem !important; padding-right: 1.5rem !important; }
+  .sm\:py-6 { padding-top: 1.5rem !important; padding-bottom: 1.5rem !important; }
+  .sm\:text-6xl { font-size: 3.75rem !important; line-height: 1 !important; }
 }
 
 /* lg: breakpoint (1024px) */
 @media (min-width: 1024px) {
-  .lg\:flex { display: flex; }
-  .lg\:block { display: block; }
-  .lg\:ml-0 { margin-left: 0; }
-  .lg\:max-w-lg { max-width: 32rem; }
-  .lg\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .lg\:flex { display: flex !important; }
+  .lg\:block { display: block !important; }
+  .lg\:inline-flex { display: inline-flex !important; }
+  .lg\:hidden { display: none !important; }
+  .lg\:ml-0 { margin-left: 0 !important; }
+  .lg\:max-w-lg { max-width: 32rem !important; }
+  .lg\:max-w-xl { max-width: 36rem !important; }
+  .lg\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+  .lg\:w-72 { width: 18rem !important; }
+  .lg\:px-6 { padding-left: 1.5rem !important; padding-right: 1.5rem !important; }
+  .lg\:gap-6 { gap: 1.5rem !important; }
+  .lg\:text-base { font-size: 1rem !important; }
 }
 
 /* xl: breakpoint (1280px) */
 @media (min-width: 1280px) {
-  .xl\:grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .xl\:grid-cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)) !important; }
 }
