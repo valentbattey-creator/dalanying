@@ -215,28 +215,32 @@ export default function HomePage() {
           {/* ── Main content: 70% ── */}
           <section className="min-w-0" style={{ flex: 7, paddingBottom: "calc(70px + env(safe-area-inset-bottom, 0px))" }}>
 
-            {/* Sunshine Hero Banner - PC: glass-morphism floating / Mobile: classic centered */}
-            {/* Mobile banner - rounded card with side margins */}
-            <div className="lg:hidden mt-3 mb-3 mx-4 rounded-2xl overflow-hidden relative" style={{ background: "linear-gradient(135deg, #1e40af 0%, #3b82f6 40%, #60a5fa 70%, #93c5fd 100%)" }}>
-              <div className="relative px-5 py-10 flex flex-col items-center justify-center text-center" style={{ minHeight: 160 }}>
-                <p className="text-white/50 text-[9px] font-medium tracking-[0.2em] uppercase mb-2">WELCOME TO DALANYING</p>
-                <h2 className="text-4xl text-white tracking-wide" style={{ fontFamily: "'Dancing Script', 'Pacifico', 'Great Vibes', cursive" }}>Sunshine</h2>
-                <p className="text-white/40 text-xs mt-2">发现生活的每一种可能</p>
+            {/* Sunshine Hero Banner - responsive */}
+            {/* Mobile banner (< lg): blue gradient, rounded, side margins, centered text */}
+            <div className="lg:hidden" style={{
+              marginTop: 12, marginBottom: 12, marginLeft: 16, marginRight: 16,
+              borderRadius: 16, overflow: "hidden", position: "relative",
+              background: "linear-gradient(135deg, #1e40af 0%, #3b82f6 40%, #60a5fa 70%, #93c5fd 100%)",
+            }}>
+              <div style={{ position: "relative", padding: "40px 20px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", minHeight: 160 }}>
+                <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 9, fontWeight: 500, letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 8 }}>WELCOME TO DALANYING</p>
+                <h2 style={{ fontSize: 42, color: "#fff", letterSpacing: "0.05em", fontFamily: "'Dancing Script', 'Pacifico', 'Great Vibes', cursive" }}>Sunshine</h2>
+                <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, marginTop: 8 }}>发现生活的每一种可能</p>
               </div>
             </div>
-            {/* PC banner - glass-morphism floating, fully centered */}
-            <div className="hidden lg:flex mt-4 mb-4 rounded-3xl overflow-hidden relative items-center justify-center" style={{
-              minHeight: 180,
+            {/* PC banner (>= lg): glass-morphism, rounded, centered text */}
+            <div className="hidden lg:!block" style={{
+              marginTop: 16, marginBottom: 16,
+              borderRadius: 24, overflow: "hidden", position: "relative", minHeight: 180,
               background: "rgba(59, 130, 246, 0.12)",
-              backdropFilter: "blur(20px)",
-              WebkitBackdropFilter: "blur(20px)",
+              backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
               border: "1px solid rgba(255, 255, 255, 0.25)",
               boxShadow: "0 8px 32px rgba(59, 130, 246, 0.08), inset 0 1px 0 rgba(255,255,255,0.2)",
             }}>
-              <div className="relative flex flex-col items-center justify-center text-center py-8">
-                <p className="text-[var(--color-text-tertiary)] text-[10px] font-medium tracking-[0.25em] uppercase mb-3">WELCOME TO DALANYING</p>
-                <h2 className="text-5xl text-[var(--color-text-primary)] tracking-wide mb-2" style={{ fontFamily: "'Dancing Script', 'Pacifico', 'Great Vibes', cursive" }}>Sunshine</h2>
-                <p className="text-[var(--color-text-tertiary)] text-sm">发现生活的每一种可能</p>
+              <div style={{ position: "relative", padding: "40px 48px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", minHeight: 180 }}>
+                <p style={{ color: "var(--color-text-tertiary)", fontSize: 10, fontWeight: 500, letterSpacing: "0.25em", textTransform: "uppercase", marginBottom: 12 }}>WELCOME TO DALANYING</p>
+                <h2 style={{ fontSize: 48, color: "var(--color-text-primary)", letterSpacing: "0.05em", marginBottom: 8, fontFamily: "'Dancing Script', 'Pacifico', 'Great Vibes', cursive" }}>Sunshine</h2>
+                <p style={{ color: "var(--color-text-tertiary)", fontSize: 14 }}>发现生活的每一种可能</p>
               </div>
             </div>
 

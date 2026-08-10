@@ -261,6 +261,7 @@ body::before {
   .lg\:block { display: block !important; }
   .lg\:inline-flex { display: inline-flex !important; }
   .lg\:hidden { display: none !important; }
+  .lg:!block { display: block !important; }
   .lg\:ml-0 { margin-left: 0 !important; }
   .lg\:max-w-lg { max-width: 32rem !important; }
   .lg\:max-w-xl { max-width: 36rem !important; }
