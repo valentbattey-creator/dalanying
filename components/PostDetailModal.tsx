@@ -33,7 +33,7 @@ interface PostDetailModalProps {
 
 export default function PostDetailModal({ postId, onClose }: PostDetailModalProps) {
   const { user, requireLogin } = useAuth();
-  const { posts, comments, addComment, toggleLike, likedPosts } = useData();
+  const { posts, comments, addComment, deleteComment, toggleLike, likedPosts } = useData();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [commentText, setCommentText] = useState("");
   const [sending, setSending] = useState(false);
@@ -178,28 +178,41 @@ export default function PostDetailModal({ postId, onClose }: PostDetailModalProp
                 <p style={{ fontSize: 11, color: "var(--color-text-tertiary)", margin: "4px 0 0" }}>来说点什么吧</p>
               </div>
             ) : (
-              postComments.map(comment => (
+              postComments.map(comment => {
+                const parent = comment.parentId ? postComments.find(c => c.id === comment.parentId) : null;
+                const canDel = user && (comment.authorId === user.id || user.role === "owner" || user.isAdmin);
+                return (
                 <div key={comment.id} style={{ display: "flex", gap: 10, marginBottom: 16 }}>
                   <div style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg, #52525b, #71717a)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 12, fontWeight: 700, overflow: "hidden", flexShrink: 0 }}>
                     {comment.authorAvatar ? <img src={comment.authorAvatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : (comment.author?.charAt(0) || "?")}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 13, fontWeight: 500, color: "var(--color-text-primary)" }}>{comment.author || "匿名"}</span>
-                      {comment.parentId && (() => {
-                        const parent = postComments.find(c => c.id === comment.parentId);
-                        return parent ? <span style={{ fontSize: 11, color: "var(--color-accent)" }}>回复 @{parent.author}</span> : null;
-                      })()}
-                      <span style={{ fontSize: 11, color: "var(--color-text-tertiary)" }}>{timeAgo(comment.createdAt)}</span>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontSize: 13, fontWeight: 500, color: "var(--color-text-primary)" }}>{comment.author || "匿名"}</span>
+                        <span style={{ fontSize: 11, color: "var(--color-text-tertiary)" }}>{timeAgo(comment.createdAt)}</span>
+                      </div>
+                      {canDel && (
+                        <button onClick={() => { if (confirm("确定删除这条评论？")) deleteComment(comment.id); }}
+                          style={{ fontSize: 11, color: "var(--color-text-tertiary)", background: "none", border: "none", cursor: "pointer", padding: "2px 6px" }}>
+                          删除
+                        </button>
+                      )}
                     </div>
-                    <p style={{ fontSize: 13, color: "var(--color-text-secondary)", margin: "4px 0 0", lineHeight: 1.5 }}>{comment.content}</p>
+                    {parent && (
+                      <div style={{ fontSize: 11, color: "var(--color-text-tertiary)", margin: "2px 0 4px", padding: "4px 8px", borderRadius: 6, backgroundColor: "var(--color-bg-secondary)", display: "inline-block" }}>
+                        回复 <span style={{ color: "var(--color-accent)" }}>@{parent.author}</span>：{parent.content?.slice(0, 30)}{parent.content && parent.content.length > 30 ? "..." : ""}
+                      </div>
+                    )}
+                    <p style={{ fontSize: 13, color: "var(--color-text-secondary)", margin: parent ? "0" : "4px 0 0", lineHeight: 1.5 }}>{comment.content}</p>
                     <button onClick={() => { setReplyTo(comment); commentInputRef.current?.focus(); }}
                       style={{ fontSize: 12, color: "var(--color-text-tertiary)", background: "none", border: "none", cursor: "pointer", padding: "2px 0", marginTop: 4 }}>
                       回复
                     </button>
                   </div>
                 </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>
@@ -327,28 +340,41 @@ export default function PostDetailModal({ postId, onClose }: PostDetailModalProp
                 <p style={{ fontSize: 11, color: "var(--color-text-tertiary)", margin: "4px 0 0" }}>来说点什么吧</p>
               </div>
             ) : (
-              postComments.map(comment => (
+              postComments.map(comment => {
+                const parent = comment.parentId ? postComments.find(c => c.id === comment.parentId) : null;
+                const canDel = user && (comment.authorId === user.id || user.role === "owner" || user.isAdmin);
+                return (
                 <div key={comment.id} style={{ display: "flex", gap: 10, marginBottom: 16 }}>
                   <div style={{ width: 30, height: 30, borderRadius: "50%", background: "linear-gradient(135deg, #52525b, #71717a)", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff", fontSize: 11, fontWeight: 700, overflow: "hidden", flexShrink: 0 }}>
                     {comment.authorAvatar ? <img src={comment.authorAvatar} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : (comment.author?.charAt(0) || "?")}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <span style={{ fontSize: 12, fontWeight: 500, color: "var(--color-text-primary)" }}>{comment.author || "匿名"}</span>
-                      {comment.parentId && (() => {
-                        const parent = postComments.find(c => c.id === comment.parentId);
-                        return parent ? <span style={{ fontSize: 10, color: "var(--color-accent)" }}>回复 @{parent.author}</span> : null;
-                      })()}
-                      <span style={{ fontSize: 10, color: "var(--color-text-tertiary)" }}>{timeAgo(comment.createdAt)}</span>
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ fontSize: 12, fontWeight: 500, color: "var(--color-text-primary)" }}>{comment.author || "匿名"}</span>
+                        <span style={{ fontSize: 10, color: "var(--color-text-tertiary)" }}>{timeAgo(comment.createdAt)}</span>
+                      </div>
+                      {canDel && (
+                        <button onClick={() => { if (confirm("确定删除这条评论？")) deleteComment(comment.id); }}
+                          style={{ fontSize: 11, color: "var(--color-text-tertiary)", background: "none", border: "none", cursor: "pointer", padding: "2px 6px" }}>
+                          删除
+                        </button>
+                      )}
                     </div>
-                    <p style={{ fontSize: 12, color: "var(--color-text-secondary)", margin: "3px 0 0", lineHeight: 1.5 }}>{comment.content}</p>
+                    {parent && (
+                      <div style={{ fontSize: 10, color: "var(--color-text-tertiary)", margin: "2px 0 3px", padding: "3px 6px", borderRadius: 4, backgroundColor: "var(--color-bg-secondary)", display: "inline-block" }}>
+                        回复 <span style={{ color: "var(--color-accent)" }}>@{parent.author}</span>：{parent.content?.slice(0, 30)}{parent.content && parent.content.length > 30 ? "..." : ""}
+                      </div>
+                    )}
+                    <p style={{ fontSize: 12, color: "var(--color-text-secondary)", margin: parent ? "0" : "3px 0 0", lineHeight: 1.5 }}>{comment.content}</p>
                     <button onClick={() => { setReplyTo(comment); commentInputRef.current?.focus(); }}
                       style={{ fontSize: 11, color: "var(--color-text-tertiary)", background: "none", border: "none", cursor: "pointer", padding: "2px 0", marginTop: 3 }}>
                       回复
                     </button>
                   </div>
                 </div>
-              ))
+                );
+              })
             )}
           </div>
 
