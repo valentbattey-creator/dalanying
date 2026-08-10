@@ -142,7 +142,7 @@ function PostCardInner({ post, isLiked, onLike, onCardClick, isSaved = false, on
             alt={post.title}
             loading="lazy"
             onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-            className="w-full aspect-[4/3] object-cover"
+            className="w-full object-cover" style={{ maxHeight: 400 }}
           />
           {post.images.length > 1 && (
             <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded-md bg-black/50 backdrop-blur-sm text-white text-[10px] font-medium">
