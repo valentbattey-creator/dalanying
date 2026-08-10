@@ -248,11 +248,27 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       return next;
     });
     setPosts(prev => prev.map(p => p.id === postId ? { ...p, likes: Math.max(0, p.likes + (currentlyLiked ? -1 : 1)) } : p));
-    // Sync with server
-    const serverLikes = await dataService.toggleLike(postId, user.id, currentlyLiked);
-    // Reconcile with server count if valid
-    if (typeof serverLikes === "number" && serverLikes >= 0) {
-      setPosts(prev => prev.map(p => p.id === postId ? { ...p, likes: serverLikes } : p));
+    // Sync with server (with rollback on failure)
+    try {
+      const serverLikes = await dataService.toggleLike(postId, user.id, currentlyLiked);
+      if (typeof serverLikes === "number" && serverLikes >= 0) {
+        setPosts(prev => prev.map(p => p.id === postId ? { ...p, likes: serverLikes } : p));
+      }
+    } catch {
+      // Rollback optimistic update on failure
+      setLikedPosts(prev => {
+        const next = new Set(prev);
+        currentlyLiked ? next.add(postId) : next.delete(postId);
+        const key = postId + "_" + user.id;
+        try {
+          const liked = JSON.parse(localStorage.getItem("dalanying_likedPosts") || "[]");
+          const updated = currentlyLiked ? [...liked, key] : liked.filter((k: string) => k !== key);
+          localStorage.setItem("dalanying_likedPosts", JSON.stringify(updated));
+        } catch {}
+        return next;
+      });
+      setPosts(prev => prev.map(p => p.id === postId ? { ...p, likes: Math.max(0, p.likes + (currentlyLiked ? 1 : -1)) } : p));
+      toast.error("操作失败，请重试");
     }
   }, [user, likedPosts]);
 

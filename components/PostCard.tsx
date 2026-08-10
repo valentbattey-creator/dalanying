@@ -38,6 +38,7 @@ interface PostCardProps {
 function PostCardInner({ post, isLiked, onLike, onCardClick, isSaved = false, onSave, onDelete, currentUserId, isOwner, isAdmin }: PostCardProps) {
   const hasImage = post.images && post.images.length > 0;
   const [showMenu, setShowMenu] = useState(false);
+  const [justLiked, setJustLiked] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const canDelete = currentUserId && (post.authorId === currentUserId || post.authorId === "system" || isOwner || isAdmin);
@@ -46,6 +47,10 @@ function PostCardInner({ post, isLiked, onLike, onCardClick, isSaved = false, on
     e.stopPropagation();
     e.preventDefault();
     onLike(post.id);
+    if (!isLiked) {
+      setJustLiked(true);
+      setTimeout(() => setJustLiked(false), 450);
+    }
   }
 
   function handleSave(e: React.MouseEvent) {
@@ -196,7 +201,7 @@ function PostCardInner({ post, isLiked, onLike, onCardClick, isSaved = false, on
             </button>
             <button
               onClick={handleLike}
-              className="flex items-center gap-0.5 transition-all duration-150 active:scale-90"
+              className={`flex items-center gap-0.5 transition-all duration-150 active:scale-90${justLiked ? " like-bounce" : ""}`}
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill={isLiked ? "var(--color-accent)" : "none"} stroke={isLiked ? "var(--color-accent)" : "currentColor"} strokeWidth="2" strokeLinecap="round">
                 <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
