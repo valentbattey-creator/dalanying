@@ -104,7 +104,7 @@ function PostCardInner({ post, isLiked, onLike, onCardClick, isSaved = false, on
     <article
       onClick={handleCardClick}
       className="bg-[var(--color-bg-card)] rounded-[12px] overflow-hidden cursor-pointer relative"
-style={{ border: "0.5px solid var(--color-border-subtle)" }}
+style={{ border: "0.5px solid var(--color-border-subtle)", isolation: "isolate" as const }}
     >
       {/* Delete overlay - shows when confirming */}
       {confirmDelete && (
