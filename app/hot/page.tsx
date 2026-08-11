@@ -50,7 +50,7 @@ export default function HotPage() {
   }, [posts]);
 
   return (
-    <main className="min-h-screen bg-[var(--color-bg-primary)]" style={{ paddingTop: "16px", paddingBottom: "80px" }}>
+    <main className="min-h-screen bg-[var(--color-bg-primary)]" style={{ paddingTop: "calc(56px + 16px)", paddingBottom: "80px" }}>
       <div className="max-w-lg mx-auto px-4">
 
         {/* Back button + Title */}
