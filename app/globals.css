@@ -449,3 +449,23 @@ body::before {
 .publish-btn:hover .publish-icon {
   transform: scale(1.05);
 }
+
+/* ===== Critical md: responsive classes (missing from tailwind.css) ===== */
+@media (min-width: 768px) {
+  .md\:hidden { display: none !important; }
+  .md\:flex { display: flex !important; }
+  .md\:block { display: block !important; }
+  .md\:flex-row { flex-direction: row !important; }
+  .md\:pb-0 { padding-bottom: 0 !important; }
+  .md\:pb-8 { padding-bottom: 2rem !important; }
+}
+
+/* ===== Main content section responsive padding ===== */
+.main-content-section {
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+}
+@media (min-width: 768px) {
+  .main-content-section {
+    padding-bottom: 2rem !important;
+  }
+}

@@ -211,7 +211,7 @@ export default function HomePage() {
       }}>
         <div className="max-w-7xl mx-auto flex px-3 sm:px-4" style={{ gap: 20 }}>
           {/* ── Main content: 70% ── */}
-          <section className="min-w-0" style={{ flex: 7, paddingBottom: "calc(80px + env(safe-area-inset-bottom, 0px))" }}>
+          <section className="min-w-0 main-content-section" style={{ flex: 7 }}>
 
             {/* Sunshine Hero Banner - responsive */}
             {/* Mobile banner (< lg): blue gradient, rounded, side margins, centered text */}
