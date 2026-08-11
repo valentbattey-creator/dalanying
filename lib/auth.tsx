@@ -47,6 +47,7 @@ interface AuthState {
   registrationCount: number | null;
   sendPhoneOTP: (phone: string) => Promise<{ success: boolean; error?: string }>;
   sendEmailOTP: (email: string) => Promise<{ success: boolean; error?: string }>;
+  resetPassword: (email: string) => Promise<{ success: boolean; error?: string }>;
   verifyEmailOTP: (email: string, token: string, name?: string) => Promise<{ success: boolean; error?: string }>;
   verifyPhoneOTP: (phone: string, token: string, name?: string) => Promise<{ success: boolean; error?: string }>;
   bindEmail: (email: string, token: string) => Promise<{ success: boolean; error?: string }>;
@@ -623,6 +624,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const resetPassword = useCallback(async (email: string): Promise<{ success: boolean; error?: string }> => {
+    if (!hasSupabase) return { success: false, error: "系统未配置 Supabase" };
+    try {
+      const { error } = await supabase!.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/settings`,
+      });
+      if (error) {
+        return { success: false, error: error.message.includes("rate") ? "发送太频繁，请稍后再试" : "发送失败" };
+      }
+      return { success: true };
+    } catch {
+      return { success: false, error: "网络错误，请稍后重试" };
+    }
+  }, []);
+
   const verifyEmailOTP = useCallback(async (email: string, token: string, name?: string): Promise<{ success: boolean; error?: string }> => {
     if (!hasSupabase) return { success: false, error: "未配置 Supabase" };
     
@@ -827,7 +843,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       claimOwner, abdicateOwner, hasOwner,
       registrationCount,
       guestLikes, toggleGuestLike,
-      sendPhoneOTP, verifyPhoneOTP, sendEmailOTP, verifyEmailOTP,
+      sendPhoneOTP, verifyPhoneOTP, sendEmailOTP, verifyEmailOTP, resetPassword,
       bindEmail, deleteAccount,
     }}>
       {children}

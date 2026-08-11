@@ -7,8 +7,8 @@ import { toast } from "sonner";
 
 export default function LoginModal() {
   const router = useRouter();
-  const { showLoginModal, setShowLoginModal, login, register, quickLogin, checkNameAvailable, registrationCount, sendPhoneOTP, verifyPhoneOTP, sendEmailOTP, verifyEmailOTP } = useAuth();
-  const [mode, setMode] = useState<"phone" | "email" | "login" | "register" | "quick">("email");
+  const { showLoginModal, setShowLoginModal, login, register, quickLogin, checkNameAvailable, registrationCount, sendPhoneOTP, verifyPhoneOTP, sendEmailOTP, verifyEmailOTP, resetPassword } = useAuth();
+  const [mode, setMode] = useState<"phone" | "email" | "login" | "register" | "quick" | "forgotPassword">("email");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -22,6 +22,7 @@ export default function LoginModal() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [resetSending, setResetSending] = useState(false);
   const [touchedEmail, setTouchedEmail] = useState(false);
   const [touchedPassword, setTouchedPassword] = useState(false);
   const [touchedName, setTouchedName] = useState(false);
@@ -208,7 +209,7 @@ export default function LoginModal() {
         {/* Title */}
         <div className="text-center mb-6">
           <h2 className="text-lg font-bold text-[var(--color-text-primary)]">
-            {mode === "phone" ? "手机登录" : mode === "email" ? "邮箱验证码登录" : mode === "login" ? "邮箱密码登录" : mode === "register" ? "注册账号" : "快速开始"}
+            {mode === "phone" ? "手机登录" : mode === "email" ? "邮箱验证码登录" : mode === "login" ? "邮箱密码登录" : mode === "register" ? "注册账号" : mode === "forgotPassword" ? "找回密码" : "快速开始"}
           </h2>
           <p className="text-xs text-[var(--color-text-tertiary)] mt-1">
             {mode === "phone" ? "手机号 + 验证码，一步到位" : mode === "email" ? "邮箱 + 验证码，安全便捷" : mode === "quick" ? "起个名字就能玩" : ""}
@@ -294,7 +295,15 @@ export default function LoginModal() {
               </div>
             )}
             <div>
-              <label className="text-[11px] font-medium text-[var(--color-text-secondary)] ml-1">密码</label>
+              <div className="flex items-center justify-between ml-1">
+                <label className="text-[11px] font-medium text-[var(--color-text-secondary)]">密码</label>
+                {mode === "login" && (
+                  <button type="button" onClick={() => switchMode("forgotPassword")}
+                    className="text-[11px] text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] cursor-pointer transition-colors">
+                    忘记密码？
+                  </button>
+                )}
+              </div>
               <input type="password" placeholder="至少 6 位密码" value={password}
                 onChange={(e) => { setPassword(e.target.value); if (!touchedPassword) setTouchedPassword(true); }}
                 onBlur={() => setTouchedPassword(true)}
@@ -314,6 +323,51 @@ export default function LoginModal() {
             <button type="submit" disabled={submitting}
               className="btn-primary w-full py-2.5 rounded-xl text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all">
               {submitting ? "处理中..." : mode === "login" ? "登录" : "注册"}
+            </button>
+          </form>
+        )}
+
+        {/* Forgot password mode */}
+        {mode === "forgotPassword" && (
+          <form onSubmit={async (e) => {
+            e.preventDefault();
+            if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError("请输入正确的邮箱"); return; }
+            setResetSending(true);
+            setError("");
+            const result = await resetPassword(email.trim());
+            if (result.success) {
+              toast.success("重置链接已发送到邮箱，请查收");
+              setSuccess("重置链接已发送，请检查邮箱（包括垃圾邮件）");
+            } else {
+              setError(result.error || "发送失败");
+            }
+            setResetSending(false);
+          }} className="space-y-3">
+            <p className="text-xs text-[var(--color-text-tertiary)] text-center mb-2">输入你的注册邮箱，我们将发送密码重置链接</p>
+            <div>
+              <label className="text-[11px] font-medium text-[var(--color-text-secondary)] ml-1">邮箱地址</label>
+              <input type="email" placeholder="your@email.com" value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full mt-1 px-3 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] outline-none focus:border-[var(--color-accent)] transition-all" />
+            </div>
+            {success && (
+              <div className="bg-green-500/10 border border-green-500/20 rounded-lg px-3 py-2">
+                <p className="text-xs text-green-400">{success}</p>
+              </div>
+            )}
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 flex items-center gap-2">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                <p className="text-xs text-red-400">{error}</p>
+              </div>
+            )}
+            <button type="submit" disabled={resetSending}
+              className="btn-primary w-full py-2.5 rounded-xl text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+              {resetSending ? "发送中..." : "发送重置链接"}
+            </button>
+            <button type="button" onClick={() => switchMode("login")}
+              className="w-full text-center text-xs text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] cursor-pointer transition-colors pt-1">
+              ← 返回登录
             </button>
           </form>
         )}
