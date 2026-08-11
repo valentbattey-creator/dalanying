@@ -617,69 +617,93 @@ export default function SettingsPage() {
   }
 
   return (
-    <main style={{ minHeight: "100vh", backgroundColor: "var(--color-bg-primary)", paddingBottom: "max(6rem, calc(4rem + env(safe-area-inset-bottom, 0px)))", paddingTop: "56px" }}>
-      {/* Mobile header - positioned below MobileTopbar */}
-      <div className="lg:hidden" style={{ position: "sticky", top: "56px", zIndex: 49, height: 44, paddingTop: "env(safe-area-inset-top, 0px)", display: "flex", alignItems: "center", padding: "0 16px", backgroundColor: "var(--color-bg-primary)", borderBottom: "0.5px solid var(--color-border-subtle)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)" }}>
+    <main style={{ minHeight: "100vh", backgroundColor: "var(--color-bg-primary)", paddingBottom: "max(6rem, calc(4rem + env(safe-area-inset-bottom, 0px)))" }}>
+      {/* Mobile header */}
+      <div className="lg:hidden" style={{ position: "sticky", top: 0, zIndex: 49, height: 44, paddingTop: "env(safe-area-inset-top, 0px)", display: "flex", alignItems: "center", padding: "0 16px", backgroundColor: "var(--color-bg-primary)", borderBottom: "0.5px solid var(--color-border-subtle)" }}>
         <button onClick={() => router.back()} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-text-secondary)", padding: 4 }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
         </button>
         <h1 style={{ flex: 1, textAlign: "center", fontSize: 15, fontWeight: 600, color: "var(--color-text-primary)", marginRight: 26 }}>设置</h1>
       </div>
 
-      <div className="flex flex-col lg:flex-row" style={{ maxWidth: 960, margin: "0 auto", padding: "24px 16px", gap: 24 }}>
-        {/* Sidebar - hidden on mobile */}
-        <aside className="hidden lg:block" style={{ width: 220, flexShrink: 0, position: "sticky", top: 80, alignSelf: "flex-start" }}>
-          <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--color-text-primary)", marginBottom: 24, paddingLeft: 12 }}>设置</h2>
-          <nav style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+      {/* Mobile: Vertical grouped list (iOS settings style) */}
+      <div className="lg:hidden" style={{ padding: "16px", paddingTop: "calc(16px + env(safe-area-inset-top, 0px))" }}>
+        {NAV_ITEMS.map(item => (
+          <div key={item.key} style={{ marginBottom: 8 }}>
+            <button
+              onClick={() => setActiveTab(activeTab === item.key ? "" : item.key)}
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                width: "100%", padding: "14px 16px",
+                backgroundColor: "var(--color-bg-card)", borderRadius: 12,
+                border: "1px solid var(--color-border-subtle)",
+                cursor: "pointer", transition: "all 0.2s"
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <span style={{ fontSize: 20 }}>{item.icon}</span>
+                <span style={{ fontSize: 15, fontWeight: 500, color: "var(--color-text-primary)" }}>{item.label}</span>
+              </div>
+              <svg
+                width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-tertiary)" strokeWidth="2"
+                style={{ transform: activeTab === item.key ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.2s" }}
+              >
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </button>
+            {/* Accordion content */}
+            {activeTab === item.key && (
+              <div style={{
+                marginTop: 4, padding: "16px",
+                backgroundColor: "var(--color-bg-card)", borderRadius: 12,
+                border: "1px solid var(--color-border-subtle)",
+                animation: "fadeInUp 0.2s ease"
+              }}>
+                {renderContent()}
+              </div>
+            )}
+          </div>
+        ))}
+        {/* Version */}
+        <p style={{ textAlign: "center", fontSize: 11, color: "var(--color-text-tertiary)", marginTop: 24 }}>大岚荧 v1.0</p>
+      </div>
+
+      {/* Desktop: Sidebar + Content */}
+      <div className="hidden lg:flex" style={{ maxWidth: 960, margin: "0 auto", padding: "24px 24px", gap: 32, paddingTop: "calc(24px + 52px)" }}>
+        {/* Sidebar */}
+        <aside style={{ width: 240, flexShrink: 0, position: "sticky", top: 80, alignSelf: "flex-start" }}>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: "var(--color-text-primary)", marginBottom: 28 }}>设置</h2>
+          <nav style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             {NAV_ITEMS.map(item => (
               <button key={item.key} onClick={() => setActiveTab(item.key)}
                 style={{
-                  display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderRadius: 10,
-                  border: "none", cursor: "pointer", fontSize: 13, fontWeight: 500, textAlign: "left",
+                  display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", borderRadius: 12,
+                  border: "none", cursor: "pointer", fontSize: 14, fontWeight: 500, textAlign: "left",
                   backgroundColor: activeTab === item.key ? "var(--color-bg-hover)" : "transparent",
                   color: activeTab === item.key ? "var(--color-text-primary)" : "var(--color-text-tertiary)",
                   transition: "all 0.15s",
                 }}>
-                <span style={{ fontSize: 16 }}>{item.icon}</span>
+                <span style={{ fontSize: 18 }}>{item.icon}</span>
                 {item.label}
               </button>
             ))}
           </nav>
-          <div style={{ marginTop: 40, paddingLeft: 12 }}>
-            <p style={{ fontSize: 10, color: "var(--color-text-tertiary)" }}>大岚荧 v1.0</p>
+          <div style={{ marginTop: 48 }}>
+            <p style={{ fontSize: 11, color: "var(--color-text-tertiary)" }}>大岚荧 v1.0</p>
           </div>
         </aside>
 
-        {/* Mobile tab bar */}
-        <div className="lg:hidden" style={{ display: "flex", overflowX: "auto", gap: 6, marginBottom: 8, paddingBottom: 4 }}>
-          {NAV_ITEMS.map(item => (
-            <button key={item.key} onClick={() => setActiveTab(item.key)}
-              style={{
-                display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 10,
-                border: "none", cursor: "pointer", fontSize: 13, fontWeight: 500, whiteSpace: "nowrap",
-                backgroundColor: activeTab === item.key ? "var(--color-accent)" : "var(--color-bg-card)",
-                color: activeTab === item.key ? "#fff" : "var(--color-text-tertiary)",
-                transition: "all 0.15s",
-              }}>
-              <span style={{ fontSize: 14 }}>{item.icon}</span>
-              {item.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Content area */}
+        {/* Content */}
         <section style={{ flex: 1, minWidth: 0 }}>
-          {/* PC back button */}
-          <div className="hidden lg:flex" style={{ alignItems: "center", gap: 12, marginBottom: 24 }}>
-            <button onClick={() => router.back()} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 10, border: "0.5px solid var(--color-border-subtle)", backgroundColor: "var(--color-bg-card)", color: "var(--color-text-secondary)", fontSize: 13, cursor: "pointer" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 28 }}>
+            <button onClick={() => router.back()} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 10, border: "0.5px solid var(--color-border-subtle)", backgroundColor: "var(--color-bg-card)", color: "var(--color-text-secondary)", fontSize: 13, cursor: "pointer" }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
               返回
             </button>
-            <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--color-text-primary)" }}>
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--color-text-primary)" }}>
               {NAV_ITEMS.find(n => n.key === activeTab)?.label}
             </h2>
           </div>
-
           {renderContent()}
         </section>
       </div>
