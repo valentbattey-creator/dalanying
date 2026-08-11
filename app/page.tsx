@@ -269,15 +269,15 @@ export default function HomePage() {
                   </div>
                 ))}
 
-                {/* Post grid - CSS columns masonry */}
-                <div className="post-masonry" style={{ paddingTop: 8 }}>
+                {/* Post grid - responsive grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16, paddingTop: 8 }}>
                   {sorted.map((p, i) => (
                     <React.Fragment key={p.id}>
-                      <div style={{ breakInside: "avoid", marginBottom: 8 }}>
+                      <div>
                         <PostCard post={p} isLiked={likedPosts.has(p.id) || guestLikes.has(p.id)} onLike={(id) => { toggleLike(id); }} onCardClick={(id) => setSelectedPostId(id)} isSaved={savedPosts.has(p.id)} onSave={(id) => { if (!user) { requireLogin(); return; } toggleSave(id); }} onDelete={(id) => deletePost(id)} currentUserId={user?.id} isOwner={user?.role === "owner"} isAdmin={user?.isAdmin} />
                       </div>
                       {(i + 1) % 6 === 0 && i < sorted.length - 1 && (
-                        <div style={{ breakInside: "avoid", marginBottom: 8 }}><AdCard index={Math.floor(i / 6)} /></div>
+                        <div><AdCard index={Math.floor(i / 6)} /></div>
                       )}
                     </React.Fragment>
                   ))}
