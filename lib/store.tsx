@@ -211,6 +211,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       toast?.error?.("评论违规：" + (modResult.reason || "包含不当内容"));
       return null;
     }
+    console.log('✅ 1. 前端准备发送的数据:', { postId, parentId, replyToUsername, content: content.slice(0, 30) });
     const comment = await dataService.createComment({
       postId, parentId, replyToUsername: replyToUsername || undefined, author: user.name, authorId: user.id, authorAvatar: user.avatar, content, image: image || "",
     });

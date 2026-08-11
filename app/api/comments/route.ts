@@ -39,7 +39,9 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+    console.log('✅ 2. 后端接收到的完整 Body:', JSON.stringify(body, null, 2));
     const { postId, parentId, replyToUsername, author, authorId, userId, authorAvatar, content, image } = body;
+    console.log('✅ 2.5 解构出的 replyToUsername:', replyToUsername);
     const uid = authorId || userId;
 
     // Try insert with all fields, fallback to minimal fields
@@ -55,9 +57,11 @@ export async function POST(req: NextRequest) {
       image_url: image || "",
     };
     
+    console.log('✅ 3. 准备插入的数据:', JSON.stringify(fullInsert, null, 2));
     const result = await supabaseAdmin.from("comments").insert(fullInsert).select("*").single();
     data = result.data;
     error = result.error;
+    console.log('✅ 3. Supabase 插入结果:', { data: data ? { id: data.id, reply_to_username: data.reply_to_username } : null, error: error?.message });
     
     // If column missing, try minimal insert
     if (error && error.message?.includes("column")) {
