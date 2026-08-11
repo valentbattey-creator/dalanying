@@ -47,19 +47,23 @@ export default function HomePage() {
   const pinnedPosts = posts.filter((p: any) => p.isPinned && !p.isAnnouncement);
   const regularPosts = posts.filter((p: any) => !p.isPinned && !p.isAnnouncement);
 
-  // Filter by category
-  const filteredRegular = activeCat === "推荐"
+  // Filter by category (memoized)
+  const filteredRegular = useMemo(() => activeCat === "推荐"
     ? [...regularPosts]
-    : regularPosts.filter((p: any) => p.category === activeCat);
+    : regularPosts.filter((p: any) => p.category === activeCat), [activeCat, regularPosts]);
 
-  // Sort by creation date only
-  const sorted = [...filteredRegular].sort((a, b) =>
-    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
+  // Sort by creation date only (stable sort with id fallback)
+  const sorted = useMemo(() => [...filteredRegular].sort((a, b) => {
+    const timeDiff = new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    if (timeDiff !== 0) return timeDiff;
+    return a.id.localeCompare(b.id); // Stable fallback
+  }), [filteredRegular]);
 
-  const sortedPinned = [...pinnedPosts].sort((a, b) =>
-    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
+  const sortedPinned = useMemo(() => [...pinnedPosts].sort((a, b) => {
+    const timeDiff = new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    if (timeDiff !== 0) return timeDiff;
+    return a.id.localeCompare(b.id);
+  }), [pinnedPosts]);
 
   // Trending posts - top 10 by traffic score
   const trendingPosts = useMemo(() => {
