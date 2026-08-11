@@ -547,6 +547,7 @@ export const dataService = {
         method: "POST", headers,
         body: JSON.stringify({
           post_id: data.postId, parent_id: data.parentId || null,
+          reply_to_username: data.replyToUsername || null,
           user_id: data.authorId, author_name: data.author, author_avatar: data.authorAvatar || "",
           content: data.content, image_url: data.image || "",
         }),
@@ -572,7 +573,7 @@ export const dataService = {
 
     // Fallback: localStorage only
     const comment: Comment = {
-      id: gid(), postId: data.postId, parentId: data.parentId,
+      id: gid(), postId: data.postId, parentId: data.parentId, replyToUsername: data.replyToUsername,
       author: data.author, authorId: data.authorId, authorAvatar: data.authorAvatar,
       content: data.content, image: data.image || "", createdAt: new Date().toISOString(),
     };
