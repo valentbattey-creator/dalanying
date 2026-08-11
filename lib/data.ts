@@ -250,7 +250,9 @@ export const dataService = {
           "Authorization": "Bearer sb_publishable_jpAnsNOd1-v5ftyOhjO09A_cnQBXjvh",
         },
       });
-      console.log("[createPost] Supabase响应:", sbRes.status, sbRes.ok);
+      console.log("✅ data.ts 直接Supabase请求状态:", sbRes.status, sbRes.ok);
+      const sbResBody = await sbRes.clone().text();
+      console.log("✅ data.ts 直接Supabase返回内容:", sbResBody);
       if (sbRes.ok) {
         const sbData = await sbRes.json();
         if (Array.isArray(sbData) && sbData.length > 0) {
@@ -439,7 +441,9 @@ export const dataService = {
           is_announcement: post.isAnnouncement || false,
         }),
       });
-      console.log("[createPost] Supabase响应:", sbRes.status, sbRes.ok);
+      console.log("✅ data.ts 直接Supabase请求状态:", sbRes.status, sbRes.ok);
+      const sbResBody = await sbRes.clone().text();
+      console.log("✅ data.ts 直接Supabase返回内容:", sbResBody);
       if (sbRes.ok) {
         const sbData = await sbRes.json();
         const d = Array.isArray(sbData) ? sbData[0] : sbData;
@@ -506,7 +510,9 @@ export const dataService = {
       const sbRes = await fetch(url, {
         headers: { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}` },
       });
-      console.log("[createPost] Supabase响应:", sbRes.status, sbRes.ok);
+      console.log("✅ data.ts 直接Supabase请求状态:", sbRes.status, sbRes.ok);
+      const sbResBody = await sbRes.clone().text();
+      console.log("✅ data.ts 直接Supabase返回内容:", sbResBody);
       if (sbRes.ok) {
         const data = await sbRes.json();
         if (Array.isArray(data) && data.length > 0) {
@@ -552,7 +558,9 @@ export const dataService = {
           content: data.content, image_url: data.image || "",
         }),
       });
-      console.log("[createPost] Supabase响应:", sbRes.status, sbRes.ok);
+      console.log("✅ data.ts 直接Supabase请求状态:", sbRes.status, sbRes.ok);
+      const sbResBody = await sbRes.clone().text();
+      console.log("✅ data.ts 直接Supabase返回内容:", sbResBody);
       if (sbRes.ok) {
         const sbData = await sbRes.json();
         const d = Array.isArray(sbData) ? sbData[0] : sbData;
@@ -809,7 +817,9 @@ export const dataService = {
       const sbRes = await fetch(`${SB_URL}/rest/v1/likes?select=post_id&user_id=eq.${encodeURIComponent(userId)}`, {
         headers: { "apikey": SB_KEY, "Authorization": `Bearer ${SB_KEY}` },
       });
-      console.log("[createPost] Supabase响应:", sbRes.status, sbRes.ok);
+      console.log("✅ data.ts 直接Supabase请求状态:", sbRes.status, sbRes.ok);
+      const sbResBody = await sbRes.clone().text();
+      console.log("✅ data.ts 直接Supabase返回内容:", sbResBody);
       if (sbRes.ok) {
         const data = await sbRes.json();
         if (Array.isArray(data)) {
