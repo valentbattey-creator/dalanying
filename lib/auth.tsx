@@ -627,9 +627,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const resetPassword = useCallback(async (email: string): Promise<{ success: boolean; error?: string }> => {
     if (!hasSupabase) return { success: false, error: "系统未配置 Supabase" };
     try {
-      const { error } = await supabase!.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/settings`,
-      });
+      const { error } = await supabase!.auth.resetPasswordForEmail(email);
       if (error) {
         return { success: false, error: error.message.includes("rate") ? "发送太频繁，请稍后再试" : "发送失败" };
       }

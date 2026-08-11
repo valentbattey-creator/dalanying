@@ -23,6 +23,10 @@ export default function LoginModal() {
   const [success, setSuccess] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [resetSending, setResetSending] = useState(false);
+  const [resetStep, setResetStep] = useState<"email" | "otp">("email");
+  const [resetOtp, setResetOtp] = useState("");
+  const [resetNewPass, setResetNewPass] = useState("");
+  const [resetConfirmPass, setResetConfirmPass] = useState("");
   const [touchedEmail, setTouchedEmail] = useState(false);
   const [touchedPassword, setTouchedPassword] = useState(false);
   const [touchedName, setTouchedName] = useState(false);
@@ -114,7 +118,7 @@ export default function LoginModal() {
     setTouchedEmail(false); setTouchedPassword(false); setTouchedName(false);
   }
 
-  function switchMode(m: typeof mode) { resetForm(); setMode(m); }
+  function switchMode(m: typeof mode) { resetForm(); setMode(m); setResetStep("email"); setResetOtp(""); setResetNewPass(""); setResetConfirmPass(""); }
 
   async function handleSendOTP() {
     if (!phoneValid) { toast.error("请输入正确的手机号"); return; }
@@ -327,34 +331,28 @@ export default function LoginModal() {
           </form>
         )}
 
-        {/* Forgot password mode */}
-        {mode === "forgotPassword" && (
+        {/* Forgot password mode - OTP flow */}
+        {mode === "forgotPassword" && resetStep === "email" && (
           <form onSubmit={async (e) => {
             e.preventDefault();
             if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError("请输入正确的邮箱"); return; }
-            setResetSending(true);
-            setError("");
+            setResetSending(true); setError(""); setSuccess("");
             const result = await resetPassword(email.trim());
             if (result.success) {
-              toast.success("重置链接已发送到邮箱，请查收");
-              setSuccess("重置链接已发送，请检查邮箱（包括垃圾邮件）");
+              toast.success("验证码已发送到邮箱");
+              setResetStep("otp");
             } else {
               setError(result.error || "发送失败");
             }
             setResetSending(false);
           }} className="space-y-3">
-            <p className="text-xs text-[var(--color-text-tertiary)] text-center mb-2">输入你的注册邮箱，我们将发送密码重置链接</p>
+            <p className="text-xs text-[var(--color-text-tertiary)] text-center mb-2">输入注册邮箱，我们将发送6位验证码</p>
             <div>
               <label className="text-[11px] font-medium text-[var(--color-text-secondary)] ml-1">邮箱地址</label>
               <input type="email" placeholder="your@email.com" value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full mt-1 px-3 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] outline-none focus:border-[var(--color-accent)] transition-all" />
             </div>
-            {success && (
-              <div className="bg-green-500/10 border border-green-500/20 rounded-lg px-3 py-2">
-                <p className="text-xs text-green-400">{success}</p>
-              </div>
-            )}
             {error && (
               <div className="bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 flex items-center gap-2">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
@@ -363,12 +361,100 @@ export default function LoginModal() {
             )}
             <button type="submit" disabled={resetSending}
               className="btn-primary w-full py-2.5 rounded-xl text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all">
-              {resetSending ? "发送中..." : "发送重置链接"}
+              {resetSending ? "发送中..." : "发送验证码"}
             </button>
             <button type="button" onClick={() => switchMode("login")}
               className="w-full text-center text-xs text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] cursor-pointer transition-colors pt-1">
               ← 返回登录
             </button>
+          </form>
+        )}
+
+        {mode === "forgotPassword" && resetStep === "otp" && (
+          <form onSubmit={async (e) => {
+            e.preventDefault();
+            if (!resetOtp.trim() || resetOtp.trim().length < 6) { setError("请输入6位验证码"); return; }
+            if (resetNewPass.length < 6) { setError("新密码至少6位"); return; }
+            if (resetNewPass !== resetConfirmPass) { setError("两次密码不一致"); return; }
+            setResetSending(true); setError("");
+            try {
+              const { supabase, hasSupabase } = await import("@/lib/supabase");
+              if (!hasSupabase) { setError("系统未配置"); setResetSending(false); return; }
+              // Step 1: Verify OTP (type: recovery)
+              const { error: verifyErr } = await supabase!.auth.verifyOtp({
+                email: email.trim(),
+                token: resetOtp.trim(),
+                type: "recovery",
+              });
+              if (verifyErr) {
+                if (verifyErr.message.includes("expired") || verifyErr.message.includes("invalid")) {
+                  setError("验证码错误或已过期");
+                } else {
+                  setError(verifyErr.message || "验证失败");
+                }
+                setResetSending(false);
+                return;
+              }
+              // Step 2: Update password (now has temporary session)
+              const { error: updateErr } = await supabase!.auth.updateUser({ password: resetNewPass });
+              if (updateErr) {
+                setError(updateErr.message || "密码更新失败");
+                setResetSending(false);
+                return;
+              }
+              toast.success("密码重置成功！请用新密码登录");
+              setResetStep("email");
+              setResetOtp(""); setResetNewPass(""); setResetConfirmPass("");
+              switchMode("login");
+            } catch {
+              setError("网络错误，请稍后重试");
+            }
+            setResetSending(false);
+          }} className="space-y-3">
+            <p className="text-xs text-[var(--color-text-tertiary)] text-center mb-2">验证码已发送到 <span className="text-[var(--color-accent)]">{email}</span></p>
+            <div>
+              <label className="text-[11px] font-medium text-[var(--color-text-secondary)] ml-1">验证码</label>
+              <input type="text" placeholder="输入6位验证码" value={resetOtp} maxLength={6}
+                onChange={(e) => setResetOtp(e.target.value.replace(/\D/g, ""))}
+                className="w-full mt-1 px-3 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] outline-none focus:border-[var(--color-accent)] transition-all tracking-widest" />
+            </div>
+            <div>
+              <label className="text-[11px] font-medium text-[var(--color-text-secondary)] ml-1">新密码</label>
+              <input type="password" placeholder="至少6位" value={resetNewPass}
+                onChange={(e) => setResetNewPass(e.target.value)}
+                className="w-full mt-1 px-3 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] outline-none focus:border-[var(--color-accent)] transition-all" />
+            </div>
+            <div>
+              <label className="text-[11px] font-medium text-[var(--color-text-secondary)] ml-1">确认新密码</label>
+              <input type="password" placeholder="再次输入新密码" value={resetConfirmPass}
+                onChange={(e) => setResetConfirmPass(e.target.value)}
+                className="w-full mt-1 px-3 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] outline-none focus:border-[var(--color-accent)] transition-all" />
+            </div>
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2 flex items-center gap-2">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                <p className="text-xs text-red-400">{error}</p>
+              </div>
+            )}
+            <button type="submit" disabled={resetSending}
+              className="btn-primary w-full py-2.5 rounded-xl text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all">
+              {resetSending ? "处理中..." : "确认重置"}
+            </button>
+            <div className="flex justify-between pt-1">
+              <button type="button" onClick={() => { setResetStep("email"); setResetOtp(""); setError(""); }}
+                className="text-xs text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] cursor-pointer transition-colors">
+                ← 重新输入邮箱
+              </button>
+              <button type="button" onClick={async () => {
+                setResetSending(true);
+                await resetPassword(email.trim());
+                toast.success("验证码已重新发送");
+                setResetSending(false);
+              }} disabled={resetSending}
+                className="text-xs text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] cursor-pointer transition-colors disabled:opacity-40">
+                重新发送验证码
+              </button>
+            </div>
           </form>
         )}
 
