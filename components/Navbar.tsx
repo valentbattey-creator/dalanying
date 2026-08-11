@@ -29,21 +29,18 @@ export default function Navbar({ onSearch }: { onSearch?: (q: string) => void })
       backdropFilter: "blur(20px)",
       WebkitBackdropFilter: "blur(20px)"
     }}>
-      <div className="max-w-7xl mx-auto h-full px-6 flex items-center gap-6">
+      <div style={{ maxWidth: 1200, margin: "0 auto", height: "100%", width: "100%", padding: "0 32px", display: "flex", alignItems: "center", gap: 24 }}>
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 shrink-0">
-          <span className="text-xl font-extrabold tracking-tight" style={{ fontFamily: "'Dancing Script', cursive", color: "var(--color-text-primary)" }}>
+        <Link href="/" style={{ textDecoration: "none", flexShrink: 0 }}>
+          <span style={{ fontFamily: "'Dancing Script', cursive", fontSize: 22, fontWeight: 800, color: "var(--color-text-primary)", letterSpacing: "0.02em" }}>
             dalanying
           </span>
         </Link>
 
-        {/* Search bar */}
-        <div className="flex-1 max-w-sm ml-auto lg:ml-0 lg:max-w-md">
-          <div className="flex items-center h-9 rounded-full px-4 transition-all" style={{
-            backgroundColor: "var(--color-bg-secondary)",
-            border: "1px solid var(--color-border-subtle)"
-          }}>
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-tertiary)" strokeWidth="2" className="shrink-0">
+        {/* Search bar - centered with margins */}
+        <div style={{ flex: 1, display: "flex", justifyContent: "center", padding: "0 40px" }}>
+          <div style={{ width: "100%", maxWidth: 400, display: "flex", alignItems: "center", height: 36, borderRadius: 18, padding: "0 16px", backgroundColor: "var(--color-bg-secondary)", border: "1px solid var(--color-border-subtle)", transition: "all 0.2s" }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-tertiary)" strokeWidth="2" style={{ flexShrink: 0 }}>
               <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
             </svg>
             <input
@@ -52,12 +49,11 @@ export default function Navbar({ onSearch }: { onSearch?: (q: string) => void })
               onChange={(e) => setSearchInput(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
               placeholder="搜索..."
-              className="flex-1 h-full bg-transparent ml-2 text-sm outline-none border-none"
-              style={{ color: "var(--color-text-primary)" }}
+              style={{ flex: 1, height: "100%", background: "transparent", marginLeft: 8, fontSize: 14, outline: "none", border: "none", color: "var(--color-text-primary)" }}
             />
             {searchInput && (
               <button onClick={() => { setSearchInput(""); onSearch?.(""); }}
-                className="shrink-0 p-1 rounded-full transition-colors" style={{ color: "var(--color-text-tertiary)" }}>
+                style={{ flexShrink: 0, padding: 4, borderRadius: "50%", background: "none", border: "none", cursor: "pointer", color: "var(--color-text-tertiary)" }}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                 </svg>
@@ -66,12 +62,11 @@ export default function Navbar({ onSearch }: { onSearch?: (q: string) => void })
           </div>
         </div>
 
-        {/* Right actions - minimal icons */}
-        <div className="hidden lg:flex items-center gap-5 shrink-0">
+        {/* Right actions - generous spacing */}
+        <div className="hidden lg:flex" style={{ alignItems: "center", gap: 28, flexShrink: 0 }}>
           {/* Hot */}
           <button onClick={() => router.push("/hot")}
-            className="flex items-center gap-1.5 transition-colors"
-            style={{ color: "var(--color-text-tertiary)" }}
+            style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", cursor: "pointer", color: "var(--color-text-tertiary)", transition: "color 0.2s" }}
             onMouseEnter={(e) => (e.currentTarget.style.color = "var(--color-text-primary)")}
             onMouseLeave={(e) => (e.currentTarget.style.color = "var(--color-text-tertiary)")}
             title="热门">
@@ -82,8 +77,7 @@ export default function Navbar({ onSearch }: { onSearch?: (q: string) => void })
 
           {/* Messages */}
           <button onClick={() => { if (!user) { requireLogin(); return; } router.push("/messages"); }}
-            className="flex items-center gap-1.5 transition-colors"
-            style={{ color: "var(--color-text-tertiary)" }}
+            style={{ display: "flex", alignItems: "center", gap: 6, background: "none", border: "none", cursor: "pointer", color: "var(--color-text-tertiary)", transition: "color 0.2s" }}
             onMouseEnter={(e) => (e.currentTarget.style.color = "var(--color-text-primary)")}
             onMouseLeave={(e) => (e.currentTarget.style.color = "var(--color-text-tertiary)")}
             title="消息">
@@ -93,12 +87,11 @@ export default function Navbar({ onSearch }: { onSearch?: (q: string) => void })
           </button>
 
           {/* Divider */}
-          <div style={{ width: 1, height: 20, backgroundColor: "var(--color-border-subtle)" }} />
+          <div style={{ width: 1, height: 18, backgroundColor: "var(--color-border-subtle)" }} />
 
           {/* Theme toggle */}
           <button onClick={toggle}
-            className="transition-colors"
-            style={{ color: "var(--color-text-tertiary)" }}
+            style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-text-tertiary)", transition: "color 0.2s" }}
             onMouseEnter={(e) => (e.currentTarget.style.color = "var(--color-text-primary)")}
             onMouseLeave={(e) => (e.currentTarget.style.color = "var(--color-text-tertiary)")}
             title={theme === "dark" ? "切换白天模式" : "切换暗黑模式"}>
@@ -111,8 +104,7 @@ export default function Navbar({ onSearch }: { onSearch?: (q: string) => void })
 
           {/* Settings */}
           <button onClick={() => { if (!user) { requireLogin(); return; } router.push("/settings"); }}
-            className="transition-colors"
-            style={{ color: "var(--color-text-tertiary)" }}
+            style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-text-tertiary)", transition: "color 0.2s" }}
             onMouseEnter={(e) => (e.currentTarget.style.color = "var(--color-text-primary)")}
             onMouseLeave={(e) => (e.currentTarget.style.color = "var(--color-text-tertiary)")}
             title="设置">
@@ -122,12 +114,11 @@ export default function Navbar({ onSearch }: { onSearch?: (q: string) => void })
           </button>
 
           {/* Divider */}
-          <div style={{ width: 1, height: 20, backgroundColor: "var(--color-border-subtle)" }} />
+          <div style={{ width: 1, height: 18, backgroundColor: "var(--color-border-subtle)" }} />
 
           {/* Publish button - capsule style */}
           <button onClick={() => { if (!user) { requireLogin(); return; } router.push("/create"); }}
-            className="flex items-center gap-2 px-5 py-2 rounded-full text-sm font-medium transition-all"
-            style={{ backgroundColor: "var(--color-text-primary)", color: "var(--color-bg-primary)" }}>
+            style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 20px", borderRadius: 20, fontSize: 14, fontWeight: 500, background: "var(--color-text-primary)", color: "var(--color-bg-primary)", border: "none", cursor: "pointer", transition: "all 0.2s" }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
               <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
             </svg>
@@ -137,13 +128,12 @@ export default function Navbar({ onSearch }: { onSearch?: (q: string) => void })
 
         {/* User avatar (far right) */}
         {user ? (
-          <div className="cursor-pointer ml-2" onClick={() => router.push(`/user/${user.id}`)}>
+          <div style={{ cursor: "pointer", marginLeft: 8, flexShrink: 0 }} onClick={() => router.push(`/user/${user.id}`)}>
             <UserAvatar name={user.name} avatarUrl={user.avatar} size={30} />
           </div>
         ) : (
           <button onClick={requireLogin}
-            className="px-5 py-1.5 rounded-full text-sm font-medium transition-all"
-            style={{ backgroundColor: "var(--color-text-primary)", color: "var(--color-bg-primary)" }}>
+            style={{ padding: "6px 20px", borderRadius: 20, fontSize: 14, fontWeight: 500, background: "var(--color-text-primary)", color: "var(--color-bg-primary)", border: "none", cursor: "pointer", transition: "all 0.2s", flexShrink: 0 }}>
             登录
           </button>
         )}
