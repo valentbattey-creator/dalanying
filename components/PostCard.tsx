@@ -187,8 +187,8 @@ style={{ border: "0.5px solid var(--color-border-subtle)", isolation: "isolate" 
           </div>
           <div className="flex items-center gap-3 text-[var(--color-text-tertiary)]">
             <span className="flex items-center gap-0.5">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-              <span className="text-[10px]">{post.views || 0}</span>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              <span className="text-[10px]">{post.comments || 0}</span>
             </span>
             <button
               onClick={handleSave}
