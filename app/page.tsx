@@ -273,7 +273,7 @@ export default function HomePage() {
                 <div className="post-masonry" style={{ paddingTop: 8 }}>
                   {sorted.map((p, i) => (
                     <React.Fragment key={p.id}>
-                      <div style={{ breakInside: "avoid", marginBottom: 8, animation: "fadeInUp 0.3s ease both", animationDelay: `${(i % 10) * 40}ms` }}>
+                      <div style={{ breakInside: "avoid", marginBottom: 8 }}>
                         <PostCard post={p} isLiked={likedPosts.has(p.id) || guestLikes.has(p.id)} onLike={(id) => { toggleLike(id); }} onCardClick={(id) => setSelectedPostId(id)} isSaved={savedPosts.has(p.id)} onSave={(id) => { if (!user) { requireLogin(); return; } toggleSave(id); }} onDelete={(id) => deletePost(id)} currentUserId={user?.id} isOwner={user?.role === "owner"} isAdmin={user?.isAdmin} />
                       </div>
                       {(i + 1) % 6 === 0 && i < sorted.length - 1 && (

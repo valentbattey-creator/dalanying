@@ -101,7 +101,7 @@ function PostCardInner({ post, isLiked, onLike, onCardClick, isSaved = false, on
   return (
     <article
       onClick={handleCardClick}
-      className="bg-white rounded-2xl overflow-hidden cursor-pointer relative"
+      className="rounded-2xl overflow-hidden cursor-pointer relative" style={{ backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border-subtle)", isolation: "isolate" as const }}
       style={{
         border: "1px solid var(--color-border-subtle)",
         isolation: "isolate" as const,
@@ -142,7 +142,7 @@ function PostCardInner({ post, isLiked, onLike, onCardClick, isSaved = false, on
         </button>
       )}
       {showMenu && !confirmDelete && (
-        <div className="absolute top-9 right-2 z-20 bg-white border border-gray-100 rounded-lg shadow-xl overflow-hidden">
+        <div className="absolute top-9 right-2 z-20 rounded-lg shadow-xl overflow-hidden" style={{ backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border-subtle)" }}>
           <button onClick={handleDelete} className="w-full px-4 py-2.5 text-xs text-red-400 hover:bg-red-50 text-left transition-all flex items-center gap-1.5">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
             删除
