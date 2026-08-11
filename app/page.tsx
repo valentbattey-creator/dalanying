@@ -222,7 +222,7 @@ export default function HomePage() {
               borderRadius: 16, overflow: "hidden", position: "relative",
               background: "linear-gradient(135deg, #1e40af 0%, #3b82f6 40%, #60a5fa 70%, #93c5fd 100%)",
             }}>
-              <div style={{ position: "relative", padding: "40px 20px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", minHeight: 160 }}>
+              <div style={{ position: "relative", padding: "24px 20px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", minHeight: 100 }}>
                 <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 9, fontWeight: 500, letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 8 }}>WELCOME TO DALANYING</p>
                 <h2 style={{ fontSize: 42, color: "#fff", letterSpacing: "0.05em", fontFamily: "'Dancing Script', 'Pacifico', 'Great Vibes', cursive" }}>Sunshine</h2>
                 <p style={{ color: "rgba(255,255,255,0.4)", fontSize: 12, marginTop: 8 }}>发现生活的每一种可能</p>
@@ -231,18 +231,20 @@ export default function HomePage() {
             {/* PC banner (>= lg): glass-morphism, rounded, centered text */}
             <div className="banner-pc" style={{
               marginTop: 16, marginBottom: 16,
-              borderRadius: 24, overflow: "hidden", position: "relative", minHeight: 180,
+              borderRadius: 24, overflow: "hidden", position: "relative", minHeight: 120,
               background: "rgba(59, 130, 246, 0.12)",
               backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
               border: "1px solid rgba(255, 255, 255, 0.25)",
               boxShadow: "0 8px 32px rgba(59, 130, 246, 0.08), inset 0 1px 0 rgba(255,255,255,0.2)",
             }}>
-              <div style={{ position: "relative", padding: "40px 48px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", minHeight: 180 }}>
+              <div style={{ position: "relative", padding: "24px 48px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", minHeight: 120 }}>
                 <p style={{ color: "var(--color-text-tertiary)", fontSize: 10, fontWeight: 500, letterSpacing: "0.25em", textTransform: "uppercase", marginBottom: 12 }}>WELCOME TO DALANYING</p>
                 <h2 style={{ fontSize: 48, color: "var(--color-text-primary)", letterSpacing: "0.05em", marginBottom: 8, fontFamily: "'Dancing Script', 'Pacifico', 'Great Vibes', cursive" }}>Sunshine</h2>
                 <p style={{ color: "var(--color-text-tertiary)", fontSize: 14 }}>发现生活的每一种可能</p>
               </div>
             </div>
+
+            <div style={{ height: 16 }} />
 
             {totalContent === 0 && !loading ? (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center justify-center py-20">
@@ -273,8 +275,7 @@ export default function HomePage() {
                 ))}
 
                 {/* Post grid - CSS columns masonry */}
-                <div style={{ columnCount: 2, columnGap: 8, paddingTop: 8 }}
-                  className="lg:!column-count-3 xl:!column-count-4">
+                <div className="post-masonry" style={{ paddingTop: 8 }}>
                   {sorted.map((p, i) => (
                     <React.Fragment key={p.id}>
                       <div style={{ breakInside: "avoid", marginBottom: 8, animation: "fadeInUp 0.3s ease both", animationDelay: `${(i % 10) * 40}ms` }}>

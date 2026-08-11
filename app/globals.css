@@ -387,3 +387,35 @@ body::before {
   -webkit-column-break-inside: avoid;
   page-break-inside: avoid;
 }
+
+/* ===== Post Masonry Layout ===== */
+.post-masonry {
+  column-count: 2;
+  column-gap: 10px;
+}
+.post-masonry > * {
+  break-inside: avoid;
+  -webkit-column-break-inside: avoid;
+  page-break-inside: avoid;
+  margin-bottom: 10px;
+  display: block;
+  width: 100%;
+}
+@media (min-width: 1024px) {
+  .post-masonry {
+    column-count: 3;
+    column-gap: 14px;
+  }
+  .post-masonry > * {
+    margin-bottom: 14px;
+  }
+}
+@media (min-width: 1280px) {
+  .post-masonry {
+    column-count: 4;
+    column-gap: 16px;
+  }
+  .post-masonry > * {
+    margin-bottom: 16px;
+  }
+}
