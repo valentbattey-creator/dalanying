@@ -101,8 +101,9 @@ function PostCardInner({ post, isLiked, onLike, onCardClick, isSaved = false, on
   return (
     <article
       onClick={handleCardClick}
-      className="rounded-2xl overflow-hidden cursor-pointer relative" style={{ backgroundColor: "var(--color-bg-card)", border: "1px solid var(--color-border-subtle)", isolation: "isolate" as const }}
+      className="rounded-2xl overflow-hidden cursor-pointer relative"
       style={{
+        backgroundColor: "var(--color-bg-card)",
         border: "1px solid var(--color-border-subtle)",
         isolation: "isolate" as const,
         transition: "box-shadow 0.3s ease, transform 0.2s ease",
