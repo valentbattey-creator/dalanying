@@ -410,12 +410,4 @@ body::before {
     margin-bottom: 14px;
   }
 }
-@media (min-width: 1280px) {
-  .post-masonry {
-    column-count: 4;
-    column-gap: 16px;
-  }
-  .post-masonry > * {
-    margin-bottom: 16px;
-  }
-}
+/* PC stays at 3 columns for all widths >= 1024px */
