@@ -101,16 +101,13 @@ export default function HomePage() {
   const totalContent = sortedPinned.length + announcements.length + sorted.length;
 
   function toggleCat(cat: string) {
-    if (FIXED_CATS.includes(cat)) { setActiveCat(cat); return; }
-    if (cat === "推荐") {
-      setCustomCats(["推荐"]);
-      setActiveCat("推荐");
-      return;
-    }
     setActiveCat(cat);
-    if (!customCats.includes(cat)) {
-      setCustomCats([...customCats.filter(c => c !== "推荐"), cat]);
-    }
+    setCustomCats(prev => {
+      if (prev.includes(cat)) return prev;
+      // Keep 推荐 first, add new category
+      const withoutRecommend = prev.filter(c => c !== "推荐");
+      return ["推荐", ...withoutRecommend, cat];
+    });
   }
 
   // Announcement data ready for AnnouncementBar component
@@ -192,7 +189,7 @@ export default function HomePage() {
             ))}
             {customCats.filter(c => c !== "推荐").length > 0 && (
               <button
-                onClick={() => { setCustomCats(["推荐"]); setActiveCat("推荐"); setShowCatPicker(false); }}
+                onClick={() => { setCustomCats([...FIXED_CATS]); setActiveCat("推荐"); setShowCatPicker(false); }}
                 className="px-2.5 py-1 rounded-full text-[11px] text-red-400 hover:bg-red-500/10 transition-all"
                 style={{ border: "1px solid rgba(248,113,113,0.3)", cursor: "pointer", background: "none" }}
               >
