@@ -418,3 +418,34 @@ body::before {
   transform: translateZ(0);
   will-change: transform;
 }
+
+/* ===== Mobile Topbar & Bottom Nav ===== */
+:root {
+  --color-bg-primary-rgb: 9, 9, 11;
+}
+[data-theme="light"] {
+  --color-bg-primary-rgb: 245, 245, 245;
+}
+
+/* Mobile topbar search overlay animation */
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.mobile-search-overlay {
+  animation: slideDown 0.2s ease-out;
+}
+
+/* Bottom nav button hover effect */
+.bottom-nav-btn:active {
+  transform: scale(0.92);
+}
+
+/* Center publish button bounce */
+.publish-btn:active {
+  transform: scale(0.9);
+}
+.publish-btn:hover .publish-icon {
+  transform: scale(1.05);
+}

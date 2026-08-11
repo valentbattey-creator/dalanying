@@ -5,6 +5,7 @@ import { DataProvider } from "@/lib/store";
 import LoginModal from "@/components/LoginModal";
 import ProfileSetup from "@/components/ProfileSetup";
 import BottomNav from "@/components/BottomNav";
+import MobileTopbar from "@/components/MobileTopbar";
 import { Toaster } from "sonner";
 import "./tailwind.css";
 import "./globals.css";
@@ -119,6 +120,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeProvider>
           <AuthProvider>
             <DataProvider>
+              <MobileTopbar />
               <div id="main-content">{children}</div>
               <BottomNav />
               <LoginModal />

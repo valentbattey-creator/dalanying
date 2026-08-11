@@ -20,7 +20,7 @@ export default function Navbar({ onSearch }: { onSearch?: (q: string) => void })
   }
 
   return (
-    <header className="fixed left-0 right-0 z-50" style={{ top: 0, height: "48px", paddingTop: "env(safe-area-inset-top, 0px)", backgroundColor: "var(--color-bg-primary)", borderBottom: "0.5px solid var(--color-border-subtle)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)" }}>
+    <header className="hidden md:flex fixed left-0 right-0 z-50" style={{ top: 0, height: "48px", paddingTop: "env(safe-area-inset-top, 0px)", backgroundColor: "var(--color-bg-primary)", borderBottom: "0.5px solid var(--color-border-subtle)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)" }}>
       <div className="max-w-7xl mx-auto h-full px-4 flex items-center gap-4">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 shrink-0">

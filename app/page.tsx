@@ -213,11 +213,11 @@ export default function HomePage() {
       <main style={{
         minHeight: "100vh",
         backgroundColor: "var(--color-bg-primary)",
-        paddingTop: `calc(${announcements.length > 0 ? "80px" : "48px"} + env(safe-area-inset-top, 0px))`,
+        paddingTop: `calc(${announcements.length > 0 ? "88px" : "56px"} + env(safe-area-inset-top, 0px))`,
       }}>
         <div className="max-w-7xl mx-auto flex px-3 sm:px-4" style={{ gap: 20 }}>
           {/* ── Main content: 70% ── */}
-          <section className="min-w-0" style={{ flex: 7, paddingBottom: "calc(70px + env(safe-area-inset-bottom, 0px))" }}>
+          <section className="min-w-0" style={{ flex: 7, paddingBottom: "calc(80px + env(safe-area-inset-bottom, 0px))" }}>
 
             {/* Sunshine Hero Banner - responsive */}
             {/* Mobile banner (< lg): blue gradient, rounded, side margins, centered text */}
