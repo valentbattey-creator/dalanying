@@ -411,3 +411,10 @@ body::before {
   }
 }
 /* PC stays at 3 columns for all widths >= 1024px */
+
+/* Safari fix: force GPU compositing for cards in masonry to prevent blank images */
+.post-masonry > * {
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  will-change: transform;
+}
