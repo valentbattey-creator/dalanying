@@ -85,7 +85,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="zh-CN" data-theme="dark" suppressHydrationWarning>
       <head>
         {/* 字体：使用国内可访问的镜像源 */}
-        <link rel="preconnect" href="https://fonts.googleapis.cn" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         {/* 搜索引擎收录提示 */}
         <meta name="applicable-device" content="pc,mobile" />
