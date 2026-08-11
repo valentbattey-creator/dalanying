@@ -346,7 +346,7 @@ export default function LoginModal() {
             }
             setResetSending(false);
           }} className="space-y-3">
-            <p className="text-xs text-[var(--color-text-tertiary)] text-center mb-2">输入注册邮箱，我们将发送6位验证码</p>
+            <p className="text-xs text-[var(--color-text-tertiary)] text-center mb-2">输入注册邮箱，我们将发送8位验证码</p>
             <div>
               <label className="text-[11px] font-medium text-[var(--color-text-secondary)] ml-1">邮箱地址</label>
               <input type="email" placeholder="your@email.com" value={email}
@@ -373,7 +373,7 @@ export default function LoginModal() {
         {mode === "forgotPassword" && resetStep === "otp" && (
           <form onSubmit={async (e) => {
             e.preventDefault();
-            if (!resetOtp.trim() || resetOtp.trim().length < 6) { setError("请输入6位验证码"); return; }
+            if (!resetOtp.trim() || resetOtp.trim().length < 8) { setError("请输入8位验证码"); return; }
             if (resetNewPass.length < 6) { setError("新密码至少6位"); return; }
             if (resetNewPass !== resetConfirmPass) { setError("两次密码不一致"); return; }
             setResetSending(true); setError("");
@@ -414,7 +414,7 @@ export default function LoginModal() {
             <p className="text-xs text-[var(--color-text-tertiary)] text-center mb-2">验证码已发送到 <span className="text-[var(--color-accent)]">{email}</span></p>
             <div>
               <label className="text-[11px] font-medium text-[var(--color-text-secondary)] ml-1">验证码</label>
-              <input type="text" placeholder="输入6位验证码" value={resetOtp} maxLength={6}
+              <input type="text" placeholder="输入8位验证码" value={resetOtp} maxLength={8}
                 onChange={(e) => setResetOtp(e.target.value.replace(/\D/g, ""))}
                 className="w-full mt-1 px-3 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] outline-none focus:border-[var(--color-accent)] transition-all tracking-widest" />
             </div>
