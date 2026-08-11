@@ -153,13 +153,13 @@ function PostCardInner({ post, isLiked, onLike, onCardClick, isSaved = false, on
 
       {/* Image - full width, flush to card edges */}
       {hasImage && (
-        <div className="relative overflow-hidden" style={{ margin: 0 }}>
+        <div className="relative overflow-hidden" style={{ margin: 0, backgroundColor: "var(--color-bg-secondary)" }}>
           <img
             src={post.images[0]}
             alt={post.title}
             loading="lazy"
             onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-            className="w-full block"
+            className="w-full block h-auto"
             style={{ maxHeight: 500, objectFit: "cover" }}
           />
           {post.images.length > 1 && (

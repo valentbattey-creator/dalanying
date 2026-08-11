@@ -273,11 +273,11 @@ export default function HomePage() {
                 <div className="columns-1 md:columns-2 lg:columns-3 gap-4 w-full" style={{ paddingTop: 8 }}>
                   {sorted.map((p, i) => (
                     <React.Fragment key={p.id}>
-                      <div className="break-inside-avoid inline-block w-full mb-4">
+                      <div className="break-inside-avoid inline-block w-full mb-4 transform-gpu" style={{ willChange: "transform", animation: "fadeIn 0.3s ease both", animationDelay: `${(i % 10) * 50}ms` }}>
                         <PostCard post={p} isLiked={likedPosts.has(p.id) || guestLikes.has(p.id)} onLike={(id) => { toggleLike(id); }} onCardClick={(id) => setSelectedPostId(id)} isSaved={savedPosts.has(p.id)} onSave={(id) => { if (!user) { requireLogin(); return; } toggleSave(id); }} onDelete={(id) => deletePost(id)} currentUserId={user?.id} isOwner={user?.role === "owner"} isAdmin={user?.isAdmin} />
                       </div>
                       {(i + 1) % 6 === 0 && i < sorted.length - 1 && (
-                        <div className="break-inside-avoid inline-block w-full mb-4"><AdCard index={Math.floor(i / 6)} /></div>
+                        <div className="break-inside-avoid inline-block w-full mb-4 transform-gpu" style={{ willChange: "transform", animation: "fadeIn 0.3s ease both", animationDelay: `${(i % 10) * 50}ms` }}><AdCard index={Math.floor(i / 6)} /></div>
                       )}
                     </React.Fragment>
                   ))}
