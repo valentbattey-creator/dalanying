@@ -270,14 +270,14 @@ export default function HomePage() {
                 ))}
 
                 {/* Post grid - responsive grid */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-5 items-start justify-items-start" style={{ paddingTop: 8 }}>
+                <div style={{ paddingTop: 8, columnCount: 1, columnGap: 16 }} className="lg:columns-3">
                   {sorted.map((p, i) => (
                     <React.Fragment key={p.id}>
-                      <div>
+                      <div style={{ breakInside: 'avoid', marginBottom: 16 }}>
                         <PostCard post={p} isLiked={likedPosts.has(p.id) || guestLikes.has(p.id)} onLike={(id) => { toggleLike(id); }} onCardClick={(id) => setSelectedPostId(id)} isSaved={savedPosts.has(p.id)} onSave={(id) => { if (!user) { requireLogin(); return; } toggleSave(id); }} onDelete={(id) => deletePost(id)} currentUserId={user?.id} isOwner={user?.role === "owner"} isAdmin={user?.isAdmin} />
                       </div>
                       {(i + 1) % 6 === 0 && i < sorted.length - 1 && (
-                        <div><AdCard index={Math.floor(i / 6)} /></div>
+                        <div style={{ breakInside: 'avoid', marginBottom: 16 }}><AdCard index={Math.floor(i / 6)} /></div>
                       )}
                     </React.Fragment>
                   ))}

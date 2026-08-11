@@ -470,3 +470,11 @@ body::before {
     padding-bottom: 2rem !important;
   }
 }
+
+/* ===== Columns responsive ===== */
+@media (min-width: 1024px) {
+  .lg\:columns-3 {
+    column-count: 3 !important;
+    -webkit-column-count: 3 !important;
+  }
+}
