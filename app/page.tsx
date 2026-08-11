@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import Navbar from "@/components/Navbar";
 import AnnouncementBar from "@/components/AnnouncementBar";
 import PostCard from "@/components/PostCard";
+import MasonryGrid from "@/components/MasonryGrid";
 import PostDetailModal from "@/components/PostDetailModal";
 import { FeedSkeleton } from "@/components/Skeleton";
 import AdCard from "@/components/AdCard";
@@ -55,9 +56,10 @@ export default function HomePage() {
 
   // Sort by creation date only (stable sort with id fallback)
   const sorted = useMemo(() => [...filteredRegular].sort((a, b) => {
-    const timeDiff = new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    if (timeDiff !== 0) return timeDiff;
-    return a.id.localeCompare(b.id); // Stable fallback
+    const timeA = new Date(a.createdAt).getTime();
+    const timeB = new Date(b.createdAt).getTime();
+    if (timeA !== timeB) return timeB - timeA;
+    return a.id > b.id ? -1 : a.id < b.id ? 1 : 0;
   }), [filteredRegular]);
 
   const sortedPinned = useMemo(() => [...pinnedPosts].sort((a, b) => {
@@ -103,8 +105,14 @@ export default function HomePage() {
   function toggleCat(cat: string) {
     setActiveCat(cat);
     setCustomCats(prev => {
-      if (prev.includes(cat)) return prev;
-      // Keep 推荐 first, add new category
+      if (prev.includes(cat)) {
+        // 推荐 cannot be removed
+        if (cat === "推荐") return prev;
+        // Remove category
+        const filtered = prev.filter(c => c !== cat);
+        return filtered.length > 0 ? filtered : ["推荐"];
+      }
+      // Add new category
       const withoutRecommend = prev.filter(c => c !== "推荐");
       return ["推荐", ...withoutRecommend, cat];
     });
@@ -177,16 +185,24 @@ export default function HomePage() {
         {/* Category picker dropdown */}
         {showCatPicker && (
           <div className="max-w-7xl mx-auto px-3 pb-2 flex flex-wrap gap-1.5 animate-fade-up">
-            {ALL_CATEGORIES.filter(c => !customCats.includes(c)).map(cat => (
-              <button
-                key={cat}
-                onClick={() => toggleCat(cat)}
-                className="px-2.5 py-1 rounded-full text-[11px] text-[var(--color-text-tertiary)] hover:text-[var(--color-accent)] transition-all"
-                style={{ backgroundColor: "var(--color-bg-card)", border: "0.5px solid var(--color-border-subtle)", cursor: "pointer" }}
-              >
-                + {cat}
-              </button>
-            ))}
+            {ALL_CATEGORIES.filter(c => c !== "推荐").map(cat => {
+              const isAdded = customCats.includes(cat);
+              return (
+                <button
+                  key={cat}
+                  onClick={() => toggleCat(cat)}
+                  className="px-2.5 py-1 rounded-full text-[11px] transition-all"
+                  style={{ 
+                    backgroundColor: isAdded ? "var(--color-accent)" : "var(--color-bg-card)", 
+                    color: isAdded ? "#fff" : "var(--color-text-tertiary)",
+                    border: isAdded ? "none" : "0.5px solid var(--color-border-subtle)", 
+                    cursor: "pointer" 
+                  }}
+                >
+                  {isAdded ? `✕ ${cat}` : `+ ${cat}`}
+                </button>
+              );
+            })}
             {customCats.filter(c => c !== "推荐").length > 0 && (
               <button
                 onClick={() => { setCustomCats([...FIXED_CATS]); setActiveCat("推荐"); setShowCatPicker(false); }}
@@ -269,31 +285,27 @@ export default function HomePage() {
                   </div>
                 ))}
 
-                {/* Post grid - CSS columns waterfall */}
-                <div className="columns-1 md:columns-2 lg:columns-3 gap-4 w-full" style={{ paddingTop: 8 }}>
-                  {sorted.map((p, i) => (
-                    <React.Fragment key={p.id}>
-                      <div className="break-inside-avoid inline-block w-full mb-4 transform-gpu" style={{ willChange: "transform", animation: "fadeIn 0.3s ease both", animationDelay: `${(i % 10) * 50}ms` }}>
-                        <PostCard post={p} isLiked={likedPosts.has(p.id) || guestLikes.has(p.id)} onLike={(id) => { toggleLike(id); }} onCardClick={(id) => setSelectedPostId(id)} isSaved={savedPosts.has(p.id)} onSave={(id) => { if (!user) { requireLogin(); return; } toggleSave(id); }} onDelete={(id) => deletePost(id)} currentUserId={user?.id} isOwner={user?.role === "owner"} isAdmin={user?.isAdmin} />
-                      </div>
-                      {(i + 1) % 6 === 0 && i < sorted.length - 1 && (
-                        <div className="break-inside-avoid inline-block w-full mb-4 transform-gpu" style={{ willChange: "transform", animation: "fadeIn 0.3s ease both", animationDelay: `${(i % 10) * 50}ms` }}><AdCard index={Math.floor(i / 6)} /></div>
-                      )}
-                    </React.Fragment>
-                  ))}
+                {/* Post grid - MasonryGrid */}
+                <div style={{ paddingTop: 8 }}>
+                  <MasonryGrid columns={{ mobile: 1, desktop: 3 }} gap={16}>
+                    {sorted.map((p) => (
+                      <PostCard key={p.id} post={p} isLiked={likedPosts.has(p.id) || guestLikes.has(p.id)} onLike={(id) => { toggleLike(id); }} onCardClick={(id) => setSelectedPostId(id)} isSaved={savedPosts.has(p.id)} onSave={(id) => { if (!user) { requireLogin(); return; } toggleSave(id); }} onDelete={(id) => deletePost(id)} currentUserId={user?.id} isOwner={user?.role === "owner"} isAdmin={user?.isAdmin} />
+                    ))}
+                  </MasonryGrid>
                 </div>
               </>
             )}
 
-            <div ref={sentinelRef} className="py-6 flex justify-center">
-              {loading && totalContent > 0 && (
-                <div className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)] animate-bounce" style={{ animationDelay: "0ms" }} />
-                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)] animate-bounce" style={{ animationDelay: "150ms" }} />
-                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--color-accent)] animate-bounce" style={{ animationDelay: "300ms" }} />
-                </div>
-              )}
-              {!hasMore && totalContent > 0 && <p className="text-[11px] text-[var(--color-text-tertiary)]">— 到底啦～ —</p>}
+            <div ref={sentinelRef} style={{ height: 1 }} />
+            
+            {/* Bottom marker */}
+            <div style={{ 
+              textAlign: "center", 
+              padding: "40px 0 20px", 
+              color: "var(--color-text-tertiary)", 
+              fontSize: 12 
+            }}>
+              — 到底啦 —
             </div>
           </section>
 

@@ -105,9 +105,10 @@ function PostCardInner({ post, isLiked, onLike, onCardClick, isSaved = false, on
       style={{
         backgroundColor: "var(--color-bg-card)",
         border: "1px solid var(--color-border-subtle)",
-        isolation: "isolate" as const,
-        transition: "box-shadow 0.3s ease, transform 0.2s ease",
-        boxShadow: "0 1px 3px rgba(0,0,0,0.06)"
+        WebkitTransform: "translateZ(0)",
+        transform: "translateZ(0)",
+        willChange: "transform",
+        minHeight: 80
       }}
       onMouseEnter={(e) => {
         (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 12px rgba(0,0,0,0.1)";
@@ -159,8 +160,8 @@ function PostCardInner({ post, isLiked, onLike, onCardClick, isSaved = false, on
             alt={post.title}
             loading="lazy"
             onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
-            className="w-full block h-auto"
-            style={{ maxHeight: 500, objectFit: "cover" }}
+            className="w-full block"
+            style={{ display: "block", width: "100%", height: "auto", maxHeight: 500, objectFit: "cover", verticalAlign: "bottom" }}
           />
           {post.images.length > 1 && (
             <span className="absolute top-2 left-2 px-1.5 py-0.5 rounded-md bg-black/50 backdrop-blur-sm text-white text-[10px] font-medium">
