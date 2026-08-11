@@ -617,9 +617,9 @@ export default function SettingsPage() {
   }
 
   return (
-    <main style={{ minHeight: "100vh", backgroundColor: "var(--color-bg-primary)", paddingBottom: "max(6rem, calc(4rem + env(safe-area-inset-bottom, 0px)))" }}>
-      {/* Mobile header */}
-      <div className="lg:hidden" style={{ position: "sticky", top: 0, zIndex: 50, height: 44, display: "flex", alignItems: "center", padding: "0 16px", backgroundColor: "var(--color-bg-primary)", borderBottom: "0.5px solid var(--color-border-subtle)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)" }}>
+    <main style={{ minHeight: "100vh", backgroundColor: "var(--color-bg-primary)", paddingBottom: "max(6rem, calc(4rem + env(safe-area-inset-bottom, 0px)))", paddingTop: "56px" }}>
+      {/* Mobile header - with top padding for MobileTopbar */}
+      <div className="lg:hidden" style={{ position: "sticky", top: 0, zIndex: 50, height: 44, paddingTop: "env(safe-area-inset-top, 0px)", display: "flex", alignItems: "center", padding: "0 16px", backgroundColor: "var(--color-bg-primary)", borderBottom: "0.5px solid var(--color-border-subtle)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)" }}>
         <button onClick={() => router.back()} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-text-secondary)", padding: 4 }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
         </button>
