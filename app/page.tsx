@@ -270,7 +270,7 @@ export default function HomePage() {
                 ))}
 
                 {/* Post grid - responsive grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16, paddingTop: 8 }}>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-5" style={{ paddingTop: 8 }}>
                   {sorted.map((p, i) => (
                     <React.Fragment key={p.id}>
                       <div>
