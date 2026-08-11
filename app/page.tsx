@@ -135,7 +135,7 @@ export default function HomePage() {
 
       {/* ── Category Bar: underline tabs ── */}
       <div className="sticky left-0 right-0 z-40" style={{
-        top: announcements.length > 0 ? "80px" : "48px",
+        top: announcements.length > 0 ? "88px" : "48px",
         backgroundColor: "var(--color-bg-primary)",
         borderBottom: "0.5px solid var(--color-border-subtle)",
       }}>
