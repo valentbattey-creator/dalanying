@@ -90,3 +90,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
+
+export async function DELETE(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const commentId = searchParams.get("id");
+    if (!commentId) return NextResponse.json({ error: "Missing comment id" }, { status: 400 });
+
+    // Delete replies first, then the comment
+    await supabaseAdmin.from("comments").delete().eq("parent_id", commentId);
+    const { error } = await supabaseAdmin.from("comments").delete().eq("id", commentId);
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+
+    return NextResponse.json({ success: true });
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message }, { status: 500 });
+  }
+}

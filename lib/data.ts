@@ -582,7 +582,17 @@ export const dataService = {
   },
 
   async deleteComment(commentId: string): Promise<boolean> {
-    // No dedicated API route for deleting comments yet, handle locally
+    // Delete from Supabase via API
+    try {
+      const result = await fetch(`/api/comments?id=${encodeURIComponent(commentId)}`, { method: "DELETE" });
+      if (result.ok) {
+        // Also clean localStorage
+        const comments = lsGet<Comment[]>("comments", []);
+        lsSet("comments", comments.filter(c => c.id !== commentId && c.parentId !== commentId));
+        return true;
+      }
+    } catch {}
+    // Fallback: local only
     const comments = lsGet<Comment[]>("comments", []);
     lsSet("comments", comments.filter(c => c.id !== commentId && c.parentId !== commentId));
     return true;
