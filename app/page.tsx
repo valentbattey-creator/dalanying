@@ -5,6 +5,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import Navbar from "@/components/Navbar";
+import AnnouncementBar from "@/components/AnnouncementBar";
 import PostCard from "@/components/PostCard";
 import PostDetailModal from "@/components/PostDetailModal";
 import { FeedSkeleton } from "@/components/Skeleton";
@@ -112,31 +113,24 @@ export default function HomePage() {
     }
   }
 
-  // Build ticker text from announcements
-  const tickerText = announcements.map(a => `📢 ${a.title}`).join("　　·　　");
+  // Announcement data ready for AnnouncementBar component
 
   return (
     <>
       <Navbar onSearch={handleSearch} />
 
-      {/* ── Announcement Ticker (single-line scrolling) ── */}
+      {/* ── Announcement Bar ── */}
       {announcements.length > 0 && (
-        <div className="fixed left-0 right-0 z-45 overflow-hidden" style={{
-          top: "48px",
-          height: 32,
-          backgroundColor: "var(--color-bg-secondary)",
-          borderBottom: "0.5px solid var(--color-border-subtle)",
-        }}>
-          <div className="flex items-center h-full px-4 max-w-7xl mx-auto gap-2">
-            <span className="shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded" style={{ backgroundColor: "rgba(245,158,11,0.12)", color: "#f59e0b" }}>公告</span>
-            <div style={{ flex: 1, overflow: "hidden", position: "relative", maskImage: "linear-gradient(to right, transparent, black 5%, black 95%, transparent)", WebkitMaskImage: "linear-gradient(to right, transparent, black 5%, black 95%, transparent)" }}>
-              <div className="animate-ticker" style={{ display: "flex", whiteSpace: "nowrap", animation: `ticker ${Math.max(announcements.length * 12, 20)}s linear infinite` }}>
-                <span style={{ fontSize: 12, color: "var(--color-text-secondary)", paddingRight: 64 }}>{tickerText}</span>
-                <span style={{ fontSize: 12, color: "var(--color-text-secondary)", paddingRight: 64 }}>{tickerText}</span>
-              </div>
-            </div>
+        <>
+          {/* PC version - fixed at 48px */}
+          <div className="hidden md:block" style={{ position: "fixed", left: 0, right: 0, top: "48px", zIndex: 45 }}>
+            <AnnouncementBar announcements={announcements.map(a => ({ id: a.id, title: a.title, content: a.content }))} />
           </div>
-        </div>
+          {/* Mobile version - fixed at 56px (after mobile topbar) */}
+          <div className="md:hidden" style={{ position: "fixed", left: 0, right: 0, top: "56px", zIndex: 45 }}>
+            <AnnouncementBar announcements={announcements.map(a => ({ id: a.id, title: a.title, content: a.content }))} />
+          </div>
+        </>
       )}
 
       {/* ── Category Bar: underline tabs ── */}
