@@ -626,7 +626,7 @@ export default function SettingsPage() {
         <h1 style={{ flex: 1, textAlign: "center", fontSize: 15, fontWeight: 600, color: "var(--color-text-primary)", marginRight: 26 }}>设置</h1>
       </div>
 
-      <div style={{ maxWidth: 960, margin: "0 auto", padding: "24px 16px", display: "flex", gap: 24 }}>
+      <div className="flex flex-col lg:flex-row" style={{ maxWidth: 960, margin: "0 auto", padding: "24px 16px", gap: 24 }}>
         {/* Sidebar - hidden on mobile */}
         <aside className="hidden lg:block" style={{ width: 220, flexShrink: 0, position: "sticky", top: 80, alignSelf: "flex-start" }}>
           <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--color-text-primary)", marginBottom: 24, paddingLeft: 12 }}>设置</h2>

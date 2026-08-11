@@ -390,7 +390,7 @@ body::before {
 
 /* ===== Post Masonry Layout ===== */
 .post-masonry {
-  column-count: 2;
+  column-count: 1;
   column-gap: 10px;
 }
 .post-masonry > * {

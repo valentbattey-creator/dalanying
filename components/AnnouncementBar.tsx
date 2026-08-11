@@ -25,7 +25,7 @@ export default function AnnouncementBar({ announcements }: { announcements: Anno
           alignItems: "center",
           gap: "10px",
           padding: "8px 16px",
-          backgroundColor: "rgba(59, 130, 246, 0.08)",
+          backgroundColor: "var(--color-bg-secondary)",
           cursor: "pointer",
           transition: "all 0.2s",
           borderBottom: "0.5px solid var(--color-border-subtle)"
