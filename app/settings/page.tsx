@@ -59,6 +59,9 @@ export default function SettingsPage() {
   const [abdicatePassword, setAbdicatePassword] = useState("");
   const [abdicating, setAbdicating] = useState(false);
 
+  // Active tab for sidebar nav
+  const [activeTab, setActiveTab] = useState("profile");
+
   // Payment
   const [payConfig, setPayConfig] = useState<PaymentConfig>({ alipay_qr: "", wechat_qr: "", alipay_name: "支付宝", wechat_name: "微信支付" });
   const [uploadingAlipay, setUploadingAlipay] = useState(false);
@@ -268,483 +271,417 @@ export default function SettingsPage() {
     setUploadingWechat(false);
   }
 
+  // Sidebar nav items
+  const NAV_ITEMS = [
+    { key: "profile", label: "个人资料", icon: "👤" },
+    { key: "security", label: "账号安全", icon: "🔒" },
+    { key: "appearance", label: "主题外观", icon: "🎨" },
+  ];
+  if (user?.isAdmin || user?.role === "owner") {
+    NAV_ITEMS.push({ key: "admin", label: "管理功能", icon: "⚙️" });
+  }
+  NAV_ITEMS.push({ key: "danger", label: "账号操作", icon: "⚠️" });
+
+  const inputStyle: React.CSSProperties = {
+    width: "100%", padding: "10px 14px", fontSize: 14,
+    backgroundColor: "var(--color-bg-secondary)",
+    border: "1.5px solid var(--color-border-subtle)",
+    borderRadius: 10, color: "var(--color-text-primary)",
+    outline: "none", transition: "border-color 0.2s, box-shadow 0.2s",
+  };
+  const inputFocusStyle = "var(--color-accent)";
+  const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: "var(--color-text-secondary)", marginBottom: 6, display: "block" };
+  const cardStyle: React.CSSProperties = {
+    backgroundColor: "var(--color-bg-card)", borderRadius: 16,
+    border: "0.5px solid var(--color-border-subtle)", padding: 24, marginBottom: 16,
+  };
+  const cardTitle: React.CSSProperties = { fontSize: 15, fontWeight: 700, color: "var(--color-text-primary)", marginBottom: 4 };
+  const cardDesc: React.CSSProperties = { fontSize: 12, color: "var(--color-text-tertiary)", marginBottom: 20 };
+
+  // Toggle switch component
+  function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+    return (
+      <button type="button" onClick={() => onChange(!checked)}
+        style={{
+          width: 44, height: 24, borderRadius: 12, position: "relative", cursor: "pointer", border: "none", padding: 0,
+          backgroundColor: checked ? "var(--color-accent)" : "var(--color-bg-hover)",
+          transition: "background-color 0.2s",
+        }}>
+        <span style={{
+          width: 18, height: 18, borderRadius: "50%", backgroundColor: "#fff", position: "absolute",
+          top: 3, left: checked ? 23 : 3, transition: "left 0.2s",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
+        }} />
+      </button>
+    );
+  }
+
+  // Render content for active tab
+  function renderContent() {
+    switch (activeTab) {
+      case "profile": return (
+        <>
+          {/* Basic Info Card */}
+          <div style={cardStyle}>
+            <h3 style={cardTitle}>基本信息</h3>
+            <p style={cardDesc}>管理你的公开个人信息</p>
+
+            {/* Avatar */}
+            <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 24 }}>
+              <div style={{ position: "relative" }}>
+                <UserAvatar name={user?.name || "?"} avatarUrl={avatarPreview} size={64} />
+                <label style={{
+                  position: "absolute", bottom: -2, right: -2, width: 28, height: 28, borderRadius: "50%",
+                  backgroundColor: "var(--color-accent)", color: "#fff", display: "flex",
+                  alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: 12,
+                }}>
+                  ✎
+                  <input type="file" accept="image/*" onChange={handleAvatar} style={{ display: "none" }} />
+                </label>
+              </div>
+              <div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 16, fontWeight: 600, color: "var(--color-text-primary)" }}>{user?.name}</span>
+                  {user?.role === "owner" && <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 6, backgroundColor: "rgba(245,158,11,0.15)", color: "#f59e0b", fontWeight: 600 }}>👑 站长</span>}
+                  {user?.isAdmin && user?.role !== "owner" && <span style={{ fontSize: 10, padding: "2px 8px", borderRadius: 6, backgroundColor: "var(--color-accent-glow)", color: "var(--color-accent)", fontWeight: 600 }}>管理</span>}
+                </div>
+                <p style={{ fontSize: 12, color: "var(--color-text-tertiary)", marginTop: 4 }}>点击头像更换</p>
+              </div>
+            </div>
+
+            {/* Nickname */}
+            <div style={{ marginBottom: 20 }}>
+              <label style={labelStyle}>昵称</label>
+              <input value={nickname} onChange={e => setNickname(e.target.value)} maxLength={12}
+                style={inputStyle}
+                onFocus={e => { e.target.style.borderColor = inputFocusStyle; e.target.style.boxShadow = `0 0 0 3px ${inputFocusStyle}20`; }}
+                onBlur={e => { e.target.style.borderColor = "var(--color-border-subtle)"; e.target.style.boxShadow = "none"; }}
+              />
+              {nameStatus === "checking" && <p style={{ fontSize: 11, color: "#eab308", marginTop: 4 }}>检查中...</p>}
+              {nameStatus === "available" && <p style={{ fontSize: 11, color: "#22c55e", marginTop: 4 }}>✓ 可用</p>}
+              {nameStatus === "taken" && <p style={{ fontSize: 11, color: "#ef4444", marginTop: 4 }}>✗ 已被占用</p>}
+            </div>
+
+            {/* Bio */}
+            <div style={{ marginBottom: 24 }}>
+              <label style={labelStyle}>个人简介</label>
+              <textarea value={bio} onChange={e => setBio(e.target.value)} maxLength={100} rows={3}
+                placeholder="介绍一下自己..."
+                style={{ ...inputStyle, resize: "none" as const }}
+                onFocus={e => { e.target.style.borderColor = inputFocusStyle; e.target.style.boxShadow = `0 0 0 3px ${inputFocusStyle}20`; }}
+                onBlur={e => { e.target.style.borderColor = "var(--color-border-subtle)"; e.target.style.boxShadow = "none"; }}
+              />
+              <p style={{ fontSize: 11, color: "var(--color-text-tertiary)", marginTop: 4, textAlign: "right" }}>{bio.length}/100</p>
+            </div>
+
+            <button onClick={handleSave} disabled={saving}
+              style={{
+                width: "100%", padding: "12px 0", borderRadius: 12, border: "none", cursor: saving ? "not-allowed" : "pointer",
+                backgroundColor: "var(--color-accent)", color: "#fff", fontSize: 14, fontWeight: 600,
+                opacity: saving ? 0.6 : 1, transition: "all 0.2s",
+              }}>
+              {saving ? "保存中..." : "保存修改"}
+            </button>
+          </div>
+
+          {/* Background Image Card */}
+          <div style={cardStyle}>
+            <h3 style={cardTitle}>自定义背景</h3>
+            <p style={cardDesc}>设置页面背景图片，彰显个性</p>
+            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+              <label style={{
+                flex: 1, padding: "12px 16px", borderRadius: 12, border: "1.5px dashed var(--color-border-subtle)",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                cursor: "pointer", fontSize: 13, color: "var(--color-text-secondary)",
+                backgroundColor: "var(--color-bg-secondary)", transition: "all 0.2s",
+              }}>
+                📷 {bgPreview ? "更换背景" : "上传背景图"}
+                <input type="file" accept="image/*" onChange={handleBgUpload} style={{ display: "none" }} />
+              </label>
+              {bgPreview && (
+                <button onClick={removeBg}
+                  style={{ padding: "12px 16px", borderRadius: 12, border: "1.5px solid #ef4444", backgroundColor: "rgba(239,68,68,0.05)", color: "#ef4444", fontSize: 13, cursor: "pointer" }}>
+                  移除
+                </button>
+              )}
+            </div>
+          </div>
+        </>
+      );
+
+      case "security": return (
+        <>
+          {/* Password Card */}
+          <div style={cardStyle}>
+            <h3 style={cardTitle}>密码设置</h3>
+            <p style={cardDesc}>设置密码后可使用邮箱+密码登录</p>
+            <div style={{ marginBottom: 16 }}>
+              <label style={labelStyle}>新密码</label>
+              <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)}
+                placeholder="至少6位" style={inputStyle}
+                onFocus={e => { e.target.style.borderColor = inputFocusStyle; e.target.style.boxShadow = `0 0 0 3px ${inputFocusStyle}20`; }}
+                onBlur={e => { e.target.style.borderColor = "var(--color-border-subtle)"; e.target.style.boxShadow = "none"; }}
+              />
+            </div>
+            <div style={{ marginBottom: 20 }}>
+              <label style={labelStyle}>确认密码</label>
+              <input type="password" value={confirmNewPassword} onChange={e => setConfirmNewPassword(e.target.value)}
+                placeholder="再次输入密码" style={inputStyle}
+                onFocus={e => { e.target.style.borderColor = inputFocusStyle; e.target.style.boxShadow = `0 0 0 3px ${inputFocusStyle}20`; }}
+                onBlur={e => { e.target.style.borderColor = "var(--color-border-subtle)"; e.target.style.boxShadow = "none"; }}
+              />
+            </div>
+            <button onClick={async () => {
+              if (newPassword.length < 6) { toast.error("密码至少6位"); return; }
+              if (newPassword !== confirmNewPassword) { toast.error("两次密码不一致"); return; }
+              setSettingPassword(true);
+              const { supabase, hasSupabase } = await import("@/lib/supabase");
+              if (hasSupabase && supabase) {
+                const { error } = await supabase.auth.updateUser({ password: newPassword });
+                if (error) { toast.error(error.message); }
+                else { toast.success("密码设置成功"); setNewPassword(""); setConfirmNewPassword(""); }
+              }
+              setSettingPassword(false);
+            }} disabled={settingPassword}
+              style={{
+                width: "100%", padding: "12px 0", borderRadius: 12, border: "none",
+                cursor: settingPassword ? "not-allowed" : "pointer",
+                backgroundColor: "var(--color-accent)", color: "#fff", fontSize: 14, fontWeight: 600,
+                opacity: settingPassword ? 0.6 : 1, transition: "all 0.2s",
+              }}>
+              {settingPassword ? "设置中..." : "设置密码"}
+            </button>
+          </div>
+
+          {/* Email Card */}
+          {user?.email ? (
+            <div style={cardStyle}>
+              <h3 style={cardTitle}>绑定邮箱</h3>
+              <p style={cardDesc}>你的登录邮箱</p>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", borderRadius: 12, backgroundColor: "var(--color-bg-secondary)" }}>
+                <span style={{ fontSize: 20 }}>📧</span>
+                <span style={{ fontSize: 14, color: "var(--color-text-primary)" }}>{user.email}</span>
+                <span style={{ marginLeft: "auto", fontSize: 11, padding: "3px 10px", borderRadius: 8, backgroundColor: "rgba(34,197,94,0.1)", color: "#22c55e", fontWeight: 600 }}>已绑定</span>
+              </div>
+            </div>
+          ) : (
+            <div style={cardStyle}>
+              <h3 style={cardTitle}>绑定邮箱</h3>
+              <p style={cardDesc}>绑定邮箱后升级为正式用户，支持密码登录</p>
+              <div style={{ marginBottom: 16 }}>
+                <label style={labelStyle}>邮箱地址</label>
+                <input value={bindEmailAddr} onChange={e => setBindEmailAddr(e.target.value)}
+                  placeholder="your@email.com" type="email" style={inputStyle}
+                  onFocus={e => { e.target.style.borderColor = inputFocusStyle; e.target.style.boxShadow = `0 0 0 3px ${inputFocusStyle}20`; }}
+                  onBlur={e => { e.target.style.borderColor = "var(--color-border-subtle)"; e.target.style.boxShadow = "none"; }}
+                />
+              </div>
+              {bindEmailSent && (
+                <div style={{ marginBottom: 16 }}>
+                  <label style={labelStyle}>验证码</label>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <input value={bindEmailOtp} onChange={e => setBindEmailOtp(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                      placeholder="输入8位验证码" style={{ ...inputStyle, flex: 1 }}
+                      onFocus={e => { e.target.style.borderColor = inputFocusStyle; e.target.style.boxShadow = `0 0 0 3px ${inputFocusStyle}20`; }}
+                      onBlur={e => { e.target.style.borderColor = "var(--color-border-subtle)"; e.target.style.boxShadow = "none"; }}
+                    />
+                    <button onClick={handleSendBindOtp} disabled={bindEmailCountdown > 0 || bindingEmail}
+                      style={{ padding: "0 16px", borderRadius: 12, border: "1.5px solid var(--color-border-subtle)", backgroundColor: "var(--color-bg-secondary)", color: "var(--color-text-secondary)", fontSize: 13, cursor: "pointer", whiteSpace: "nowrap" }}>
+                      {bindEmailCountdown > 0 ? `${bindEmailCountdown}s` : "重发"}
+                    </button>
+                  </div>
+                </div>
+              )}
+              {!bindEmailSent ? (
+                <button onClick={handleSendBindOtp} disabled={!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(bindEmailAddr) || bindingEmail}
+                  style={{ width: "100%", padding: "12px 0", borderRadius: 12, border: "none", cursor: "pointer", backgroundColor: "var(--color-accent)", color: "#fff", fontSize: 14, fontWeight: 600, opacity: (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(bindEmailAddr) || bindingEmail) ? 0.5 : 1 }}>
+                  {bindingEmail ? "发送中..." : "发送验证码"}
+                </button>
+              ) : (
+                <button onClick={handleBindEmail} disabled={bindEmailOtp.length < 6 || bindingEmail}
+                  style={{ width: "100%", padding: "12px 0", borderRadius: 12, border: "none", cursor: "pointer", backgroundColor: "var(--color-accent)", color: "#fff", fontSize: 14, fontWeight: 600, opacity: (bindEmailOtp.length < 6 || bindingEmail) ? 0.5 : 1 }}>
+                  {bindingEmail ? "绑定中..." : "确认绑定"}
+                </button>
+              )}
+            </div>
+          )}
+        </>
+      );
+
+      case "appearance": return (
+        <div style={cardStyle}>
+          <h3 style={cardTitle}>主题外观</h3>
+          <p style={cardDesc}>自定义你的界面风格</p>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "14px 0", borderBottom: "0.5px solid var(--color-border-subtle)" }}>
+            <div>
+              <p style={{ fontSize: 14, fontWeight: 500, color: "var(--color-text-primary)" }}>深色模式</p>
+              <p style={{ fontSize: 12, color: "var(--color-text-tertiary)", marginTop: 2 }}>{theme === "dark" ? "当前为深色模式" : "当前为浅色模式"}</p>
+            </div>
+            <Toggle checked={theme === "dark"} onChange={() => toggle()} />
+          </div>
+        </div>
+      );
+
+      case "admin": return (
+        <>
+          {(user?.isAdmin || user?.role === "owner") && (
+            <div style={cardStyle}>
+              <h3 style={cardTitle}>管理后台</h3>
+              <p style={cardDesc}>进入管理后台管理帖子和用户</p>
+              <button onClick={() => router.push("/admin")}
+                style={{ width: "100%", padding: "12px 0", borderRadius: 12, border: "1.5px solid var(--color-accent)", backgroundColor: "var(--color-accent-glow)", color: "var(--color-accent)", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+                🛠️ 进入管理后台
+              </button>
+            </div>
+          )}
+          {!user?.isAdmin && (
+            <div style={cardStyle}>
+              <h3 style={cardTitle}>激活管理员</h3>
+              <p style={cardDesc}>输入管理员密钥获取管理权限</p>
+              <div style={{ marginBottom: 16 }}>
+                <label style={labelStyle}>管理员密钥</label>
+                <input value={adminKey} onChange={e => setAdminKey(e.target.value)} type="password"
+                  placeholder="输入密钥" style={inputStyle}
+                  onFocus={e => { e.target.style.borderColor = inputFocusStyle; e.target.style.boxShadow = `0 0 0 3px ${inputFocusStyle}20`; }}
+                  onBlur={e => { e.target.style.borderColor = "var(--color-border-subtle)"; e.target.style.boxShadow = "none"; }}
+                />
+              </div>
+              <button onClick={handleActivateAdmin} disabled={activating || !adminKey.trim()}
+                style={{ width: "100%", padding: "12px 0", borderRadius: 12, border: "none", cursor: "pointer", backgroundColor: "var(--color-accent)", color: "#fff", fontSize: 14, fontWeight: 600, opacity: (activating || !adminKey.trim()) ? 0.5 : 1 }}>
+                {activating ? "激活中..." : "激活管理员"}
+              </button>
+            </div>
+          )}
+          {user?.role === "owner" && (
+            <div style={cardStyle}>
+              <h3 style={cardTitle}>站长操作</h3>
+              <p style={cardDesc}>让出站长身份给其他管理员</p>
+              <div style={{ marginBottom: 16 }}>
+                <label style={labelStyle}>确认密钥</label>
+                <input value={abdicatePassword} onChange={e => setAbdicatePassword(e.target.value)} type="password"
+                  placeholder="输入密钥确认" style={inputStyle}
+                  onFocus={e => { e.target.style.borderColor = inputFocusStyle; e.target.style.boxShadow = `0 0 0 3px ${inputFocusStyle}20`; }}
+                  onBlur={e => { e.target.style.borderColor = "var(--color-border-subtle)"; e.target.style.boxShadow = "none"; }}
+                />
+              </div>
+              <button onClick={handleAbdicate} disabled={abdicating}
+                style={{ width: "100%", padding: "12px 0", borderRadius: 12, border: "1.5px solid #eab308", backgroundColor: "rgba(234,179,8,0.05)", color: "#eab308", fontSize: 14, fontWeight: 600, cursor: "pointer" }}>
+                {abdicating ? "处理中..." : "让出站长身份"}
+              </button>
+            </div>
+          )}
+        </>
+      );
+
+      case "danger": return (
+        <>
+          <div style={cardStyle}>
+            <h3 style={cardTitle}>退出登录</h3>
+            <p style={cardDesc}>退出当前账号</p>
+            <button onClick={async () => { await logout(); toast.success("已退出"); router.push("/"); }}
+              style={{ width: "100%", padding: "12px 0", borderRadius: 12, border: "1.5px solid var(--color-border-subtle)", backgroundColor: "var(--color-bg-secondary)", color: "var(--color-text-secondary)", fontSize: 14, fontWeight: 500, cursor: "pointer" }}>
+              退出登录
+            </button>
+          </div>
+
+          <div style={{ ...cardStyle, borderColor: "rgba(239,68,68,0.2)" }}>
+            <h3 style={{ ...cardTitle, color: "#ef4444" }}>危险区域</h3>
+            <p style={cardDesc}>以下操作不可逆，请谨慎操作</p>
+            {!showDeleteConfirm ? (
+              <button onClick={() => setShowDeleteConfirm(true)}
+                style={{ width: "100%", padding: "12px 0", borderRadius: 12, border: "1.5px dashed #ef4444", backgroundColor: "rgba(239,68,68,0.03)", color: "#ef4444", fontSize: 14, fontWeight: 500, cursor: "pointer" }}>
+                注销账户
+              </button>
+            ) : (
+              <div style={{ padding: 20, borderRadius: 12, backgroundColor: "rgba(239,68,68,0.05)", border: "1px solid rgba(239,68,68,0.15)" }}>
+                <p style={{ fontSize: 14, fontWeight: 600, color: "#ef4444", marginBottom: 8 }}>⚠️ 确认注销？</p>
+                <p style={{ fontSize: 12, color: "var(--color-text-tertiary)", marginBottom: 16, lineHeight: 1.5 }}>昵称将变为"已注销用户"，发布内容保留，此操作不可逆。</p>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button onClick={() => setShowDeleteConfirm(false)}
+                    style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: "1px solid var(--color-border-subtle)", backgroundColor: "var(--color-bg-secondary)", color: "var(--color-text-secondary)", fontSize: 13, cursor: "pointer" }}>
+                    取消
+                  </button>
+                  <button onClick={handleDeleteAccount} disabled={deleting}
+                    style={{ flex: 1, padding: "10px 0", borderRadius: 10, border: "none", backgroundColor: "rgba(239,68,68,0.15)", color: "#ef4444", fontSize: 13, fontWeight: 600, cursor: deleting ? "not-allowed" : "pointer", opacity: deleting ? 0.6 : 1 }}>
+                    {deleting ? "注销中..." : "确认注销"}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </>
+      );
+
+      default: return null;
+    }
+  }
+
   return (
-    <main className="min-h-screen bg-[var(--color-bg-primary)]" style={{ paddingBottom: "max(6rem, calc(4rem + env(safe-area-inset-bottom, 0px)))", paddingTop: "env(safe-area-inset-top, 0px)" }}>
-      {/* Header */}
-      <div className="glass sticky top-0 z-50 h-11 flex items-center px-4">
-        <button type="button" onClick={() => router.back()} className="flex items-center gap-1.5 text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] cursor-pointer z-10 relative transition-all duration-200">
+    <main style={{ minHeight: "100vh", backgroundColor: "var(--color-bg-primary)", paddingBottom: "max(6rem, calc(4rem + env(safe-area-inset-bottom, 0px)))" }}>
+      {/* Mobile header */}
+      <div className="lg:hidden" style={{ position: "sticky", top: 0, zIndex: 50, height: 44, display: "flex", alignItems: "center", padding: "0 16px", backgroundColor: "var(--color-bg-primary)", borderBottom: "0.5px solid var(--color-border-subtle)", backdropFilter: "blur(14px)", WebkitBackdropFilter: "blur(14px)" }}>
+        <button onClick={() => router.back()} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--color-text-secondary)", padding: 4 }}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
         </button>
-        <h1 className="flex-1 text-center text-sm font-semibold text-[var(--color-text-primary)] -ml-6">设置</h1>
-        <div className="w-[42px]" />
+        <h1 style={{ flex: 1, textAlign: "center", fontSize: 15, fontWeight: 600, color: "var(--color-text-primary)", marginRight: 26 }}>设置</h1>
       </div>
 
-      <div className="max-w-lg mx-auto px-4 py-4 space-y-3">
-        {/* ============ 个人信息 ============ */}
-        <div className="bg-[var(--color-bg-card)] border-[0.5px] border-[var(--color-border-subtle)] rounded-xl overflow-hidden">
-          <button onClick={() => toggleSection("profile")} className="w-full px-4 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">👤</span>
-              <span className="text-sm font-medium text-[var(--color-text-primary)]">个人信息</span>
-            </div>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`text-[var(--color-text-tertiary)] transition-transform ${expanded.profile ? "rotate-180" : ""}`}><polyline points="6 9 12 15 18 9"/></svg>
-          </button>
-          {expanded.profile && (
-            <div className="px-4 pb-4 space-y-4 border-t-[0.5px] border-[var(--color-border-subtle)] pt-3">
-              {/* Avatar */}
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <UserAvatar name={user?.name || "?"} avatarUrl={avatarPreview} size={56} />
-                  <label className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-[var(--color-accent)] text-white flex items-center justify-center cursor-pointer hover:bg-[var(--color-accent-hover)] transition-all text-[10px]">
-                    ✎
-                    <input type="file" accept="image/*" onChange={handleAvatar} className="hidden" />
-                  </label>
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-sm font-medium text-[var(--color-text-primary)]">{user?.name}</span>
-                    {user?.role === "owner" && <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 font-medium">👑 站长</span>}
-                    {user?.isAdmin && user?.role !== "owner" && <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--color-accent)]/15 text-[var(--color-accent)] font-medium">管理</span>}
-                  </div>
-                  {(user?.isAdmin || user?.role === "owner") && (
-                    <button onClick={() => router.push("/admin")}
-                      className="mt-2 w-full py-2 rounded-lg bg-[var(--color-accent)]/10 border border-[var(--color-accent)]/30 text-xs font-medium text-[var(--color-accent)] hover:bg-[var(--color-accent)]/20 transition-all">
-                      🛠️ 进入管理后台
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Nickname */}
-              <div>
-                <label className="text-[11px] font-medium text-[var(--color-text-secondary)]">昵称</label>
-                <div className="flex gap-2 mt-1">
-                  <input value={nickname} onChange={e => setNickname(e.target.value)} maxLength={12}
-                    className="flex-1 px-3 py-2.5 rounded-lg bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] outline-none focus:border-[var(--color-accent)] transition-all"
-                  />
-                </div>
-                {nameStatus === "checking" && <p className="text-[10px] text-yellow-400 mt-1">检查中...</p>}
-                {nameStatus === "available" && <p className="text-[10px] text-green-400 mt-1">✓ 可用</p>}
-                {nameStatus === "taken" && <p className="text-[10px] text-red-400 mt-1">✗ 已被占用</p>}
-              </div>
-
-              {/* Bio */}
-              <div>
-                <label className="text-[11px] font-medium text-[var(--color-text-secondary)]">简介</label>
-                <textarea value={bio} onChange={e => setBio(e.target.value)} maxLength={100} rows={2}
-                  placeholder="介绍一下自己..."
-                  className="w-full mt-1 px-3 py-2 rounded-lg bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] outline-none focus:border-[var(--color-accent)] resize-none transition-all"
-                />
-                <p className="text-[10px] text-[var(--color-text-tertiary)] text-right">{bio.length}/100</p>
-              </div>
-
-              {/* Save */}
-              <button onClick={handleSave} disabled={saving || nameStatus === "taken"}
-                className="btn-primary w-full py-2.5 rounded-lg text-xs disabled:opacity-40">{saving ? "保存中..." : "保存修改"}</button>
-            </div>
-          )}
-        </div>
-
-        {/* ============ 外观设置 ============ */}
-        <div className="bg-[var(--color-bg-card)] border-[0.5px] border-[var(--color-border-subtle)] rounded-xl overflow-hidden">
-          <button onClick={() => toggleSection("appearance")} className="w-full px-4 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">🎨</span>
-              <span className="text-sm font-medium text-[var(--color-text-primary)]">外观设置</span>
-            </div>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`text-[var(--color-text-tertiary)] transition-transform ${expanded.appearance ? "rotate-180" : ""}`}><polyline points="6 9 12 15 18 9"/></svg>
-          </button>
-          {expanded.appearance && (
-            <div className="px-4 pb-4 space-y-4 border-t-[0.5px] border-[var(--color-border-subtle)] pt-3">
-              {/* Background image */}
-              <div>
-                <label className="text-[11px] font-medium text-[var(--color-text-secondary)]">页面背景图</label>
-                <div className="mt-2">
-                  {bgPreview ? (
-                    <div className="relative inline-block">
-                      <img src={bgPreview} alt="背景" className="w-full max-h-32 rounded-lg object-cover border border-[var(--color-border-subtle)]" />
-                      <button onClick={removeBg} className="absolute top-2 right-2 w-6 h-6 rounded-full bg-red-500 text-white text-xs flex items-center justify-center hover:bg-red-600">✕</button>
-                    </div>
-                  ) : (
-                    <label className="block border-2 border-dashed border-[var(--color-border-subtle)] rounded-xl p-8 text-center cursor-pointer hover:border-[var(--color-accent)] transition-all">
-                      <div className="text-3xl mb-1">🖼️</div>
-                      <p className="text-xs text-[var(--color-text-tertiary)]">点击上传背景图</p>
-                      <input type="file" accept="image/*" onChange={handleBgUpload} className="hidden" />
-                    </label>
-                  )}
-                  {!bgPreview && (
-                    <label className="block mt-2 text-center text-[11px] text-[var(--color-accent)] hover:underline cursor-pointer">
-                      选择图片
-                      <input type="file" accept="image/*" onChange={handleBgUpload} className="hidden" />
-                    </label>
-                  )}
-                </div>
-              </div>
-
-              {/* Theme toggle */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-lg">{theme === "dark" ? "🌙" : "☀️"}</span>
-                  <div>
-                    <p className="text-xs text-[var(--color-text-primary)]">深色模式</p>
-                    <p className="text-[10px] text-[var(--color-text-tertiary)]">{theme === "dark" ? "已开启" : "已关闭"}</p>
-                  </div>
-                </div>
-                <button onClick={toggle}
-                  className={`relative w-11 h-6 rounded-full transition-all duration-300 ${theme === "dark" ? "bg-[var(--color-accent)]" : "bg-[var(--color-bg-hover)]"}`}>
-                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-all duration-300 shadow ${theme === "dark" ? "translate-x-5" : "translate-x-0"}`} />
-                </button>
-              </div>
-
-              {/* Font size */}
-              <div>
-                <label className="text-[11px] font-medium text-[var(--color-text-secondary)]">字体大小</label>
-                <div className="flex items-center gap-2 mt-2">
-                  <button onClick={() => {
-                    const v = parseInt(getComputedStyle(document.documentElement).getPropertyValue("--font-scale")) || 17;
-                    const n = Math.max(14, v - 1);
-                    document.documentElement.style.setProperty("--font-scale", n + "px");
-                    localStorage.setItem("dalanying_font_size", String(n));
-                  }} className="w-7 h-7 rounded-lg bg-[var(--color-bg-hover)] text-[var(--color-text-secondary)] text-sm font-bold hover:text-[var(--color-accent)] transition-all">A-</button>
-                  <span className="text-[11px] text-[var(--color-text-tertiary)] w-8 text-center">Aa</span>
-                  <button onClick={() => {
-                    const v = parseInt(getComputedStyle(document.documentElement).getPropertyValue("--font-scale")) || 17;
-                    const n = Math.min(24, v + 1);
-                    document.documentElement.style.setProperty("--font-scale", n + "px");
-                    localStorage.setItem("dalanying_font_size", String(n));
-                  }} className="w-7 h-7 rounded-lg bg-[var(--color-bg-hover)] text-[var(--color-text-secondary)] text-sm font-bold hover:text-[var(--color-accent)] transition-all">A+</button>
-                </div>
-              </div>
-
-              {/* Save background */}
-              <button onClick={handleSave} className="btn-primary w-full py-2.5 rounded-lg text-xs">保存外观设置</button>
-            </div>
-          )}
-        </div>
-
-        {/* ============ 权限管理 ============ */}
-        <div className="bg-[var(--color-bg-card)] border-[0.5px] border-[var(--color-border-subtle)] rounded-xl overflow-hidden">
-          <button onClick={() => toggleSection("admin")} className="w-full px-4 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">🛡️</span>
-              <span className="text-sm font-medium text-[var(--color-text-primary)]">权限管理</span>
-            </div>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`text-[var(--color-text-tertiary)] transition-transform ${expanded.admin ? "rotate-180" : ""}`}><polyline points="6 9 12 15 18 9"/></svg>
-          </button>
-          {expanded.admin && (
-            <div className="px-4 pb-4 space-y-4 border-t-[0.5px] border-[var(--color-border-subtle)] pt-3">
-              {/* Claim Owner */}
-              {user?.role !== "owner" && !hasOwner && (
-                <div className="space-y-2">
-                  <p className="text-[11px] font-medium text-[var(--color-text-secondary)]">👑 认领站长</p>
-                  <div className="flex gap-2">
-                    <input type="password" value={ownerPassword} onChange={e => setOwnerPassword(e.target.value)}
-                      placeholder="输入站长密钥" className="flex-1 px-3 py-2 rounded-lg bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-sm outline-none focus:border-[var(--color-accent)] transition-all" />
-                    <button onClick={handleClaimOwner} disabled={claimingOwner || !ownerPassword.trim()}
-                      className="px-4 py-2 rounded-lg bg-amber-500 text-white text-xs font-bold hover:bg-amber-600 disabled:opacity-40 transition-all">{claimingOwner ? "..." : "认领"}</button>
-                  </div>
-                </div>
-              )}
-
-              {/* Abdicate Owner */}
-              {user?.role === "owner" && (
-                <div className="space-y-2">
-                  <p className="text-[11px] font-medium text-red-400">⚠️ 让出站长</p>
-                  <p className="text-[10px] text-[var(--color-text-tertiary)]">让位后失去所有站长权限，其他人可认领</p>
-                  <div className="flex gap-2">
-                    <input type="password" value={abdicatePassword} onChange={e => setAbdicatePassword(e.target.value)}
-                      placeholder="输入密钥确认" className="flex-1 px-3 py-2 rounded-lg bg-[var(--color-bg-secondary)] border border-red-500/20 text-sm outline-none focus:border-red-400 transition-all" />
-                    <button onClick={handleAbdicate} disabled={abdicating || !abdicatePassword.trim()}
-                      className="px-4 py-2 rounded-lg bg-red-500 text-white text-xs font-bold hover:bg-red-600 disabled:opacity-40 transition-all">{abdicating ? "..." : "让位"}</button>
-                  </div>
-                </div>
-              )}
-
-              {/* Apply Admin */}
-              {user?.role !== "owner" && hasOwner && !user?.isAdmin && (
-                <div className="p-3 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)]">
-                  <p className="text-[11px] font-medium text-[var(--color-text-secondary)]">🛡️ 申请管理员</p>
-                  <p className="text-[10px] text-[var(--color-text-tertiary)] mt-1">联系站长申请管理员权限</p>
-                </div>
-              )}
-              {!user?.isAdmin && user?.role !== "owner" && (
-                <div className="space-y-2 pt-2 border-t-[0.5px] border-[var(--color-border-subtle)]">
-                  <p className="text-[11px] font-medium text-[var(--color-text-secondary)]">🔑 申请管理员</p>
-                  <div className="flex gap-2">
-                    <input type="password" value={adminKey} onChange={e => setAdminKey(e.target.value)}
-                      placeholder="输入管理员密钥" className="flex-1 px-3 py-2 rounded-lg bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-sm outline-none focus:border-[var(--color-accent)] transition-all" />
-                    <button onClick={handleActivateAdmin} disabled={activating || !adminKey.trim()}
-                      className="px-4 py-2 rounded-lg bg-[var(--color-accent)] text-white text-xs font-bold hover:bg-[var(--color-accent-hover)] disabled:opacity-40 transition-all">{activating ? "..." : "激活"}</button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* ============ 收款码配置（仅站长） ============ */}
-        {user?.role === "owner" && (
-          <div className="bg-[var(--color-bg-card)] border-[0.5px] border-amber-500/20 rounded-xl overflow-hidden">
-            <button onClick={() => toggleSection("payment")} className="w-full px-4 py-3 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-lg">💰</span>
-                <span className="text-sm font-medium text-[var(--color-text-primary)]">收款码配置</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400">站长专属</span>
-              </div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`text-[var(--color-text-tertiary)] transition-transform ${expanded.payment ? "rotate-180" : ""}`}><polyline points="6 9 12 15 18 9"/></svg>
-            </button>
-            {expanded.payment && (
-              <div className="px-4 pb-4 space-y-4 border-t-[0.5px] border-amber-500/10 pt-3">
-                {/* Alipay */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-medium text-[var(--color-text-primary)]">💙 支付宝</span>
-                    <label className="text-[10px] text-[var(--color-accent)] hover:underline cursor-pointer">
-                      {uploadingAlipay ? "上传中..." : "上传收款码"}
-                      <input type="file" accept="image/*" className="hidden" onChange={handleAlipayQR} />
-                    </label>
-                  </div>
-                  <div className="w-36 h-36 mx-auto bg-white rounded-xl flex items-center justify-center overflow-hidden border-2 border-gray-100">
-                    {payConfig.alipay_qr ? (
-                      <img src={payConfig.alipay_qr} alt="支付宝" className="w-full h-full object-contain" />
-                    ) : (
-                      <div className="text-center"><div className="text-3xl">💙</div><p className="text-[10px] text-gray-400 mt-1">未设置</p></div>
-                    )}
-                  </div>
-                </div>
-                {/* WeChat */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-medium text-[var(--color-text-primary)]">💚 微信</span>
-                    <label className="text-[10px] text-[var(--color-accent)] hover:underline cursor-pointer">
-                      {uploadingWechat ? "上传中..." : "上传收款码"}
-                      <input type="file" accept="image/*" className="hidden" onChange={handleWechatQR} />
-                    </label>
-                  </div>
-                  <div className="w-36 h-36 mx-auto bg-white rounded-xl flex items-center justify-center overflow-hidden border-2 border-gray-100">
-                    {payConfig.wechat_qr ? (
-                      <img src={payConfig.wechat_qr} alt="微信" className="w-full h-full object-contain" />
-                    ) : (
-                      <div className="text-center"><div className="text-3xl">💚</div><p className="text-[10px] text-gray-400 mt-1">未设置</p></div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
+      <div style={{ maxWidth: 960, margin: "0 auto", padding: "24px 16px", display: "flex", gap: 24 }}>
+        {/* Sidebar - hidden on mobile */}
+        <aside className="hidden lg:block" style={{ width: 220, flexShrink: 0, position: "sticky", top: 80, alignSelf: "flex-start" }}>
+          <h2 style={{ fontSize: 18, fontWeight: 700, color: "var(--color-text-primary)", marginBottom: 24, paddingLeft: 12 }}>设置</h2>
+          <nav style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            {NAV_ITEMS.map(item => (
+              <button key={item.key} onClick={() => setActiveTab(item.key)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", borderRadius: 10,
+                  border: "none", cursor: "pointer", fontSize: 13, fontWeight: 500, textAlign: "left",
+                  backgroundColor: activeTab === item.key ? "var(--color-bg-hover)" : "transparent",
+                  color: activeTab === item.key ? "var(--color-text-primary)" : "var(--color-text-tertiary)",
+                  transition: "all 0.15s",
+                }}>
+                <span style={{ fontSize: 16 }}>{item.icon}</span>
+                {item.label}
+              </button>
+            ))}
+          </nav>
+          <div style={{ marginTop: 40, paddingLeft: 12 }}>
+            <p style={{ fontSize: 10, color: "var(--color-text-tertiary)" }}>大岚荧 v1.0</p>
           </div>
-        )}
+        </aside>
 
-        {/* ============ 设置密码（有邮箱的用户） ============ */}
-        {user?.email && (
-          <div className="bg-[var(--color-bg-card)] border-[0.5px] border-[var(--color-border-subtle)] rounded-xl overflow-hidden">
-            <button onClick={() => toggleSection("password")} className="w-full px-4 py-3 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-lg">🔑</span>
-                <span className="text-sm font-medium text-[var(--color-text-primary)]">设置密码</span>
-              </div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`text-[var(--color-text-tertiary)] transition-transform ${expanded.password ? "rotate-180" : ""}`}><polyline points="6 9 12 15 18 9"/></svg>
+        {/* Mobile tab bar */}
+        <div className="lg:hidden" style={{ display: "flex", overflowX: "auto", gap: 6, marginBottom: 8, paddingBottom: 4 }}>
+          {NAV_ITEMS.map(item => (
+            <button key={item.key} onClick={() => setActiveTab(item.key)}
+              style={{
+                display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 10,
+                border: "none", cursor: "pointer", fontSize: 13, fontWeight: 500, whiteSpace: "nowrap",
+                backgroundColor: activeTab === item.key ? "var(--color-accent)" : "var(--color-bg-card)",
+                color: activeTab === item.key ? "#fff" : "var(--color-text-tertiary)",
+                transition: "all 0.15s",
+              }}>
+              <span style={{ fontSize: 14 }}>{item.icon}</span>
+              {item.label}
             </button>
-            {expanded.password && (
-              <div className="px-4 pb-4 space-y-3 border-t-[0.5px] border-[var(--color-border-subtle)] pt-3">
-                {!passwordVerified ? (
-                  <>
-                    <p className="text-xs text-[var(--color-text-secondary)]">为保障账户安全，修改密码前需要验证你的邮箱。</p>
-                    <p className="text-xs text-[var(--color-text-tertiary)]">将发送验证码到 {user.email}</p>
-                    {passwordOtpSent && (
-                      <div>
-                        <label className="text-[11px] font-medium text-[var(--color-text-secondary)] ml-1">验证码</label>
-                        <div className="flex gap-2 mt-1">
-                          <input type="text" placeholder="输入8位验证码" value={passwordOtp} maxLength={8}
-                            onChange={(e) => setPasswordOtp(e.target.value.replace(/\D/g, ""))}
-                            className="flex-1 px-3 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] outline-none focus:border-[var(--color-accent)] transition-all tracking-widest" />
-                          <button type="button" onClick={async () => {
-                            setPasswordOtpCountdown(60);
-                            const timer = setInterval(() => {
-                              setPasswordOtpCountdown(prev => { if (prev <= 1) { clearInterval(timer); return 0; } return prev - 1; });
-                            }, 1000);
-                            await sendEmailOTP(user.email);
-                            toast.success("验证码已重新发送");
-                          }} disabled={passwordOtpCountdown > 0}
-                            className="shrink-0 px-3 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] disabled:opacity-40 transition-all">
-                            {passwordOtpCountdown > 0 ? `${passwordOtpCountdown}s` : "重发"}
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                    <button onClick={async () => {
-                      if (!passwordOtpSent) {
-                        setSendingPasswordOtp(true);
-                        const result = await sendEmailOTP(user.email);
-                        setSendingPasswordOtp(false);
-                        if (result.success) {
-                          setPasswordOtpSent(true);
-                          setPasswordOtpCountdown(60);
-                          const timer = setInterval(() => {
-                            setPasswordOtpCountdown(prev => { if (prev <= 1) { clearInterval(timer); return 0; } return prev - 1; });
-                          }, 1000);
-                          toast.success("验证码已发送到邮箱");
-                        } else {
-                          toast.error(result.error || "发送失败");
-                        }
-                      } else {
-                        // Verify OTP
-                        if (!passwordOtp.trim()) { toast.error("请输入验证码"); return; }
-                        setSendingPasswordOtp(true);
-                        const result = await sharedSupabase?.auth.verifyOtp({ email: user.email, token: passwordOtp.trim(), type: "email" });
-                        setSendingPasswordOtp(false);
-                        if (result?.error) {
-                          toast.error("验证码错误或已过期");
-                        } else {
-                          setPasswordVerified(true);
-                          toast.success("验证成功，请设置新密码");
-                        }
-                      }
-                    }} disabled={sendingPasswordOtp || (passwordOtpSent && passwordOtp.length < 6)}
-                      className="btn-primary w-full py-2.5 rounded-xl text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all">
-                      {sendingPasswordOtp ? "处理中..." : passwordOtpSent ? "验证" : "发送验证码"}
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-xs text-green-400">✓ 邮箱已验证</p>
-                    <div>
-                      <label className="text-[11px] font-medium text-[var(--color-text-secondary)] ml-1">新密码</label>
-                      <input type="password" placeholder="至少6位" value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        className="w-full mt-1 px-3 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] outline-none focus:border-[var(--color-accent)] transition-all" />
-                    </div>
-                    {newPassword.length >= 6 && (
-                      <div>
-                        <label className="text-[11px] font-medium text-[var(--color-text-secondary)] ml-1">确认密码</label>
-                        <input type="password" placeholder="再输入一次" value={confirmNewPassword}
-                          onChange={(e) => setConfirmNewPassword(e.target.value)}
-                          className="w-full mt-1 px-3 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] outline-none focus:border-[var(--color-accent)] transition-all" />
-                      </div>
-                    )}
-                    <button onClick={async () => {
-                      if (!newPassword || newPassword.length < 6) { toast.error("密码至少6位"); return; }
-                      if (newPassword !== confirmNewPassword) { toast.error("两次密码不一致"); return; }
-                      setSettingPassword(true);
-                      const res = await sharedSupabase?.auth.updateUser({ password: newPassword });
-                      const error = res?.error;
-                      if (error) { toast.error("设置失败: " + error.message); }
-                      else { toast.success("密码设置成功！"); setNewPassword(""); setConfirmNewPassword(""); setPasswordVerified(false); setPasswordOtpSent(false); setPasswordOtp(""); }
-                      setSettingPassword(false);
-                    }} disabled={!newPassword || newPassword.length < 6 || newPassword !== confirmNewPassword || settingPassword}
-                      className="btn-primary w-full py-2.5 rounded-xl text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all">
-                      {settingPassword ? "设置中..." : "保存密码"}
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ============ 邮箱绑定（仅游客） ============ */}
-        {user?.isGuest && !user.email && (
-          <div className="bg-[var(--color-bg-card)] border-[0.5px] border-[var(--color-border-subtle)] rounded-xl overflow-hidden">
-            <button onClick={() => toggleSection("bindEmail")} className="w-full px-4 py-3 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-lg">📧</span>
-                <span className="text-sm font-medium text-[var(--color-text-primary)]">绑定邮箱</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-400">升级正式用户</span>
-              </div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`text-[var(--color-text-tertiary)] transition-transform ${expanded.bindEmail ? "rotate-180" : ""}`}><polyline points="6 9 12 15 18 9"/></svg>
-            </button>
-            {expanded.bindEmail && (
-              <div className="px-4 pb-4 space-y-3 border-t-[0.5px] border-[var(--color-border-subtle)] pt-3">
-                <p className="text-xs text-[var(--color-text-secondary)]">绑定邮箱后，你的账号将升级为正式用户，可以通过邮箱登录。</p>
-                <div>
-                  <label className="text-[11px] font-medium text-[var(--color-text-secondary)] ml-1">邮箱地址</label>
-                  <input type="email" placeholder="your@email.com" value={bindEmailAddr}
-                    onChange={(e) => { setBindEmailAddr(e.target.value); if (bindEmailSent) { setBindEmailSent(false); setBindEmailOtp(""); } }}
-                    className="w-full mt-1 px-3 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] outline-none focus:border-[var(--color-accent)] transition-all" />
-                </div>
-                {bindEmailSent && (
-                  <div>
-                    <label className="text-[11px] font-medium text-[var(--color-text-secondary)] ml-1">验证码</label>
-                    <div className="flex gap-2 mt-1">
-                      <input type="text" placeholder="8位验证码" value={bindEmailOtp} maxLength={8}
-                        onChange={(e) => setBindEmailOtp(e.target.value.replace(/\D/g, ""))}
-                        className="flex-1 px-3 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-tertiary)] outline-none focus:border-[var(--color-accent)] transition-all tracking-widest" />
-                      <button type="button" onClick={handleSendBindOtp} disabled={bindEmailCountdown > 0 || bindingEmail}
-                        className="shrink-0 px-3 py-2.5 rounded-xl bg-[var(--color-bg-secondary)] border border-[var(--color-border-subtle)] text-xs text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] disabled:opacity-40 transition-all">
-                        {bindEmailCountdown > 0 ? `${bindEmailCountdown}s` : "重发"}
-                      </button>
-                    </div>
-                  </div>
-                )}
-                {!bindEmailSent ? (
-                  <button onClick={handleSendBindOtp} disabled={!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(bindEmailAddr) || bindingEmail}
-                    className="btn-primary w-full py-2.5 rounded-xl text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all">
-                    {bindingEmail ? "发送中..." : "发送验证码"}
-                  </button>
-                ) : (
-                  <button onClick={handleBindEmail} disabled={bindEmailOtp.length < 6 || bindingEmail}
-                    className="btn-primary w-full py-2.5 rounded-xl text-sm disabled:opacity-40 disabled:cursor-not-allowed transition-all">
-                    {bindingEmail ? "绑定中..." : "确认绑定"}
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ============ 已绑定邮箱显示 ============ */}
-        {user?.email && (
-          <div className="bg-[var(--color-bg-card)] border-[0.5px] border-[var(--color-border-subtle)] rounded-xl px-4 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">📧</span>
-              <span className="text-sm text-[var(--color-text-primary)]">邮箱</span>
-            </div>
-            <span className="text-xs text-[var(--color-text-secondary)]">{user.email}</span>
-          </div>
-        )}
-
-        {/* ============ 其他 ============ */}
-        <div className="space-y-2">
-          <button onClick={() => router.push("/feedback")}
-            className="w-full py-3 rounded-xl bg-[var(--color-bg-card)] border-[0.5px] border-[var(--color-border-subtle)] text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] hover:border-[var(--color-accent)]/30 transition-all">
-            💬 意见反馈
-          </button>
-          <button onClick={() => router.push("/donate")}
-            className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500/10 to-orange-400/5 border-[0.5px] border-amber-500/20 text-sm text-amber-400 hover:text-amber-300 hover:border-amber-400/30 transition-all">
-            ☕ 支持站长 · 推流帖子
-          </button>
-          {/* 注销账户 */}
-          {!showDeleteConfirm ? (
-            <button onClick={() => setShowDeleteConfirm(true)}
-              className="w-full py-3 rounded-xl bg-[var(--color-bg-card)] border-[0.5px] border-[var(--color-border-subtle)] text-sm text-red-400/70 hover:text-red-400 hover:bg-red-400/5 transition-all">
-              注销账户
-            </button>
-          ) : (
-            <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-4 space-y-3">
-              <p className="text-sm text-red-400 font-medium">⚠️ 确认注销账户？</p>
-              <p className="text-xs text-[var(--color-text-secondary)]">注销后你的昵称将变为"已注销用户"，但你发布的内容会保留。此操作不可逆。</p>
-              <div className="flex gap-2">
-                <button onClick={() => setShowDeleteConfirm(false)}
-                  className="flex-1 py-2 rounded-lg bg-[var(--color-bg-secondary)] text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-all">
-                  取消
-                </button>
-                <button onClick={handleDeleteAccount} disabled={deleting}
-                  className="flex-1 py-2 rounded-lg bg-red-500/20 text-sm text-red-400 hover:bg-red-500/30 disabled:opacity-40 transition-all">
-                  {deleting ? "注销中..." : "确认注销"}
-                </button>
-              </div>
-            </div>
-          )}
-
-          <button onClick={async () => { await logout(); toast.success("已退出"); router.push("/"); }}
-            className="w-full py-3 rounded-xl bg-[var(--color-bg-card)] border-[0.5px] border-[var(--color-border-subtle)] text-sm text-red-400 hover:bg-red-400/5 transition-all">
-            退出登录
-          </button>
+          ))}
         </div>
 
-        <div className="text-center pb-8 pt-4">
-          <p className="text-xs text-[var(--color-text-tertiary)]">大岚荧 v1.0</p>
-          <p className="text-[10px] text-[var(--color-text-tertiary)] mt-0.5">发现 · 分享 · 连接</p>
-        </div>
+        {/* Content area */}
+        <section style={{ flex: 1, minWidth: 0 }}>
+          {/* PC back button */}
+          <div className="hidden lg:flex" style={{ alignItems: "center", gap: 12, marginBottom: 24 }}>
+            <button onClick={() => router.back()} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 14px", borderRadius: 10, border: "0.5px solid var(--color-border-subtle)", backgroundColor: "var(--color-bg-card)", color: "var(--color-text-secondary)", fontSize: 13, cursor: "pointer" }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+              返回
+            </button>
+            <h2 style={{ fontSize: 16, fontWeight: 700, color: "var(--color-text-primary)" }}>
+              {NAV_ITEMS.find(n => n.key === activeTab)?.label}
+            </h2>
+          </div>
+
+          {renderContent()}
+        </section>
       </div>
     </main>
   );
