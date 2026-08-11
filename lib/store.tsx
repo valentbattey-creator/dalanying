@@ -20,7 +20,7 @@ interface DataState {
   setSearchQuery: (q: string) => void;
   loadMore: () => Promise<void>;
   addPost: (post: Omit<Post, "id" | "likes" | "comments" | "createdAt" | "authorId" | "authorAvatar">) => Promise<void>;
-  addComment: (postId: string, content: string, parentId?: string | null, image?: string) => Promise<Comment | null>;
+  addComment: (postId: string, content: string, parentId?: string | null, replyToUsername?: string | null, image?: string) => Promise<Comment | null>;
   deleteComment: (commentId: string) => Promise<boolean>;
   toggleLike: (postId: string) => Promise<void>;
   toggleSave: (postId: string) => void;
@@ -202,7 +202,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setPosts(prev => [newPost, ...prev]);
   }, [user]);
 
-  const addComment = useCallback(async (postId: string, content: string, parentId: string | null = null, image?: string) => {
+  const addComment = useCallback(async (postId: string, content: string, parentId: string | null = null, replyToUsername: string | null = null, image?: string) => {
     if (!user) return null;
     if (isBanned(user)) return null;
     // Content moderation
@@ -212,7 +212,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       return null;
     }
     const comment = await dataService.createComment({
-      postId, parentId, author: user.name, authorId: user.id, authorAvatar: user.avatar, content, image: image || "",
+      postId, parentId, replyToUsername: replyToUsername || undefined, author: user.name, authorId: user.id, authorAvatar: user.avatar, content, image: image || "",
     });
     if (comment) {
       setComments(prev => [...prev, comment]);

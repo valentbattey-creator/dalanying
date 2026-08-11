@@ -66,7 +66,7 @@ export default function PostDetailModal({ postId, onClose }: PostDetailModalProp
     if (!commentText.trim() || !user || sending || !post) return;
     setSending(true);
     try {
-      await addComment(post.id, commentText.trim(), replyTo?.id || null);
+      await addComment(post.id, commentText.trim(), replyTo?.id || null, replyTo?.author || null);
       setCommentText("");
       setReplyTo(null);
       toast.success("评论成功");
@@ -204,7 +204,12 @@ export default function PostDetailModal({ postId, onClose }: PostDetailModalProp
                         回复 <span style={{ color: "var(--color-accent)" }}>@{parent.author}</span>：{parent.content?.slice(0, 30)}{parent.content && parent.content.length > 30 ? "..." : ""}
                       </div>
                     )}
-                    <p style={{ fontSize: 13, color: "var(--color-text-secondary)", margin: parent ? "0" : "4px 0 0", lineHeight: 1.5 }}>{comment.content}</p>
+                    <p style={{ fontSize: 13, color: "var(--color-text-secondary)", margin: parent ? "0" : "4px 0 0", lineHeight: 1.5 }}>
+                      {comment.replyToUsername && !parent && (
+                        <span style={{ color: "var(--color-accent)", marginRight: 4 }}>回复 @{comment.replyToUsername}:</span>
+                      )}
+                      {comment.content}
+                    </p>
                     <button onClick={() => { setReplyTo(comment); commentInputRef.current?.focus(); }}
                       style={{ fontSize: 12, color: "var(--color-text-tertiary)", background: "none", border: "none", cursor: "pointer", padding: "2px 0", marginTop: 4 }}>
                       回复
@@ -366,7 +371,12 @@ export default function PostDetailModal({ postId, onClose }: PostDetailModalProp
                         回复 <span style={{ color: "var(--color-accent)" }}>@{parent.author}</span>：{parent.content?.slice(0, 30)}{parent.content && parent.content.length > 30 ? "..." : ""}
                       </div>
                     )}
-                    <p style={{ fontSize: 12, color: "var(--color-text-secondary)", margin: parent ? "0" : "3px 0 0", lineHeight: 1.5 }}>{comment.content}</p>
+                    <p style={{ fontSize: 12, color: "var(--color-text-secondary)", margin: parent ? "0" : "3px 0 0", lineHeight: 1.5 }}>
+                      {comment.replyToUsername && !parent && (
+                        <span style={{ color: "var(--color-accent)", marginRight: 4 }}>回复 @{comment.replyToUsername}:</span>
+                      )}
+                      {comment.content}
+                    </p>
                     <button onClick={() => { setReplyTo(comment); commentInputRef.current?.focus(); }}
                       style={{ fontSize: 11, color: "var(--color-text-tertiary)", background: "none", border: "none", cursor: "pointer", padding: "2px 0", marginTop: 3 }}>
                       回复

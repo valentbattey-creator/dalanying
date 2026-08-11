@@ -21,6 +21,7 @@ export async function GET(req: NextRequest) {
       id: c.id,
       postId: c.post_id,
       parentId: c.parent_id || null,
+      replyToUsername: c.reply_to_username || null,
       author: c.author_name || "",
       authorId: c.user_id || "",
       authorAvatar: c.author_avatar || "",
@@ -38,14 +39,15 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { postId, parentId, author, authorId, userId, authorAvatar, content, image } = body;
+    const { postId, parentId, replyToUsername, author, authorId, userId, authorAvatar, content, image } = body;
     const uid = authorId || userId;
 
     // Try insert with all fields, fallback to minimal fields
     let data, error;
-    const fullInsert = {
+    const fullInsert: any = {
       post_id: postId,
       parent_id: parentId || null,
+      reply_to_username: replyToUsername || null,
       user_id: authorId,
       author_name: author || "",
       author_avatar: authorAvatar || "",
@@ -79,6 +81,7 @@ export async function POST(req: NextRequest) {
       id: data.id,
       postId: data.post_id,
       parentId: data.parent_id || null,
+      replyToUsername: data.reply_to_username || null,
       author: data.author_name || "",
       authorId: data.user_id || "",
       authorAvatar: data.author_avatar || "",

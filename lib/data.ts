@@ -50,6 +50,7 @@ export interface Comment {
   id: string;
   postId: string;
   parentId: string | null;
+  replyToUsername?: string;
   author: string;
   authorId: string;
   authorAvatar: string;
@@ -527,7 +528,7 @@ export const dataService = {
     return [...SEED_COMMENTS, ...lsGet<Comment[]>("comments", [])].filter(c => !postId || c.postId === postId);
   },
 
-  async createComment(data: { postId: string; parentId: string | null; author: string; authorId: string; authorAvatar: string; content: string; image?: string }): Promise<Comment | null> {
+  async createComment(data: { postId: string; parentId: string | null; replyToUsername?: string; author: string; authorId: string; authorAvatar: string; content: string; image?: string }): Promise<Comment | null> {
     // Try API first
     const apiResult = await apiPost<any>("/api/comments", data);
     if (apiResult && !apiResult.error) {
