@@ -879,6 +879,43 @@ export async function syncSeedToSupabase(userId: string): Promise<boolean> {
 }
 
 export async function banUser(userId: string, until: string) { return dataService.banUser(userId, until); }
+
+// Auto-create seed announcement if none exist in Supabase
+export async function ensureAnnouncements(userId: string): Promise<boolean> {
+  try {
+    // Check if any announcement posts exist
+    const SB_URL_LOCAL = "https://aawoajhmhvysedabncoz.supabase.co";
+    const SB_KEY_LOCAL = "sb_publishable_jpAnsNOd1-v5ftyOhjO09A_cnQBXjvh";
+    const res = await fetch(`${SB_URL_LOCAL}/rest/v1/posts?is_announcement=eq.true&select=id&limit=1`, {
+      headers: { "apikey": SB_KEY_LOCAL, "Authorization": `Bearer ${SB_KEY_LOCAL}` },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.length > 0) return false; // Already has announcements
+    }
+    // No announcements found, create the seed announcement
+    console.log("[ensureAnnouncements] No announcements found, creating seed announcement...");
+    const seed = SEED_POSTS.find(p => p.isAnnouncement);
+    if (!seed) return false;
+    const result = await apiPost("/api/posts", {
+      title: seed.title,
+      content: seed.content,
+      images: seed.images,
+      category: seed.category,
+      tags: seed.tags,
+      authorId: userId,
+      author: seed.author,
+      authorAvatar: seed.authorAvatar || "",
+      isPinned: true,
+      isAnnouncement: true,
+    });
+    console.log("[ensureAnnouncements] Created:", result ? "success" : "failed");
+    return !!result;
+  } catch (e) {
+    console.error("[ensureAnnouncements] Error:", e);
+    return false;
+  }
+}
 export async function unbanUser(userId: string) { return dataService.unbanUser(userId); }
 export async function fetchAllProfiles() { return dataService.fetchAllProfiles(); }
 export async function fetchProfile(userId: string) { return dataService.fetchProfile(userId); }

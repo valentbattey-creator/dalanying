@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect, use
 import { useAuth } from "./auth";
 import { toast } from "sonner";
 import { moderateContent, getViolationLevel } from "./moderation";
-import { dataService, syncSeedToSupabase, banUser, unbanUser, fetchAllProfiles, createAnnouncement, type Post, type Comment, type Profile } from "./data";
+import { dataService, syncSeedToSupabase, ensureAnnouncements, banUser, unbanUser, fetchAllProfiles, createAnnouncement, type Post, type Comment, type Profile } from "./data";
 
 export type { Post, Comment };
 
@@ -166,11 +166,15 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }
   }, [refreshAll]);
 
-  // Seed sync
+  // Seed sync + ensure announcements exist
   useEffect(() => {
     if (user) {
       syncSeedToSupabase(user.id).then(synced => { if (synced) refreshAll(); });
     }
+    // Always check for announcements (runs once per session)
+    ensureAnnouncements(user?.id || "").then(created => {
+      if (created) { setTimeout(() => refreshAll(), 1500); }
+    });
   }, [user]);
 
   // When search changes

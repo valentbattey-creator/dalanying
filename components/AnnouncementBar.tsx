@@ -75,7 +75,7 @@ export default function AnnouncementBar({ announcements }: { announcements: Anno
             backdropFilter: "blur(4px)",
             WebkitBackdropFilter: "blur(4px)",
             display: "flex",
-            alignItems: "flex-end",
+            alignItems: "center",
             justifyContent: "center"
           }}
         >
@@ -83,12 +83,11 @@ export default function AnnouncementBar({ announcements }: { announcements: Anno
             onClick={(e) => e.stopPropagation()}
             className="md:rounded-2xl"
             style={{
-              width: "100%",
+              width: "90%",
               maxWidth: "480px",
               maxHeight: "70vh",
               backgroundColor: "var(--color-bg-card)",
-              borderTopLeftRadius: "16px",
-              borderTopRightRadius: "16px",
+              borderRadius: "16px",
               overflow: "hidden",
               display: "flex",
               flexDirection: "column"

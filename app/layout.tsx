@@ -60,7 +60,8 @@ export const metadata: Metadata = {
     canonical: "https://www.dalanying.work",
   },
   icons: {
-    icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>蓝</text></svg>",
+    icon: "/icons/icon-192.png",
+    apple: "/icons/icon-192.png",
   },
   other: {
     "baidu-site-verification": "codeva-placeholder",
@@ -93,6 +94,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <link rel="manifest" href="/manifest.json" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
